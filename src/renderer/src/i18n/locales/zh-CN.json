@@ -1,0 +1,250 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "saving": "保存中...",
+    "saved": "已保存！",
+    "signingIn": "登录中...",
+    "adding": "添加中...",
+    "cancel": "取消",
+    "refresh": "刷新",
+    "lock": "锁定",
+    "edit": "编辑",
+    "save": "保存"
+  },
+  "nav": {
+    "overview": "概览",
+    "antigravity": "Antigravity",
+    "githubCopilot": "GitHub Copilot",
+    "zaiCoding": "Z.ai Coding",
+    "settings": "设置"
+  },
+  "branding": {
+    "title": "AI 管理器",
+    "subtitle": "用量仪表板"
+  },
+  "auth": {
+    "unlock": "解锁",
+    "setMasterPassword": "设置主密码",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "enterPasswordToAccess": "输入密码以访问应用程序",
+    "createPasswordToProtect": "创建主密码以保护您的凭证",
+    "setPassword": "设置密码",
+    "pleaseEnterPassword": "请输入密码",
+    "incorrectPassword": "密码错误",
+    "passwordMinLength": "密码至少需要 4 个字符",
+    "passwordsDoNotMatch": "密码不匹配",
+    "failedToSetPassword": "设置密码失败",
+    "skipPassword": "不设置密码",
+    "skipPasswordWarningTitle": "确定不设置密码吗？",
+    "skipPasswordWarningDesc": "不设置密码将无法保护您存储的账户信息，任何人都可以访问此应用程序。",
+    "confirmSkip": "确认跳过",
+    "failedToSkipPassword": "跳过密码设置失败"
+  },
+  "settings": {
+    "title": "设置",
+    "subtitle": "配置应用程序首选项",
+    "refreshSettings": "刷新设置",
+    "refreshSettingsDesc": "配置用量数据的刷新频率",
+    "refreshInterval": "刷新间隔（秒）",
+    "refreshIntervalDesc": "自动刷新用量数据的频率",
+    "quotaAlerts": "配额警报",
+    "quotaAlertsDesc": "配置低配额警告",
+    "lowQuotaThreshold": "低配额阈值（%）",
+    "lowQuotaThresholdDesc": "当剩余配额低于此百分比时显示警告",
+    "notifications": "通知",
+    "notificationsDesc": "显示低配额的系统通知",
+    "dangerZone": "危险区域",
+    "dangerZoneDesc": "不可逆的操作",
+    "clearAllData": "清除所有数据",
+    "clearDataConfirm": "这将删除所有账户和设置。确定要继续吗？",
+    "saveSettings": "保存设置",
+    "language": "语言",
+    "languageDesc": "选择您首选的语言",
+    "traySettings": "系统托盘",
+    "traySettingsDesc": "配置系统托盘行为",
+    "closeToTray": "最小化到托盘",
+    "closeToTrayDesc": "关闭窗口时最小化到托盘而非完全关闭应用程序",
+    "notificationReminderInterval": "提醒间隔（分钟）",
+    "notificationReminderIntervalDesc": "低配额项目的提醒频率"
+  },
+  "overview": {
+    "title": "概览",
+    "lastUpdated": "最后更新：{{time}}",
+    "noAccountsConfigured": "尚未配置账户",
+    "addAccountsHint": "在提供者页面添加账户以在此处查看用量"
+  },
+  "provider": {
+    "accounts": "账户",
+    "usage": "用量",
+    "addAccount": "添加账户",
+    "noAccountsConfigured": "尚未配置账户",
+    "removeAccountConfirm": "确定要移除此账户吗？",
+    "showInOverview": "在概览中显示",
+    "hideFromOverview": "从概览中隐藏",
+    "loginFailed": "登录失败"
+  },
+  "antigravity": {
+    "title": "Antigravity"
+  },
+  "githubCopilot": {
+    "title": "GitHub Copilot",
+    "addAccountTitle": "添加 GitHub Copilot 账户",
+    "tokenPlaceholder": "个人访问令牌（gho_...）"
+  },
+  "zaiCoding": {
+    "title": "Z.ai Coding 方案",
+    "addAccountTitle": "添加 Z.ai Coding 账户",
+    "apiKeyPlaceholder": "API 密钥",
+    "limits": {
+      "tokensLimit": "AI配额",
+      "timeLimit": "工具使用"
+    }
+  },
+  "addAccount": {
+    "name": "名称",
+    "namePlaceholder": "账户名称",
+    "apiKey": "API 密钥",
+    "pleaseEnterName": "请输入名称",
+    "pleaseEnterApiKey": "请输入 API 密钥",
+    "failedToAddAccount": "添加账户失败",
+    "connect": "连接",
+    "connected": "已连接",
+    "connectedAs": "已连接为 {{user}}",
+    "signInWith": "使用 {{provider}} 登录"
+  },
+  "editName": {
+    "editAccountName": "编辑账户名称",
+    "name": "名称",
+    "namePlaceholder": "账户名称",
+    "pleaseEnterName": "请输入名称",
+    "failedToSave": "保存失败"
+  },
+  "time": {
+    "now": "现在",
+    "days": "{{count}}天",
+    "hours": "{{count}}小时",
+    "minutes": "{{count}}分钟"
+  },
+  "customization": {
+    "title": "自定义设置",
+    "subtitle": "个性化你的仪表板体验",
+    "resetAll": "重置全部",
+    "resetConfirm": "确定要重置所有自定义设置吗？",
+    
+    "display": {
+      "title": "显示控制",
+      "description": "控制显示哪些信息",
+      "showOnlyLowQuota": "仅显示低配额",
+      "showOnlyLowQuotaDesc": "只显示低于阈值的卡片",
+      "hideUnlimited": "隐藏无限配额",
+      "hideUnlimitedDesc": "隐藏无限制配额的卡片"
+    },
+    
+    "layout": {
+      "title": "布局设置",
+      "description": "调整网格与卡片排列",
+      "gridColumns": "网格列数",
+      "gridColumnsDesc": "卡片网格的列数",
+      "cardSize": "卡片尺寸",
+      "cardSizeDesc": "用量卡片的大小"
+    },
+    
+      "visual": {
+        "title": "视觉风格",
+        "description": "自定义颜色与外观",
+        "theme": "主题",
+        "light": "浅色",
+        "dark": "深色",
+        "system": "系统",
+        "accentColor": "主题色",
+        "colors": {
+          "blue": "蓝色",
+          "green": "绿色",
+          "purple": "紫色",
+          "orange": "橘色",
+          "pink": "粉色",
+          "cyan": "青色"
+        },
+        "progressStyle": "进度条样式",
+        "progressStyleDesc": "进度指示器的样式",
+        "progressOptions": {
+          "solid": "纯色",
+          "gradient": "渐变",
+          "striped": "斜纹"
+        },
+        "cardRadius": "卡片圆角",
+        "cardRadiusDesc": "卡片边角的圆滑程度",
+        "radiusOptions": {
+          "none": "无",
+          "sm": "小",
+          "md": "中",
+          "lg": "大"
+        }
+      },
+      
+      "layout": {
+        "title": "布局设置",
+        "description": "调整网格与卡片排列",
+        "gridColumns": "网格列数",
+        "gridColumnsDesc": "卡片网格的列数",
+        "gridOptions": {
+          "1": "1 列",
+          "2": "2 列",
+          "3": "3 列",
+          "4": "4 列",
+          "auto": "自动"
+        },
+        "cardSize": "卡片尺寸",
+        "cardSizeDesc": "用量卡片的大小",
+        "sizeOptions": {
+          "compact": "紧凑",
+          "default": "默认",
+          "large": "大型"
+        }
+      },
+      
+      "data": {
+        "title": "数据呈现",
+        "description": "配额数值的呈现方式",
+        "valueFormat": "数值格式",
+        "valueFormatDesc": "配额数值的显示方式",
+        "valueOptions": {
+          "percent": "百分比",
+          "absolute": "绝对值",
+          "both": "两者"
+        },
+        "decimalPlaces": "小数位数",
+        "decimalPlacesDesc": "百分比数值的精确度",
+        "timeFormat": "时间格式",
+        "timeFormatDesc": "重置时间的显示方式",
+        "timeOptions": {
+          "relative": "相对时间",
+          "absolute": "绝对时间"
+        },
+        "showResetTime": "显示重置时间",
+        "showResetTimeDesc": "显示配额何时重置"
+      },
+      
+      "interaction": {
+        "title": "互动行为",
+        "description": "设置行为与动作",
+        "cardClick": "卡片点击动作",
+        "cardClickDesc": "点击卡片时的动作",
+        "clickOptions": {
+          "none": "无",
+          "detail": "详细信息",
+          "copy": "复制内容"
+        },
+        "refreshOptions": {
+          "off": "关闭",
+          "30s": "30秒",
+          "1m": "1分钟",
+          "2m": "2分钟",
+          "5m": "5分钟"
+        },
+        "shortcuts": "键盘快捷键",
+        "shortcutsDesc": "启用键盘导航"
+      }
+  }
+}

@@ -1,0 +1,250 @@
+{
+  "common": {
+    "loading": "載入中...",
+    "saving": "儲存中...",
+    "saved": "已儲存！",
+    "signingIn": "登入中...",
+    "adding": "新增中...",
+    "cancel": "取消",
+    "refresh": "重新整理",
+    "lock": "鎖定",
+    "edit": "編輯",
+    "save": "儲存"
+  },
+  "nav": {
+    "overview": "總覽",
+    "antigravity": "Antigravity",
+    "githubCopilot": "GitHub Copilot",
+    "zaiCoding": "Z.ai Coding",
+    "settings": "設定"
+  },
+  "branding": {
+    "title": "AI 管理器",
+    "subtitle": "使用量儀表板"
+  },
+  "auth": {
+    "unlock": "解鎖",
+    "setMasterPassword": "設定主密碼",
+    "password": "密碼",
+    "confirmPassword": "確認密碼",
+    "enterPasswordToAccess": "輸入密碼以存取應用程式",
+    "createPasswordToProtect": "建立主密碼以保護您的憑證",
+    "setPassword": "設定密碼",
+    "pleaseEnterPassword": "請輸入密碼",
+    "incorrectPassword": "密碼錯誤",
+    "passwordMinLength": "密碼至少需要 4 個字元",
+    "passwordsDoNotMatch": "密碼不相符",
+    "failedToSetPassword": "設定密碼失敗",
+    "skipPassword": "不設定密碼",
+    "skipPasswordWarningTitle": "確定不設定密碼嗎？",
+    "skipPasswordWarningDesc": "不設定密碼將無法保護您儲存的帳戶資訊，任何人都可以存取此應用程式。",
+    "confirmSkip": "確認跳過",
+    "failedToSkipPassword": "跳過密碼設定失敗"
+  },
+  "settings": {
+    "title": "設定",
+    "subtitle": "配置應用程式偏好設定",
+    "refreshSettings": "重新整理設定",
+    "refreshSettingsDesc": "配置使用資料的重新整理頻率",
+    "refreshInterval": "重新整理間隔（秒）",
+    "refreshIntervalDesc": "自動重新整理使用資料的頻率",
+    "quotaAlerts": "配額警示",
+    "quotaAlertsDesc": "配置低配額警告",
+    "lowQuotaThreshold": "低配額閾值（%）",
+    "lowQuotaThresholdDesc": "當剩餘配額低於此百分比時顯示警告",
+    "notifications": "通知",
+    "notificationsDesc": "顯示低配額的系統通知",
+    "notificationReminderInterval": "提醒間隔（分鐘）",
+    "notificationReminderIntervalDesc": "低配額項目的提醒頻率",
+    "dangerZone": "危險區域",
+    "dangerZoneDesc": "不可逆的操作",
+    "clearAllData": "清除所有資料",
+    "clearDataConfirm": "這將刪除所有帳戶和設定。確定要繼續嗎？",
+    "saveSettings": "儲存設定",
+    "language": "語言",
+    "languageDesc": "選擇您偏好的語言",
+    "traySettings": "系統工具列",
+    "traySettingsDesc": "設定系統工具列行為",
+    "closeToTray": "最小化到系統工具列",
+    "closeToTrayDesc": "關閉視窗時最小化到系統工具列而非完全關閉應用程式"
+  },
+  "overview": {
+    "title": "總覽",
+    "lastUpdated": "最後更新：{{time}}",
+    "noAccountsConfigured": "尚未設定帳戶",
+    "addAccountsHint": "在提供者頁面新增帳戶以在此處查看使用情況"
+  },
+  "provider": {
+    "accounts": "帳戶",
+    "usage": "使用量",
+    "addAccount": "新增帳戶",
+    "noAccountsConfigured": "尚未設定帳戶",
+    "removeAccountConfirm": "確定要移除此帳戶嗎？",
+    "showInOverview": "在總覽中顯示",
+    "hideFromOverview": "從總覽中隱藏",
+    "loginFailed": "登入失敗"
+  },
+  "antigravity": {
+    "title": "Antigravity"
+  },
+  "githubCopilot": {
+    "title": "GitHub Copilot",
+    "addAccountTitle": "新增 GitHub Copilot 帳戶",
+    "tokenPlaceholder": "個人存取權杖（gho_...）"
+  },
+  "zaiCoding": {
+    "title": "Z.ai Coding 方案",
+    "addAccountTitle": "新增 Z.ai Coding 帳戶",
+    "apiKeyPlaceholder": "API 金鑰",
+    "limits": {
+      "tokensLimit": "AI配額",
+      "timeLimit": "工具使用"
+    }
+  },
+  "addAccount": {
+    "name": "名稱",
+    "namePlaceholder": "帳戶名稱",
+    "apiKey": "API 金鑰",
+    "pleaseEnterName": "請輸入名稱",
+    "pleaseEnterApiKey": "請輸入 API 金鑰",
+    "failedToAddAccount": "新增帳戶失敗",
+    "connect": "連結",
+    "connected": "已連結",
+    "connectedAs": "已連結為 {{user}}",
+    "signInWith": "使用 {{provider}} 登入"
+  },
+  "editName": {
+    "editAccountName": "編輯帳戶名稱",
+    "name": "名稱",
+    "namePlaceholder": "帳戶名稱",
+    "pleaseEnterName": "請輸入名稱",
+    "failedToSave": "儲存失敗"
+  },
+  "time": {
+    "now": "現在",
+    "days": "{{count}}天",
+    "hours": "{{count}}小時",
+    "minutes": "{{count}}分鐘"
+  },
+  "customization": {
+    "title": "自訂設定",
+    "subtitle": "個人化你的儀表板體驗",
+    "resetAll": "重置全部",
+    "resetConfirm": "確定要重置所有自訂設定嗎？",
+    
+    "display": {
+      "title": "顯示控制",
+      "description": "控制顯示哪些資訊",
+      "showOnlyLowQuota": "僅顯示低配額",
+      "showOnlyLowQuotaDesc": "只顯示低於閾值的卡片",
+      "hideUnlimited": "隱藏無限配額",
+      "hideUnlimitedDesc": "隱藏無限制配額的卡片"
+    },
+    
+    "layout": {
+      "title": "佈局設定",
+      "description": "調整網格與卡片排列",
+      "gridColumns": "網格欄數",
+      "gridColumnsDesc": "卡片網格的欄數",
+      "cardSize": "卡片尺寸",
+      "cardSizeDesc": "使用量卡片的大小"
+    },
+    
+      "visual": {
+        "title": "視覺風格",
+        "description": "自訂顏色與外觀",
+        "theme": "主題",
+        "light": "淺色",
+        "dark": "深色",
+        "system": "系統",
+        "accentColor": "主題色",
+        "colors": {
+          "blue": "藍色",
+          "green": "綠色",
+          "purple": "紫色",
+          "orange": "橘色",
+          "pink": "粉色",
+          "cyan": "青色"
+        },
+        "progressStyle": "進度條樣式",
+        "progressStyleDesc": "進度指示器的樣式",
+        "progressOptions": {
+          "solid": "純色",
+          "gradient": "漸層",
+          "striped": "斜紋"
+        },
+        "cardRadius": "卡片圓角",
+        "cardRadiusDesc": "卡片邊角的圓滑程度",
+        "radiusOptions": {
+          "none": "無",
+          "sm": "小",
+          "md": "中",
+          "lg": "大"
+        }
+      },
+      
+      "layout": {
+        "title": "佈局設定",
+        "description": "調整網格與卡片排列",
+        "gridColumns": "網格欄數",
+        "gridColumnsDesc": "卡片網格的欄數",
+        "gridOptions": {
+          "1": "1 欄",
+          "2": "2 欄",
+          "3": "3 欄",
+          "4": "4 欄",
+          "auto": "自動"
+        },
+        "cardSize": "卡片尺寸",
+        "cardSizeDesc": "使用量卡片的大小",
+        "sizeOptions": {
+          "compact": "緊湊",
+          "default": "預設",
+          "large": "大型"
+        }
+      },
+      
+      "data": {
+        "title": "數據呈現",
+        "description": "配額數值的呈現方式",
+        "valueFormat": "數值格式",
+        "valueFormatDesc": "配額數值的顯示方式",
+        "valueOptions": {
+          "percent": "百分比",
+          "absolute": "絕對值",
+          "both": "兩者"
+        },
+        "decimalPlaces": "小數位數",
+        "decimalPlacesDesc": "百分比數值的精確度",
+        "timeFormat": "時間格式",
+        "timeFormatDesc": "重置時間的顯示方式",
+        "timeOptions": {
+          "relative": "相對時間",
+          "absolute": "絕對時間"
+        },
+        "showResetTime": "顯示重置時間",
+        "showResetTimeDesc": "顯示配額何時重置"
+      },
+      
+      "interaction": {
+        "title": "互動行為",
+        "description": "設定行為與動作",
+        "cardClick": "卡片點擊動作",
+        "cardClickDesc": "點擊卡片時的動作",
+        "clickOptions": {
+          "none": "無",
+          "detail": "詳細資訊",
+          "copy": "複製內容"
+        },
+        "refreshOptions": {
+          "off": "關閉",
+          "30s": "30秒",
+          "1m": "1分鐘",
+          "2m": "2分鐘",
+          "5m": "5分鐘"
+        },
+        "shortcuts": "鍵盤快捷鍵",
+        "shortcutsDesc": "啟用鍵盤導航"
+      }
+  }
+}
