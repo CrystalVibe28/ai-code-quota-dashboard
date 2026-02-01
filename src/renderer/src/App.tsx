@@ -25,7 +25,7 @@ function App() {
   const initializedRef = useRef(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const refreshAllData = useCallback(async () => {
+const refreshAllData = useCallback(async () => {
     await Promise.all([
       fetchAntiAccounts(),
       fetchGhAccounts(),
@@ -36,6 +36,10 @@ function App() {
       fetchGhUsage(),
       fetchZaiUsage()
     ])
+    // Trigger notification check after refreshing data
+    window.api.notification.triggerCheck().catch(() => {
+      // Silently ignore notification check failures
+    })
   }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage])
 
   useEffect(() => {

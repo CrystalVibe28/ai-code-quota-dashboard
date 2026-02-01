@@ -195,6 +195,7 @@ async function performBackgroundRefresh(): Promise<void> {
     if (!refreshStorageService.isUnlocked()) return
 
     const refreshSettings = await refreshStorageService.getSettings()
+    const customization = await refreshStorageService.getCustomization()
 
     const antigravityService = new AntigravityService()
     const githubCopilotService = new GithubCopilotService()
@@ -279,11 +280,19 @@ async function performBackgroundRefresh(): Promise<void> {
       zaiCoding: zaiTray
     })
 
-    notificationService.checkAndNotify(
+notificationService.checkAndNotify(
       antigravityResults,
       copilotResults,
       zaiResults,
-      refreshSettings
+      refreshSettings,
+      {
+        hideUnlimitedQuota: customization?.global?.hideUnlimitedQuota ?? false,
+        hiddenCardIds: new Set(
+          Object.entries(customization?.cards ?? {})
+            .filter(([, config]) => config.visible === false)
+            .map(([cardId]) => cardId)
+        )
+      }
     )
   } catch (error) {
     console.error('[Background Refresh] Check and notify failed:', error)

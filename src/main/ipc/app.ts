@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, app } from 'electron'
 import { StorageService } from '../services/storage'
 import { TrayService } from '../services/tray'
 import { restartBackgroundRefresh, stopBackgroundRefresh, startBackgroundRefresh } from '../index'
@@ -71,5 +71,30 @@ export function registerAppHandlers(): void {
 
   ipcMain.handle('app:refresh-all', async () => {
     return true
+  })
+
+  // Auto launch (Windows only)
+  ipcMain.handle('app:get-platform', () => {
+    return process.platform
+  })
+
+  ipcMain.handle('app:get-auto-launch', () => {
+    try {
+      const settings = app.getLoginItemSettings()
+      return settings.openAtLogin
+    } catch (error) {
+      console.error('[App IPC] Failed to get auto launch setting:', error)
+      return false
+    }
+  })
+
+  ipcMain.handle('app:set-auto-launch', (_, enabled: boolean) => {
+    try {
+      app.setLoginItemSettings({ openAtLogin: enabled })
+      return true
+    } catch (error) {
+      console.error('[App IPC] Failed to set auto launch:', error)
+      return false
+    }
   })
 }

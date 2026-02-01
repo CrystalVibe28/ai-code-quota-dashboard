@@ -79,14 +79,28 @@ const api = {
     stopBackgroundRefresh: (): Promise<boolean> =>
       ipcRenderer.invoke('app:stop-background-refresh'),
     startBackgroundRefresh: (): Promise<boolean> =>
-      ipcRenderer.invoke('app:start-background-refresh')
+      ipcRenderer.invoke('app:start-background-refresh'),
+    getPlatform: (): Promise<string> =>
+      ipcRenderer.invoke('app:get-platform'),
+    getAutoLaunch: (): Promise<boolean> =>
+      ipcRenderer.invoke('app:get-auto-launch'),
+    setAutoLaunch: (enabled: boolean): Promise<boolean> =>
+      ipcRenderer.invoke('app:set-auto-launch', enabled)
   },
 
-  notification: {
+notification: {
     resetState: (): Promise<boolean> =>
       ipcRenderer.invoke('notification:reset-state'),
     restartTimer: (): Promise<boolean> =>
-      ipcRenderer.invoke('notification:restart-timer')
+      ipcRenderer.invoke('notification:restart-timer'),
+    checkAndNotify: (data: {
+      antigravity: unknown[]
+      copilot: unknown[]
+      zai: unknown[]
+    }): Promise<boolean> =>
+      ipcRenderer.invoke('notification:check-and-notify', data),
+    triggerCheck: (): Promise<boolean> =>
+      ipcRenderer.invoke('notification:trigger-check')
   }
 }
 

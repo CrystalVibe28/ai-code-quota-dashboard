@@ -45,7 +45,7 @@
     "confirmSkip": "確認跳過",
     "failedToSkipPassword": "跳過密碼設定失敗"
   },
-  "settings": {
+"settings": {
     "title": "設定",
     "subtitle": "配置應用程式偏好設定",
     "refreshSettings": "重新整理設定",
@@ -58,8 +58,16 @@
     "lowQuotaThresholdDesc": "當剩餘配額低於此百分比時顯示警告",
     "notifications": "通知",
     "notificationsDesc": "顯示低配額的系統通知",
-    "notificationReminderInterval": "提醒間隔（分鐘）",
-    "notificationReminderIntervalDesc": "低配額項目的提醒頻率",
+    "notificationThresholds": "通知閾值",
+    "notificationThresholdsDesc": "設定分階段配額警示閾值。當配額首次跨越每個閾值時發送通知。",
+    "thresholdWarning": "警告",
+    "thresholdUrgent": "緊急",
+    "thresholdCritical": "嚴重",
+    "addThreshold": "新增閾值",
+    "removeThreshold": "移除",
+    "resetThresholds": "重置",
+    "thresholdNamePlaceholder": "名稱",
+    "customThreshold": "自定義",
     "dangerZone": "危險區域",
     "dangerZoneDesc": "不可逆的操作",
     "clearAllData": "清除所有資料",
@@ -70,7 +78,10 @@
     "traySettings": "系統工具列",
     "traySettingsDesc": "設定系統工具列行為",
     "closeToTray": "最小化到系統工具列",
-    "closeToTrayDesc": "關閉視窗時最小化到系統工具列而非完全關閉應用程式"
+    "closeToTrayDesc": "關閉視窗時最小化到系統工具列而非完全關閉應用程式",
+    "autoLaunch": "開機自動啟動",
+    "autoLaunchDesc": "系統啟動時自動執行此應用程式",
+"autoLaunchUnsupported": "此功能僅支援 Windows 作業系統"
   },
   "overview": {
     "title": "總覽",

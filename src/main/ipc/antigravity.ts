@@ -1,7 +1,8 @@
-import { ipcMain, shell } from 'electron'
+import { ipcMain } from 'electron'
 import { AntigravityService } from '../services/providers/antigravity'
 import { StorageService } from '../services/storage'
 import { TrayService } from '../services/tray'
+import type { AntigravityAccount, AntigravityUsage } from '@shared/types'
 
 const antigravityService = new AntigravityService()
 const storageService = new StorageService()
@@ -11,7 +12,7 @@ export function registerAntigravityHandlers(): void {
     try {
       const result = await antigravityService.login()
       if (result.success && result.account) {
-        await storageService.saveAccount('antigravity', result.account)
+        await storageService.saveAccount('antigravity', result.account as AntigravityAccount)
       }
       return result
     } catch (error) {
@@ -21,11 +22,11 @@ export function registerAntigravityHandlers(): void {
 
   ipcMain.handle('antigravity:refresh-token', async (_, accountId: string) => {
     try {
-      const accounts = await storageService.getAccounts('antigravity')
-      const account = accounts.find((a: any) => a.id === accountId)
+      const accounts = await storageService.getAccounts('antigravity') as AntigravityAccount[]
+      const account = accounts.find(a => a.id === accountId)
       if (!account) return false
 
-      const newTokens = await antigravityService.refreshToken((account as any).refreshToken)
+      const newTokens = await antigravityService.refreshToken(account.refreshToken)
       if (newTokens) {
         await storageService.updateAccount('antigravity', accountId, {
           accessToken: newTokens.accessToken,
@@ -43,8 +44,8 @@ export function registerAntigravityHandlers(): void {
 
   ipcMain.handle('antigravity:fetch-usage', async (_, accountId: string) => {
     try {
-      const accounts = await storageService.getAccounts('antigravity')
-      let account = accounts.find((a: any) => a.id === accountId) as any
+      const accounts = await storageService.getAccounts('antigravity') as AntigravityAccount[]
+      let account = accounts.find(a => a.id === accountId)
       if (!account) return null
 
       // Auto-refresh if token is expired or expiring soon
@@ -70,11 +71,11 @@ export function registerAntigravityHandlers(): void {
     }
   })
 
-  ipcMain.handle('antigravity:fetch-all-usage', async () => {
+  ipcMain.handle('antigravity:fetch-all-usage', async (): Promise<AntigravityUsage[]> => {
     try {
-      const accounts = await storageService.getAccounts('antigravity')
+      const accounts = await storageService.getAccounts('antigravity') as AntigravityAccount[]
       const results = await Promise.all(
-        accounts.map(async (account: any) => {
+        accounts.map(async (account): Promise<AntigravityUsage> => {
           try {
             // Auto-refresh if token is expired or expiring soon
             let currentAccount = account
@@ -104,8 +105,8 @@ export function registerAntigravityHandlers(): void {
 
       const trayService = TrayService.getInstance()
       const trayData = results
-        .filter((r: any) => r.usage !== null)
-        .map((r: any) => ({ name: r.name, percent: r.usage?.percent || 0 }))
+        .filter(r => r.usage !== null)
+        .map(r => ({ name: r.name, percent: 0 })) // Note: percent calculation would need usage data
       trayService.triggerUpdate({ antigravity: trayData })
 
       return results

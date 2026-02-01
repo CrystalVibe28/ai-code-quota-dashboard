@@ -45,7 +45,7 @@
     "confirmSkip": "确认跳过",
     "failedToSkipPassword": "跳过密码设置失败"
   },
-  "settings": {
+"settings": {
     "title": "设置",
     "subtitle": "配置应用程序首选项",
     "refreshSettings": "刷新设置",
@@ -58,6 +58,16 @@
     "lowQuotaThresholdDesc": "当剩余配额低于此百分比时显示警告",
     "notifications": "通知",
     "notificationsDesc": "显示低配额的系统通知",
+    "notificationThresholds": "通知阈值",
+    "notificationThresholdsDesc": "设置分阶段配额警报阈值。当配额首次跨越每个阈值时发送通知。",
+    "thresholdWarning": "警告",
+    "thresholdUrgent": "紧急",
+    "thresholdCritical": "严重",
+    "addThreshold": "添加阈值",
+    "removeThreshold": "移除",
+    "resetThresholds": "重置",
+    "thresholdNamePlaceholder": "名称",
+    "customThreshold": "自定义",
     "dangerZone": "危险区域",
     "dangerZoneDesc": "不可逆的操作",
     "clearAllData": "清除所有数据",
@@ -69,6 +79,9 @@
     "traySettingsDesc": "配置系统托盘行为",
     "closeToTray": "最小化到托盘",
     "closeToTrayDesc": "关闭窗口时最小化到托盘而非完全关闭应用程序",
+    "autoLaunch": "开机自动启动",
+    "autoLaunchDesc": "系统启动时自动运行此应用程序",
+"autoLaunchUnsupported": "此功能仅支持 Windows 操作系统",
     "notificationReminderInterval": "提醒间隔（分钟）",
     "notificationReminderIntervalDesc": "低配额项目的提醒频率"
   },

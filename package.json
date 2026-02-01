@@ -1,6 +1,6 @@
 {
   "name": "ai-code-quota-dashboard",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "AI Usage Dashboard - Multi-provider usage monitoring",
   "main": "./out/main/index.js",
   "author": "",
@@ -13,7 +13,11 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "npm run build && electron-builder --mac",
-    "build:linux": "npm run build && electron-builder --linux"
+    "build:linux": "npm run build && electron-builder --linux",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
@@ -37,18 +41,24 @@
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^1.0.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^22.19.7",
     "@types/react": "^18.3.27",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.7.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/ui": "^4.0.18",
     "autoprefixer": "^10.4.23",
     "electron": "^40.0.0",
     "electron-builder": "^26.5.0",
     "electron-vite": "^5.0.0",
+    "jsdom": "^27.4.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
   },
   "build": {
     "appId": "com.ai-code-quota-dashboard.app",

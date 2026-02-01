@@ -62,3 +62,6 @@ dist/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Test coverage
+coverage/

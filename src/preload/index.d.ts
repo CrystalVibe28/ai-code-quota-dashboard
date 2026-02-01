@@ -1,4 +1,15 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
+import type {
+  AntigravityAccount,
+  GithubCopilotAccount,
+  ZaiCodingAccount,
+  LoginResult,
+  AntigravityUsage,
+  GithubCopilotAccountUsage,
+  ZaiAccountUsage,
+  Settings,
+  CustomizationState
+} from '@shared/types'
 
 interface AuthAPI {
   hasPassword: () => Promise<boolean>
@@ -11,34 +22,43 @@ interface AuthAPI {
 }
 
 interface StorageAPI {
-  getAccounts: (provider: string) => Promise<unknown[]>
-  saveAccount: (provider: string, account: unknown) => Promise<boolean>
+  getAccounts: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount>(
+    provider: string
+  ) => Promise<T[]>
+  saveAccount: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount>(
+    provider: string,
+    account: T
+  ) => Promise<boolean>
   deleteAccount: (provider: string, accountId: string) => Promise<boolean>
-  updateAccount: (provider: string, accountId: string, data: unknown) => Promise<boolean>
-  getSettings: () => Promise<unknown>
-  saveSettings: (settings: unknown) => Promise<boolean>
-  getCustomization: () => Promise<unknown>
-  saveCustomization: (data: unknown) => Promise<boolean>
+  updateAccount: (
+    provider: string,
+    accountId: string,
+    data: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount>
+  ) => Promise<boolean>
+  getSettings: () => Promise<Settings>
+  saveSettings: (settings: Partial<Settings>) => Promise<boolean>
+  getCustomization: () => Promise<Partial<CustomizationState> | null>
+  saveCustomization: (data: CustomizationState) => Promise<boolean>
 }
 
 interface AntigravityAPI {
-  login: () => Promise<{ success: boolean; account?: unknown; error?: string }>
+  login: () => Promise<LoginResult<AntigravityAccount>>
   refreshToken: (accountId: string) => Promise<boolean>
-  fetchUsage: (accountId: string) => Promise<unknown>
-  fetchAllUsage: () => Promise<unknown[]>
+  fetchUsage: (accountId: string) => Promise<AntigravityUsage | null>
+  fetchAllUsage: () => Promise<AntigravityUsage[]>
 }
 
 interface GithubCopilotAPI {
-  login: () => Promise<{ success: boolean; account?: unknown; error?: string }>
+  login: () => Promise<LoginResult<GithubCopilotAccount>>
   refreshToken: (accountId: string) => Promise<boolean>
-  fetchUsage: (accountId: string) => Promise<unknown>
-  fetchAllUsage: () => Promise<unknown[]>
+  fetchUsage: (accountId: string) => Promise<GithubCopilotAccountUsage | null>
+  fetchAllUsage: () => Promise<GithubCopilotAccountUsage[]>
 }
 
 interface ZaiCodingAPI {
   validateApiKey: (apiKey: string) => Promise<{ valid: boolean; error?: string }>
-  fetchUsage: (accountId: string) => Promise<unknown>
-  fetchAllUsage: () => Promise<unknown[]>
+  fetchUsage: (accountId: string) => Promise<ZaiAccountUsage | null>
+  fetchAllUsage: () => Promise<ZaiAccountUsage[]>
 }
 
 interface AppAPI {
@@ -49,11 +69,20 @@ interface AppAPI {
   refreshIntervalChanged: () => Promise<boolean>
   stopBackgroundRefresh: () => Promise<boolean>
   startBackgroundRefresh: () => Promise<boolean>
+  getPlatform: () => Promise<string>
+  getAutoLaunch: () => Promise<boolean>
+  setAutoLaunch: (enabled: boolean) => Promise<boolean>
 }
 
 interface NotificationAPI {
   resetState: () => Promise<boolean>
   restartTimer: () => Promise<boolean>
+  checkAndNotify: (data: {
+    antigravity: unknown[]
+    copilot: unknown[]
+    zai: unknown[]
+  }) => Promise<boolean>
+  triggerCheck: () => Promise<boolean>
 }
 
 interface CustomAPI {

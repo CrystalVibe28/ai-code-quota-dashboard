@@ -11,6 +11,11 @@ export default defineConfig({
           index: resolve(__dirname, 'src/main/index.ts')
         }
       }
+    },
+    resolve: {
+      alias: {
+        '@shared': resolve(__dirname, 'src/shared')
+      }
     }
   },
   preload: {
@@ -20,6 +25,11 @@ export default defineConfig({
         input: {
           index: resolve(__dirname, 'src/preload/index.ts')
         }
+      }
+    },
+    resolve: {
+      alias: {
+        '@shared': resolve(__dirname, 'src/shared')
       }
     }
   },
@@ -34,7 +44,8 @@ export default defineConfig({
     },
     resolve: {
       alias: {
-        '@': resolve('src/renderer/src')
+        '@': resolve('src/renderer/src'),
+        '@shared': resolve(__dirname, 'src/shared')
       }
     },
     plugins: [react()]

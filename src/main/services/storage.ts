@@ -2,90 +2,39 @@ import { app } from 'electron'
 import { join } from 'path'
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { CryptoService } from './crypto'
-
-interface CustomizationData {
-  global: Record<string, unknown>
-  providers: Record<string, Record<string, unknown>>
-  cards: Record<string, Record<string, unknown>>
-}
+import type {
+  AntigravityAccount,
+  GithubCopilotAccount,
+  ZaiCodingAccount,
+  Settings,
+  CustomizationState
+} from '@shared/types'
+import { DEFAULT_SETTINGS } from '@shared/types'
 
 interface StorageData {
   _version?: number
   antigravity: AntigravityAccount[]
   githubCopilot: GithubCopilotAccount[]
   zaiCoding: ZaiCodingAccount[]
-  settings: AppSettings
-  customization?: CustomizationData
-}
-
-interface AntigravityAccount {
-  id: string
-  email: string
-  name: string
-  displayName: string
-  picture?: string
-  accessToken: string
-  refreshToken: string
-  expiresAt: number
-  projectId: string
-  showInOverview: boolean
-  selectedModels: string[]
-}
-
-interface GithubCopilotAccount {
-  id: string
-  login: string
-  email: string
-  name: string
-  displayName: string
-  avatarUrl?: string
-  accessToken: string
-  refreshToken: string
-  expiresAt: number
-  showInOverview: boolean
-  selectedQuotas: string[]
-}
-
-interface ZaiCodingAccount {
-  id: string
-  name: string
-  displayName: string
-  apiKey: string
-  showInOverview: boolean
-  selectedLimits: string[]
+  settings: Settings
+  customization?: CustomizationState
 }
 
 // Data version for migrations
 const CURRENT_DATA_VERSION = 2
 
-interface AppSettings {
-  refreshInterval: number
-  lowQuotaThreshold: number
-  notifications: boolean
-  language: string
-  closeToTray: boolean
-  notificationReminderInterval: number
-}
-
 const DEFAULT_DATA: StorageData = {
   antigravity: [],
   githubCopilot: [],
   zaiCoding: [],
-  settings: {
-    refreshInterval: 60,
-    lowQuotaThreshold: 10,
-    notifications: true,
-    language: 'en',
-    closeToTray: false,
-    notificationReminderInterval: 0
-  }
+  settings: DEFAULT_SETTINGS
 }
 
 export class StorageService {
   private static instance: StorageService
-  private dataPath: string
-  private storagePath: string
-  private cryptoService: CryptoService
+  private dataPath!: string
+  private storagePath!: string
+  private cryptoService!: CryptoService
   private password: string | null = null
   private cachedData: StorageData | null = null
 
@@ -163,21 +112,21 @@ export class StorageService {
       if (data.antigravity) {
         data.antigravity = data.antigravity.map(acc => ({
           ...acc,
-          displayName: (acc as any).displayName || acc.name || acc.email
+          displayName: acc.displayName || acc.name || acc.email
         }))
       }
       
       if (data.githubCopilot) {
         data.githubCopilot = data.githubCopilot.map(acc => ({
           ...acc,
-          displayName: (acc as any).displayName || acc.name || acc.login
+          displayName: acc.displayName || acc.name || acc.login
         }))
       }
       
       if (data.zaiCoding) {
         data.zaiCoding = data.zaiCoding.map(acc => ({
           ...acc,
-          displayName: (acc as any).displayName || acc.name
+          displayName: acc.displayName || acc.name
         }))
       }
       
@@ -206,7 +155,7 @@ export class StorageService {
     return this.cachedData
   }
 
-  async getAccounts(provider: string): Promise<unknown[]> {
+  async getAccounts(provider: string): Promise<AntigravityAccount[] | GithubCopilotAccount[] | ZaiCodingAccount[]> {
     const data = this.getData()
     switch (provider) {
       case 'antigravity':
@@ -220,35 +169,40 @@ export class StorageService {
     }
   }
 
-  async saveAccount(provider: string, account: unknown): Promise<boolean> {
+  async saveAccount(provider: string, account: AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount): Promise<boolean> {
     const data = this.getData()
-    const acc = account as any
     
     switch (provider) {
-      case 'antigravity':
-        const existingAnti = data.antigravity.findIndex(a => a.id === acc.id)
-        if (existingAnti >= 0) {
-          data.antigravity[existingAnti] = acc
+      case 'antigravity': {
+        const acc = account as AntigravityAccount
+        const existingIdx = data.antigravity.findIndex(a => a.id === acc.id)
+        if (existingIdx >= 0) {
+          data.antigravity[existingIdx] = acc
         } else {
           data.antigravity.push(acc)
         }
         break
-      case 'githubCopilot':
-        const existingGh = data.githubCopilot.findIndex(a => a.id === acc.id)
-        if (existingGh >= 0) {
-          data.githubCopilot[existingGh] = acc
+      }
+      case 'githubCopilot': {
+        const acc = account as GithubCopilotAccount
+        const existingIdx = data.githubCopilot.findIndex(a => a.id === acc.id)
+        if (existingIdx >= 0) {
+          data.githubCopilot[existingIdx] = acc
         } else {
           data.githubCopilot.push(acc)
         }
         break
-      case 'zaiCoding':
-        const existingZai = data.zaiCoding.findIndex(a => a.id === acc.id)
-        if (existingZai >= 0) {
-          data.zaiCoding[existingZai] = acc
+      }
+      case 'zaiCoding': {
+        const acc = account as ZaiCodingAccount
+        const existingIdx = data.zaiCoding.findIndex(a => a.id === acc.id)
+        if (existingIdx >= 0) {
+          data.zaiCoding[existingIdx] = acc
         } else {
           data.zaiCoding.push(acc)
         }
         break
+      }
       default:
         return false
     }
@@ -278,29 +232,35 @@ export class StorageService {
     return true
   }
 
-  async updateAccount(provider: string, accountId: string, updates: unknown): Promise<boolean> {
+  async updateAccount(
+    provider: string, 
+    accountId: string, 
+    updates: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount>
+  ): Promise<boolean> {
     const data = this.getData()
-    const upd = updates as any
     
     switch (provider) {
-      case 'antigravity':
-        const antiIdx = data.antigravity.findIndex(a => a.id === accountId)
-        if (antiIdx >= 0) {
-          data.antigravity[antiIdx] = { ...data.antigravity[antiIdx], ...upd }
+      case 'antigravity': {
+        const idx = data.antigravity.findIndex(a => a.id === accountId)
+        if (idx >= 0) {
+          data.antigravity[idx] = { ...data.antigravity[idx], ...updates as Partial<AntigravityAccount> }
         }
         break
-      case 'githubCopilot':
-        const ghIdx = data.githubCopilot.findIndex(a => a.id === accountId)
-        if (ghIdx >= 0) {
-          data.githubCopilot[ghIdx] = { ...data.githubCopilot[ghIdx], ...upd }
+      }
+      case 'githubCopilot': {
+        const idx = data.githubCopilot.findIndex(a => a.id === accountId)
+        if (idx >= 0) {
+          data.githubCopilot[idx] = { ...data.githubCopilot[idx], ...updates as Partial<GithubCopilotAccount> }
         }
         break
-      case 'zaiCoding':
-        const zaiIdx = data.zaiCoding.findIndex(a => a.id === accountId)
-        if (zaiIdx >= 0) {
-          data.zaiCoding[zaiIdx] = { ...data.zaiCoding[zaiIdx], ...upd }
+      }
+      case 'zaiCoding': {
+        const idx = data.zaiCoding.findIndex(a => a.id === accountId)
+        if (idx >= 0) {
+          data.zaiCoding[idx] = { ...data.zaiCoding[idx], ...updates as Partial<ZaiCodingAccount> }
         }
         break
+      }
       default:
         return false
     }
@@ -309,24 +269,24 @@ export class StorageService {
     return true
   }
 
-  async getSettings(): Promise<AppSettings> {
+  async getSettings(): Promise<Settings> {
     const data = this.getData()
     return data.settings
   }
 
-  async saveSettings(settings: unknown): Promise<boolean> {
+  async saveSettings(settings: Partial<Settings>): Promise<boolean> {
     const data = this.getData()
-    data.settings = { ...data.settings, ...(settings as AppSettings) }
+    data.settings = { ...data.settings, ...settings }
     this.saveData(data)
     return true
   }
 
-  async getCustomization(): Promise<CustomizationData | null> {
+  async getCustomization(): Promise<CustomizationState | null> {
     const data = this.getData()
     return data.customization || null
   }
 
-  async saveCustomization(customization: CustomizationData): Promise<boolean> {
+  async saveCustomization(customization: CustomizationState): Promise<boolean> {
     const data = this.getData()
     data.customization = customization
     this.saveData(data)

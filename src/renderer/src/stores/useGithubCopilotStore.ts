@@ -1,47 +1,24 @@
 import { create } from 'zustand'
+import type { 
+  GithubCopilotAccount, 
+  CopilotUsage,
+  GithubCopilotAccountUsage,
+  LoginResult
+} from '@shared/types'
 
-interface GithubCopilotAccount {
-  id: string
-  login: string
-  email: string
-  name: string
-  displayName: string
-  avatarUrl?: string
-  showInOverview: boolean
-  selectedQuotas: string[]
-}
-
-interface QuotaSnapshot {
-  entitlement: number
-  remaining: number
-  percent_remaining: number
-  unlimited: boolean
-}
-
-interface CopilotUsage {
-  accessTypeSku: string
-  copilotPlan: string
-  quotaResetDate: string
-  quotaSnapshots: Record<string, QuotaSnapshot>
-}
-
-interface AccountUsage {
-  accountId: string
-  name: string
-  login: string
-  usage: CopilotUsage | null
-}
+// Use renderer-specific partial type for updates (excludes sensitive fields)
+type GithubCopilotAccountUpdate = Partial<Pick<GithubCopilotAccount, 'displayName' | 'showInOverview' | 'selectedQuotas'>>
 
 interface GithubCopilotState {
   accounts: GithubCopilotAccount[]
-  usageData: AccountUsage[]
+  usageData: GithubCopilotAccountUsage[]
   isLoading: boolean
   error: string | null
   fetchAccounts: () => Promise<void>
   fetchUsage: () => Promise<void>
-  login: () => Promise<{ success: boolean; account?: unknown; error?: string }>
+  login: () => Promise<LoginResult<GithubCopilotAccount>>
   deleteAccount: (accountId: string) => Promise<boolean>
-  updateAccount: (accountId: string, data: Partial<GithubCopilotAccount>) => Promise<boolean>
+  updateAccount: (accountId: string, data: GithubCopilotAccountUpdate) => Promise<boolean>
 }
 
 export const useGithubCopilotStore = create<GithubCopilotState>((set, get) => ({
@@ -52,8 +29,8 @@ export const useGithubCopilotStore = create<GithubCopilotState>((set, get) => ({
 
   fetchAccounts: async () => {
     try {
-      const accounts = await window.api.storage.getAccounts('githubCopilot')
-      set({ accounts: accounts as GithubCopilotAccount[] })
+      const accounts = await window.api.storage.getAccounts<GithubCopilotAccount>('githubCopilot')
+      set({ accounts })
     } catch (error) {
       set({ error: String(error) })
     }
@@ -63,7 +40,7 @@ export const useGithubCopilotStore = create<GithubCopilotState>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const usageData = await window.api.githubCopilot.fetchAllUsage()
-      set({ usageData: usageData as AccountUsage[], isLoading: false })
+      set({ usageData, isLoading: false })
     } catch (error) {
       set({ error: String(error), isLoading: false })
     }
@@ -96,7 +73,7 @@ export const useGithubCopilotStore = create<GithubCopilotState>((set, get) => ({
     }
   },
 
-  updateAccount: async (accountId: string, data: Partial<GithubCopilotAccount>) => {
+  updateAccount: async (accountId: string, data: GithubCopilotAccountUpdate) => {
     try {
       const result = await window.api.storage.updateAccount('githubCopilot', accountId, data)
       if (result) {

@@ -46,11 +46,13 @@ export function Overview() {
     return () => clearInterval(interval)
   }, [global.autoRefresh])
 
-  const refreshAll = async () => {
+const refreshAll = async () => {
     setIsRefreshing(true)
     await Promise.all([fetchAntiAccounts(), fetchGhAccounts(), fetchZaiAccounts()])
     await Promise.all([fetchAntiUsage(), fetchGhUsage(), fetchZaiUsage()])
     setIsRefreshing(false)
+    // Trigger notification check after refreshing data
+    window.api.notification.triggerCheck().catch(() => {})
   }
 
   const visibleAntiAccounts = antiAccounts.filter(a => a.showInOverview)

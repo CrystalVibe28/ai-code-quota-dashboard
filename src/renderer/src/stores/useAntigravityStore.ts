@@ -1,37 +1,24 @@
 import { create } from 'zustand'
+import type { 
+  AntigravityAccount, 
+  ModelQuota,
+  AntigravityUsage,
+  LoginResult
+} from '@shared/types'
 
-interface AntigravityAccount {
-  id: string
-  email: string
-  name: string
-  displayName: string
-  picture?: string
-  showInOverview: boolean
-  selectedModels: string[]
-}
-
-interface ModelQuota {
-  modelName: string
-  remainingFraction: number
-  resetTime?: string
-}
-
-interface AccountUsage {
-  accountId: string
-  name: string
-  usage: ModelQuota[] | null
-}
+// Use renderer-specific partial type for updates (excludes sensitive fields)
+type AntigravityAccountUpdate = Partial<Pick<AntigravityAccount, 'displayName' | 'showInOverview' | 'selectedModels'>>
 
 interface AntigravityState {
   accounts: AntigravityAccount[]
-  usageData: AccountUsage[]
+  usageData: AntigravityUsage[]
   isLoading: boolean
   error: string | null
   fetchAccounts: () => Promise<void>
   fetchUsage: () => Promise<void>
-  login: () => Promise<{ success: boolean; account?: unknown; error?: string }>
+  login: () => Promise<LoginResult<AntigravityAccount>>
   deleteAccount: (accountId: string) => Promise<boolean>
-  updateAccount: (accountId: string, data: Partial<AntigravityAccount>) => Promise<boolean>
+  updateAccount: (accountId: string, data: AntigravityAccountUpdate) => Promise<boolean>
 }
 
 export const useAntigravityStore = create<AntigravityState>((set, get) => ({
@@ -42,8 +29,8 @@ export const useAntigravityStore = create<AntigravityState>((set, get) => ({
 
   fetchAccounts: async () => {
     try {
-      const accounts = await window.api.storage.getAccounts('antigravity')
-      set({ accounts: accounts as AntigravityAccount[] })
+      const accounts = await window.api.storage.getAccounts<AntigravityAccount>('antigravity')
+      set({ accounts })
     } catch (error) {
       set({ error: String(error) })
     }
@@ -53,7 +40,7 @@ export const useAntigravityStore = create<AntigravityState>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const usageData = await window.api.antigravity.fetchAllUsage()
-      set({ usageData: usageData as AccountUsage[], isLoading: false })
+      set({ usageData, isLoading: false })
     } catch (error) {
       set({ error: String(error), isLoading: false })
     }
@@ -86,7 +73,7 @@ export const useAntigravityStore = create<AntigravityState>((set, get) => ({
     }
   },
 
-  updateAccount: async (accountId: string, data: Partial<AntigravityAccount>) => {
+  updateAccount: async (accountId: string, data: AntigravityAccountUpdate) => {
     try {
       const result = await window.api.storage.updateAccount('antigravity', accountId, data)
       if (result) {

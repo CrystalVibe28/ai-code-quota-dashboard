@@ -11,12 +11,16 @@
     "outDir": "out",
     "rootDir": ".",
     "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["src/shared/*"]
+    },
     "resolveJsonModule": true,
     "types": ["electron-vite/node", "node"]
   },
   "include": [
     "electron.vite.config.ts",
     "src/main/**/*",
-    "src/preload/**/*"
+    "src/preload/**/*",
+    "src/shared/**/*"
   ]
 }

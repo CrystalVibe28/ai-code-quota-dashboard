@@ -45,7 +45,7 @@
     "confirmSkip": "Confirm Skip",
     "failedToSkipPassword": "Failed to skip password setup"
   },
-  "settings": {
+"settings": {
     "title": "Settings",
     "subtitle": "Configure application preferences",
     "refreshSettings": "Refresh Settings",
@@ -58,8 +58,16 @@
     "lowQuotaThresholdDesc": "Show warning when remaining quota falls below this percentage",
     "notifications": "Notifications",
     "notificationsDesc": "Show system notifications for low quota",
-    "notificationReminderInterval": "Reminder Interval (minutes)",
-    "notificationReminderIntervalDesc": "How often to remind about low quota items",
+    "notificationThresholds": "Notification Thresholds",
+    "notificationThresholdsDesc": "Set tiered thresholds for quota alerts. Notifications are sent once when crossing each threshold.",
+    "thresholdWarning": "Warning",
+    "thresholdUrgent": "Urgent",
+    "thresholdCritical": "Critical",
+    "addThreshold": "Add Threshold",
+    "removeThreshold": "Remove",
+    "resetThresholds": "Reset",
+    "thresholdNamePlaceholder": "Name",
+    "customThreshold": "Custom",
     "dangerZone": "Danger Zone",
     "dangerZoneDesc": "Irreversible actions",
     "clearAllData": "Clear All Data",
@@ -70,7 +78,10 @@
     "traySettings": "System Tray",
     "traySettingsDesc": "Configure system tray behavior",
     "closeToTray": "Minimize to Tray",
-    "closeToTrayDesc": "Minimize to system tray instead of closing the application"
+    "closeToTrayDesc": "Minimize to system tray instead of closing the application",
+    "autoLaunch": "Launch at Login",
+    "autoLaunchDesc": "Automatically start the application when Windows starts",
+"autoLaunchUnsupported": "This feature is only available on Windows"
   },
   "overview": {
     "title": "Overview",

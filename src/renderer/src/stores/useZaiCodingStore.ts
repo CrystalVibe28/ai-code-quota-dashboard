@@ -1,43 +1,23 @@
 import { create } from 'zustand'
+import type { 
+  ZaiCodingAccount, 
+  ZaiUsage,
+  ZaiAccountUsage
+} from '@shared/types'
 
-interface ZaiCodingAccount {
-  id: string
-  name: string
-  displayName: string
-  apiKey: string
-  showInOverview: boolean
-  selectedLimits: string[]
-}
-
-interface Limit {
-  type: string
-  usage: number
-  currentValue: number
-  remaining: number
-  percentage: number
-  nextResetTime?: number
-}
-
-interface ZaiUsage {
-  limits: Limit[]
-}
-
-interface AccountUsage {
-  accountId: string
-  name: string
-  usage: ZaiUsage | null
-}
+// Use renderer-specific partial type for updates (excludes sensitive fields)
+type ZaiCodingAccountUpdate = Partial<Pick<ZaiCodingAccount, 'displayName' | 'showInOverview' | 'selectedLimits' | 'name'>>
 
 interface ZaiCodingState {
   accounts: ZaiCodingAccount[]
-  usageData: AccountUsage[]
+  usageData: ZaiAccountUsage[]
   isLoading: boolean
   error: string | null
   fetchAccounts: () => Promise<void>
   fetchUsage: () => Promise<void>
   addAccount: (name: string, apiKey: string) => Promise<{ success: boolean; error?: string }>
   deleteAccount: (accountId: string) => Promise<boolean>
-  updateAccount: (accountId: string, data: Partial<ZaiCodingAccount>) => Promise<boolean>
+  updateAccount: (accountId: string, data: ZaiCodingAccountUpdate) => Promise<boolean>
 }
 
 export const useZaiCodingStore = create<ZaiCodingState>((set, get) => ({
@@ -48,8 +28,8 @@ export const useZaiCodingStore = create<ZaiCodingState>((set, get) => ({
 
   fetchAccounts: async () => {
     try {
-      const accounts = await window.api.storage.getAccounts('zaiCoding')
-      set({ accounts: accounts as ZaiCodingAccount[] })
+      const accounts = await window.api.storage.getAccounts<ZaiCodingAccount>('zaiCoding')
+      set({ accounts })
     } catch (error) {
       set({ error: String(error) })
     }
@@ -59,7 +39,7 @@ export const useZaiCodingStore = create<ZaiCodingState>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const usageData = await window.api.zaiCoding.fetchAllUsage()
-      set({ usageData: usageData as AccountUsage[], isLoading: false })
+      set({ usageData, isLoading: false })
     } catch (error) {
       set({ error: String(error), isLoading: false })
     }
@@ -105,7 +85,7 @@ export const useZaiCodingStore = create<ZaiCodingState>((set, get) => ({
     }
   },
 
-  updateAccount: async (accountId: string, data: Partial<ZaiCodingAccount>) => {
+  updateAccount: async (accountId: string, data: ZaiCodingAccountUpdate) => {
     try {
       const result = await window.api.storage.updateAccount('zaiCoding', accountId, data)
       if (result) {

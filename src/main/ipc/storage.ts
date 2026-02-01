@@ -1,5 +1,12 @@
 import { ipcMain } from 'electron'
 import { StorageService } from '../services/storage'
+import type {
+  AntigravityAccount,
+  GithubCopilotAccount,
+  ZaiCodingAccount,
+  Settings,
+  CustomizationState
+} from '@shared/types'
 
 const storageService = new StorageService()
 
@@ -8,7 +15,11 @@ export function registerStorageHandlers(): void {
     return storageService.getAccounts(provider)
   })
 
-  ipcMain.handle('storage:save-account', async (_, provider: string, account: unknown) => {
+  ipcMain.handle('storage:save-account', async (
+    _, 
+    provider: string, 
+    account: AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount
+  ) => {
     return storageService.saveAccount(provider, account)
   })
 
@@ -16,7 +27,12 @@ export function registerStorageHandlers(): void {
     return storageService.deleteAccount(provider, accountId)
   })
 
-  ipcMain.handle('storage:update-account', async (_, provider: string, accountId: string, data: unknown) => {
+  ipcMain.handle('storage:update-account', async (
+    _, 
+    provider: string, 
+    accountId: string, 
+    data: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount>
+  ) => {
     return storageService.updateAccount(provider, accountId, data)
   })
 
@@ -24,7 +40,7 @@ export function registerStorageHandlers(): void {
     return storageService.getSettings()
   })
 
-  ipcMain.handle('storage:save-settings', async (_, settings: unknown) => {
+  ipcMain.handle('storage:save-settings', async (_, settings: Partial<Settings>) => {
     return storageService.saveSettings(settings)
   })
 
@@ -32,7 +48,7 @@ export function registerStorageHandlers(): void {
     return storageService.getCustomization()
   })
 
-  ipcMain.handle('storage:save-customization', async (_, customization) => {
+  ipcMain.handle('storage:save-customization', async (_, customization: CustomizationState) => {
     return storageService.saveCustomization(customization)
   })
 }
