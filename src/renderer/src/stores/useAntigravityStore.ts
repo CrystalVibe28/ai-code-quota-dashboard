@@ -4,6 +4,7 @@ interface AntigravityAccount {
   id: string
   email: string
   name: string
+  displayName: string
   picture?: string
   showInOverview: boolean
   selectedModels: string[]

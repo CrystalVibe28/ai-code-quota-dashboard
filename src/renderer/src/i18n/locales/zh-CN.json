@@ -5,14 +5,18 @@
     "saved": "已保存！",
     "signingIn": "登录中...",
     "adding": "添加中...",
+    "add": "添加",
     "cancel": "取消",
     "refresh": "刷新",
     "lock": "锁定",
     "edit": "编辑",
-    "save": "保存"
+    "save": "保存",
+    "backToOverview": "返回概览"
   },
   "nav": {
     "overview": "概览",
+    "providers": "供应商",
+    "addProvider": "添加供应商",
     "antigravity": "Antigravity",
     "githubCopilot": "GitHub Copilot",
     "zaiCoding": "Z.ai Coding",
@@ -80,9 +84,13 @@
     "addAccount": "添加账户",
     "noAccountsConfigured": "尚未配置账户",
     "removeAccountConfirm": "确定要移除此账户吗？",
+    "removeAccount": "移除账户",
     "showInOverview": "在概览中显示",
     "hideFromOverview": "从概览中隐藏",
-    "loginFailed": "登录失败"
+    "loginFailed": "登录失败",
+    "accountNotFound": "找不到账户",
+    "accountSettings": "账户设置",
+    "editName": "编辑名称"
   },
   "antigravity": {
     "title": "Antigravity"
@@ -102,11 +110,19 @@
     }
   },
   "addAccount": {
+    "addProvider": "添加供应商",
+    "displayName": "显示名称",
+    "displayNamePlaceholder": "自定义名称（可选，默认为 {{provider}}）",
+    "selectProvider": "供应商",
+    "oauthMode": "使用 {{provider}} 登录",
+    "apiKeyMode": "API 密钥验证",
     "name": "名称",
     "namePlaceholder": "账户名称",
     "apiKey": "API 密钥",
+    "apiKeyPlaceholder": "输入 API 密钥",
     "pleaseEnterName": "请输入名称",
     "pleaseEnterApiKey": "请输入 API 密钥",
+    "pleaseLoginFirst": "请先登录",
     "failedToAddAccount": "添加账户失败",
     "connect": "连接",
     "connected": "已连接",

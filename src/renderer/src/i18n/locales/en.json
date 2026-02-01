@@ -5,14 +5,18 @@
     "saved": "Saved!",
     "signingIn": "Signing in...",
     "adding": "Adding...",
+    "add": "Add",
     "cancel": "Cancel",
     "refresh": "Refresh",
     "lock": "Lock",
     "edit": "Edit",
-    "save": "Save"
+    "save": "Save",
+    "backToOverview": "Back to Overview"
   },
   "nav": {
     "overview": "Overview",
+    "providers": "Providers",
+    "addProvider": "Add Provider",
     "antigravity": "Antigravity",
     "githubCopilot": "GitHub Copilot",
     "zaiCoding": "Z.ai Coding",
@@ -80,9 +84,13 @@
     "addAccount": "Add Account",
     "noAccountsConfigured": "No accounts configured",
     "removeAccountConfirm": "Are you sure you want to remove this account?",
+    "removeAccount": "Remove Account",
     "showInOverview": "Show in overview",
     "hideFromOverview": "Hide from overview",
-    "loginFailed": "Login failed"
+    "loginFailed": "Login failed",
+    "accountNotFound": "Account not found",
+    "accountSettings": "Account Settings",
+    "editName": "Edit Name"
   },
   "antigravity": {
     "title": "Antigravity"
@@ -102,11 +110,19 @@
     }
   },
   "addAccount": {
+    "addProvider": "Add Provider",
+    "displayName": "Display Name",
+    "displayNamePlaceholder": "Custom name (optional, defaults to {{provider}})",
+    "selectProvider": "Provider",
+    "oauthMode": "Sign in with {{provider}}",
+    "apiKeyMode": "API Key authentication",
     "name": "Name",
     "namePlaceholder": "Account name",
     "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter API key",
     "pleaseEnterName": "Please enter a name",
     "pleaseEnterApiKey": "Please enter an API key",
+    "pleaseLoginFirst": "Please sign in first",
     "failedToAddAccount": "Failed to add account",
     "connect": "Connect",
     "connected": "Connected",

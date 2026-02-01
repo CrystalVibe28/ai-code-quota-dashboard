@@ -8,9 +8,7 @@ import { useZaiCodingStore } from './stores/useZaiCodingStore'
 import { MainLayout } from './components/layout/MainLayout'
 import { LockScreen } from './components/LockScreen'
 import { Overview } from './pages/Overview'
-import { Antigravity } from './pages/Antigravity'
-import { GithubCopilot } from './pages/GithubCopilot'
-import { ZaiCoding } from './pages/ZaiCoding'
+import { ProviderAccount } from './pages/ProviderAccount'
 import { Settings } from './pages/Settings'
 import { CustomizationProvider } from './contexts/CustomizationContext'
 import { useTheme } from './hooks/useTheme'
@@ -108,10 +106,12 @@ function App() {
           <Route path="/" element={<MainLayout />}>
             <Route index element={<Navigate to="/overview" replace />} />
             <Route path="overview" element={<Overview />} />
-            <Route path="antigravity" element={<Antigravity />} />
-            <Route path="github-copilot" element={<GithubCopilot />} />
-            <Route path="zai-coding" element={<ZaiCoding />} />
+            <Route path="provider/:providerId/:accountId" element={<ProviderAccount />} />
             <Route path="settings" element={<Settings />} />
+            {/* Redirect old routes to overview */}
+            <Route path="antigravity" element={<Navigate to="/overview" replace />} />
+            <Route path="github-copilot" element={<Navigate to="/overview" replace />} />
+            <Route path="zai-coding" element={<Navigate to="/overview" replace />} />
           </Route>
         </Routes>
       </CustomizationProvider>

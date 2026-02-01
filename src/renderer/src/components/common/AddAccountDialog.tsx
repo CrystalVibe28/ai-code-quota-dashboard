@@ -4,42 +4,52 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { X, CheckCircle2, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { PROVIDERS } from '@/constants/providers'
+import { useAntigravityStore } from '@/stores/useAntigravityStore'
+import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
+import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
+import type { ProviderId } from '@/types/customization'
 
 interface AddAccountDialogProps {
-  title: string
   isOpen: boolean
   onClose: () => void
-  onSubmit: (name: string, apiKey: string) => Promise<{ success: boolean; error?: string }>
-  apiKeyPlaceholder?: string
-  mode?: 'apiKey' | 'oauth'
-  oauthProviderName?: string
-  onLogin?: () => Promise<{ success: boolean; account?: any; error?: string }>
 }
 
-export function AddAccountDialog({
-  title,
-  isOpen,
-  onClose,
-  onSubmit,
-  apiKeyPlaceholder,
-  mode = 'apiKey',
-  oauthProviderName,
-  onLogin
-}: AddAccountDialogProps) {
+export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
   const { t } = useTranslation()
-  const [name, setName] = useState('')
+  
+  // Form state
+  const [displayName, setDisplayName] = useState('')
+  const [selectedProviderId, setSelectedProviderId] = useState<ProviderId>(PROVIDERS[0].id)
   const [apiKey, setApiKey] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   
-  const [oauthStep, setOauthStep] = useState<'initial' | 'login' | 'success'>('initial')
+  // OAuth state
+  const [oauthStep, setOauthStep] = useState<'initial' | 'success'>('initial')
   const [connectedAccount, setConnectedAccount] = useState<any>(null)
-
+  
+  // Stores
+  const { login: antigravityLogin, updateAccount: updateAntigravity, fetchAccounts: fetchAntigravity } = useAntigravityStore()
+  const { login: githubLogin, updateAccount: updateGithub, fetchAccounts: fetchGithub } = useGithubCopilotStore()
+  const { addAccount: addZaiAccount, fetchAccounts: fetchZai } = useZaiCodingStore()
+  
+  const selectedProvider = PROVIDERS.find(p => p.id === selectedProviderId) || PROVIDERS[0]
+  
+  // Reset form when dialog opens/closes
   useEffect(() => {
     if (isOpen) {
-      setName('')
+      const defaultProvider = PROVIDERS[0]
+      setDisplayName(defaultProvider.name)
+      setSelectedProviderId(defaultProvider.id)
       setApiKey('')
       setError('')
       setIsLoading(false)
@@ -47,48 +57,51 @@ export function AddAccountDialog({
       setConnectedAccount(null)
     }
   }, [isOpen])
-
-  if (!isOpen) return null
-
-  const handleApiKeySubmit = async () => {
-    if (!name.trim()) {
-      setError(t('addAccount.pleaseEnterName'))
-      return
+  
+  // Update displayName and reset OAuth state when provider changes
+  useEffect(() => {
+    // Only update displayName if it matches the previous provider's name
+    // (i.e., user hasn't modified it)
+    const prevProvider = PROVIDERS.find(p => p.name === displayName)
+    if (prevProvider || displayName === '') {
+      setDisplayName(selectedProvider.name)
     }
-
-    if (!apiKey.trim()) {
-      setError(t('addAccount.pleaseEnterApiKey'))
-      return
-    }
-
-    setIsLoading(true)
-    setError('')
-
-    const result = await onSubmit(name.trim(), apiKey.trim())
     
-    if (result.success) {
-      onClose()
-    } else {
-      setError(result.error || t('addAccount.failedToAddAccount'))
-    }
-
-    setIsLoading(false)
+    setOauthStep('initial')
+    setConnectedAccount(null)
+    setApiKey('')
+    setError('')
+  }, [selectedProviderId])
+  
+  if (!isOpen) return null
+  
+  const handleProviderChange = (value: string) => {
+    setSelectedProviderId(value as ProviderId)
   }
-
+  
   const handleOAuthLogin = async () => {
-    if (!onLogin) return
-
     setIsLoading(true)
     setError('')
     
     try {
-      const result = await onLogin()
+      let result: { success: boolean; account?: any; error?: string }
+      
+      if (selectedProviderId === 'antigravity') {
+        result = await antigravityLogin()
+      } else if (selectedProviderId === 'githubCopilot') {
+        result = await githubLogin()
+      } else {
+        result = { success: false, error: 'Unknown provider' }
+      }
+      
       if (result.success && result.account) {
         setConnectedAccount(result.account)
         setOauthStep('success')
         
-        if (!name.trim() && (result.account.name || result.account.login || result.account.email)) {
-          setName(result.account.name || result.account.login || result.account.email)
+        // Update display name from account info if user hasn't customized it
+        const accountName = result.account.name || result.account.login || result.account.email
+        if (displayName === selectedProvider.name && accountName) {
+          setDisplayName(accountName)
         }
       } else {
         setError(result.error || t('provider.loginFailed'))
@@ -99,118 +112,180 @@ export function AddAccountDialog({
       setIsLoading(false)
     }
   }
-
-  const handleOAuthFinalize = async () => {
-    if (!name.trim()) {
-      setError(t('addAccount.pleaseEnterName'))
-      return
-    }
+  
+  const handleSubmit = async () => {
+    const finalDisplayName = displayName.trim() || selectedProvider.name
     
     setIsLoading(true)
-    const result = await onSubmit(name.trim(), 'oauth-token')
+    setError('')
     
-    if (result.success) {
-      onClose()
-    } else {
-      setError(result.error || t('addAccount.failedToAddAccount'))
+    try {
+      if (selectedProvider.mode === 'apiKey') {
+        // API Key mode (Zai Coding)
+        if (!apiKey.trim()) {
+          setError(t('addAccount.pleaseEnterApiKey'))
+          setIsLoading(false)
+          return
+        }
+        
+        const result = await addZaiAccount(finalDisplayName, apiKey.trim())
+        
+        if (result.success) {
+          await fetchZai()
+          onClose()
+        } else {
+          setError(result.error || t('addAccount.failedToAddAccount'))
+        }
+      } else {
+        // OAuth mode - account already created, just update display name
+        if (!connectedAccount?.id) {
+          setError(t('addAccount.pleaseLoginFirst'))
+          setIsLoading(false)
+          return
+        }
+        
+        if (selectedProviderId === 'antigravity') {
+          await updateAntigravity(connectedAccount.id, { displayName: finalDisplayName })
+          await fetchAntigravity()
+        } else if (selectedProviderId === 'githubCopilot') {
+          await updateGithub(connectedAccount.id, { displayName: finalDisplayName })
+          await fetchGithub()
+        }
+        
+        onClose()
+      }
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setIsLoading(false)
     }
-    setIsLoading(false)
+  }
+  
+  const canSubmit = () => {
+    if (selectedProvider.mode === 'apiKey') {
+      return apiKey.trim().length > 0
+    }
+    return oauthStep === 'success' && connectedAccount
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <Card className="w-[450px] animate-in fade-in zoom-in-95 duration-200">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{title}</CardTitle>
+          <CardTitle>{t('addAccount.addProvider')}</CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="h-4 w-4" />
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Display Name */}
           <div className="space-y-2">
-            <Label htmlFor="name">{t('addAccount.name')}</Label>
+            <Label htmlFor="displayName">{t('addAccount.displayName')}</Label>
             <Input
-              id="name"
-              placeholder={t('addAccount.namePlaceholder')}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              id="displayName"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
               disabled={isLoading}
             />
           </div>
           
-          {mode === 'apiKey' && (
+          {/* Provider Selection - Dropdown */}
+          <div className="space-y-2">
+            <Label>{t('addAccount.selectProvider')}</Label>
+            <Select 
+              value={selectedProviderId} 
+              onValueChange={handleProviderChange}
+              disabled={isLoading}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PROVIDERS.map((provider) => {
+                  const Icon = provider.icon
+                  return (
+                    <SelectItem key={provider.id} value={provider.id}>
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4" />
+                        <span>{provider.name}</span>
+                        <span className="text-xs text-muted-foreground ml-1">
+                          ({provider.mode === 'oauth' ? 'OAuth' : 'API Key'})
+                        </span>
+                      </div>
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Authentication Section */}
+          {selectedProvider.mode === 'apiKey' ? (
             <div className="space-y-2">
-              <Label htmlFor="apiKey">{apiKeyPlaceholder || t('addAccount.apiKey')}</Label>
+              <Label htmlFor="apiKey">{t('addAccount.apiKey')}</Label>
               <Input
                 id="apiKey"
                 type="password"
-                placeholder={apiKeyPlaceholder || t('addAccount.apiKey')}
+                placeholder={t('addAccount.apiKeyPlaceholder')}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 disabled={isLoading}
               />
             </div>
-          )}
-
-          {mode === 'oauth' && oauthStep === 'success' && connectedAccount && (
-            <div className="bg-green-500/10 text-green-600 dark:text-green-400 p-3 rounded-md flex items-center gap-2 text-sm">
-              <CheckCircle2 className="h-4 w-4" />
-              <span>
-                {t('addAccount.connectedAs', { 
-                  user: connectedAccount.login || connectedAccount.email || connectedAccount.name || 'User' 
-                })}
-              </span>
+          ) : (
+            <div className="space-y-2">
+              {oauthStep === 'initial' ? (
+                <Button
+                  onClick={handleOAuthLogin}
+                  disabled={isLoading}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t('common.signingIn')}
+                    </>
+                  ) : (
+                    t('addAccount.signInWith', { provider: selectedProvider.oauthProvider })
+                  )}
+                </Button>
+              ) : (
+                <div className="bg-green-500/10 text-green-600 dark:text-green-400 p-3 rounded-md flex items-center gap-2 text-sm">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>
+                    {t('addAccount.connectedAs', { 
+                      user: connectedAccount?.login || connectedAccount?.email || connectedAccount?.name || 'User' 
+                    })}
+                  </span>
+                </div>
+              )}
             </div>
           )}
-
+          
+          {/* Error Message */}
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
 
+          {/* Actions */}
           <div className="flex gap-2 justify-end pt-2">
             <Button variant="outline" onClick={onClose} disabled={isLoading}>
               {t('common.cancel')}
             </Button>
-            
-            {mode === 'apiKey' ? (
-              <Button onClick={handleApiKeySubmit} disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t('common.adding')}
-                  </>
-                ) : (
-                  t('provider.addAccount')
-                )}
-              </Button>
-            ) : (
-              <>
-                {oauthStep === 'initial' && (
-                  <Button onClick={handleOAuthLogin} disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {t('common.signingIn')}
-                      </>
-                    ) : (
-                      t('addAccount.signInWith', { provider: oauthProviderName })
-                    )}
-                  </Button>
-                )}
-                {oauthStep === 'success' && (
-                  <Button onClick={handleOAuthFinalize} disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {t('common.saving')}
-                      </>
-                    ) : (
-                      t('provider.addAccount')
-                    )}
-                  </Button>
-                )}
-              </>
-            )}
+            <Button 
+              onClick={handleSubmit} 
+              disabled={isLoading || !canSubmit()}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t('common.adding')}
+                </>
+              ) : (
+                t('common.add')
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>

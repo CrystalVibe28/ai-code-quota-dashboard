@@ -3,6 +3,7 @@ import { create } from 'zustand'
 interface ZaiCodingAccount {
   id: string
   name: string
+  displayName: string
   apiKey: string
   showInOverview: boolean
   selectedLimits: string[]
@@ -76,6 +77,7 @@ export const useZaiCodingStore = create<ZaiCodingState>((set, get) => ({
       const account: ZaiCodingAccount = {
         id: crypto.randomUUID(),
         name,
+        displayName: name,
         apiKey,
         showInOverview: true,
         selectedLimits: ['TOKENS_LIMIT', 'TIME_LIMIT']

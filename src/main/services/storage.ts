@@ -10,6 +10,7 @@ interface CustomizationData {
 }
 
 interface StorageData {
+  _version?: number
   antigravity: AntigravityAccount[]
   githubCopilot: GithubCopilotAccount[]
   zaiCoding: ZaiCodingAccount[]
@@ -21,6 +22,7 @@ interface AntigravityAccount {
   id: string
   email: string
   name: string
+  displayName: string
   picture?: string
   accessToken: string
   refreshToken: string
@@ -35,6 +37,7 @@ interface GithubCopilotAccount {
   login: string
   email: string
   name: string
+  displayName: string
   avatarUrl?: string
   accessToken: string
   refreshToken: string
@@ -46,10 +49,14 @@ interface GithubCopilotAccount {
 interface ZaiCodingAccount {
   id: string
   name: string
+  displayName: string
   apiKey: string
   showInOverview: boolean
   selectedLimits: string[]
 }
+
+// Data version for migrations
+const CURRENT_DATA_VERSION = 2
 
 interface AppSettings {
   refreshInterval: number
@@ -123,17 +130,64 @@ export class StorageService {
     if (!this.password) throw new Error('Storage is locked')
     
     if (!existsSync(this.storagePath)) {
-      return { ...DEFAULT_DATA }
+      return { ...DEFAULT_DATA, _version: CURRENT_DATA_VERSION }
     }
 
     try {
       const encrypted = readFileSync(this.storagePath, 'utf-8')
       const decrypted = this.cryptoService.decrypt(encrypted, this.password)
-      return JSON.parse(decrypted)
+      const data = JSON.parse(decrypted) as StorageData
+      
+      // Run migrations if needed
+      const migratedData = this.migrateData(data)
+      
+      // Save if migration occurred
+      if (migratedData._version !== data._version) {
+        this.saveData(migratedData)
+      }
+      
+      return migratedData
     } catch (error) {
       console.error('[Storage] Failed to load data:', error)
-      return { ...DEFAULT_DATA }
+      return { ...DEFAULT_DATA, _version: CURRENT_DATA_VERSION }
     }
+  }
+
+  private migrateData(data: StorageData): StorageData {
+    const version = data._version || 1
+    
+    if (version < 2) {
+      console.log('[Storage] Migrating data from v1 to v2: Adding displayName field')
+      
+      // Migration v1 -> v2: Add displayName field to all accounts
+      if (data.antigravity) {
+        data.antigravity = data.antigravity.map(acc => ({
+          ...acc,
+          displayName: (acc as any).displayName || acc.name || acc.email
+        }))
+      }
+      
+      if (data.githubCopilot) {
+        data.githubCopilot = data.githubCopilot.map(acc => ({
+          ...acc,
+          displayName: (acc as any).displayName || acc.name || acc.login
+        }))
+      }
+      
+      if (data.zaiCoding) {
+        data.zaiCoding = data.zaiCoding.map(acc => ({
+          ...acc,
+          displayName: (acc as any).displayName || acc.name
+        }))
+      }
+      
+      data._version = 2
+    }
+    
+    // Future migrations can be added here:
+    // if (version < 3) { ... }
+    
+    return data
   }
 
   private saveData(data: StorageData): void {

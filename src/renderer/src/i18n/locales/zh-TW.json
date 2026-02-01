@@ -5,14 +5,18 @@
     "saved": "已儲存！",
     "signingIn": "登入中...",
     "adding": "新增中...",
+    "add": "新增",
     "cancel": "取消",
     "refresh": "重新整理",
     "lock": "鎖定",
     "edit": "編輯",
-    "save": "儲存"
+    "save": "儲存",
+    "backToOverview": "返回總覽"
   },
   "nav": {
     "overview": "總覽",
+    "providers": "供應商",
+    "addProvider": "新增供應商",
     "antigravity": "Antigravity",
     "githubCopilot": "GitHub Copilot",
     "zaiCoding": "Z.ai Coding",
@@ -80,9 +84,13 @@
     "addAccount": "新增帳戶",
     "noAccountsConfigured": "尚未設定帳戶",
     "removeAccountConfirm": "確定要移除此帳戶嗎？",
+    "removeAccount": "移除帳戶",
     "showInOverview": "在總覽中顯示",
     "hideFromOverview": "從總覽中隱藏",
-    "loginFailed": "登入失敗"
+    "loginFailed": "登入失敗",
+    "accountNotFound": "找不到帳戶",
+    "accountSettings": "帳戶設定",
+    "editName": "編輯名稱"
   },
   "antigravity": {
     "title": "Antigravity"
@@ -102,11 +110,19 @@
     }
   },
   "addAccount": {
+    "addProvider": "新增供應商",
+    "displayName": "顯示名稱",
+    "displayNamePlaceholder": "自訂名稱（選填，預設為 {{provider}}）",
+    "selectProvider": "供應商",
+    "oauthMode": "使用 {{provider}} 登入",
+    "apiKeyMode": "API 金鑰驗證",
     "name": "名稱",
     "namePlaceholder": "帳戶名稱",
     "apiKey": "API 金鑰",
+    "apiKeyPlaceholder": "輸入 API 金鑰",
     "pleaseEnterName": "請輸入名稱",
     "pleaseEnterApiKey": "請輸入 API 金鑰",
+    "pleaseLoginFirst": "請先登入",
     "failedToAddAccount": "新增帳戶失敗",
     "connect": "連結",
     "connected": "已連結",

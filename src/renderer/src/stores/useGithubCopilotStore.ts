@@ -5,6 +5,7 @@ interface GithubCopilotAccount {
   login: string
   email: string
   name: string
+  displayName: string
   avatarUrl?: string
   showInOverview: boolean
   selectedQuotas: string[]

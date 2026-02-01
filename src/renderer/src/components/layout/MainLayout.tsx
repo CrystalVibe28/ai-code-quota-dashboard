@@ -1,28 +1,77 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { 
   LayoutDashboard, 
-  Sparkles, 
-  Github, 
-  Zap, 
   Settings,
-  Lock
+  Lock,
+  Package,
+  ChevronDown,
+  Plus
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useAuthStore } from '@/stores/useAuthStore'
+import { useAntigravityStore } from '@/stores/useAntigravityStore'
+import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
+import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
+import { PROVIDERS, getProviderById } from '@/constants/providers'
+import { AddAccountDialog } from '@/components/common/AddAccountDialog'
+import type { ProviderId } from '@/types/customization'
 
-const navItems = [
-  { to: '/overview', labelKey: 'nav.overview', icon: LayoutDashboard },
-  { to: '/antigravity', labelKey: 'nav.antigravity', icon: Sparkles },
-  { to: '/github-copilot', labelKey: 'nav.githubCopilot', icon: Github },
-  { to: '/zai-coding', labelKey: 'nav.zaiCoding', icon: Zap },
-  { to: '/settings', labelKey: 'nav.settings', icon: Settings }
-]
+const SIDEBAR_EXPANDED_KEY = 'sidebar-providers-expanded'
+
+interface AccountNavItem {
+  id: string
+  displayName: string
+  providerId: ProviderId
+}
 
 export function MainLayout() {
   const { t } = useTranslation()
+  const location = useLocation()
   const { lock } = useAuthStore()
+  
+  // Get accounts from all stores
+  const { accounts: antiAccounts } = useAntigravityStore()
+  const { accounts: ghAccounts } = useGithubCopilotStore()
+  const { accounts: zaiAccounts } = useZaiCodingStore()
+  
+  // Dialog state
+  const [showAddDialog, setShowAddDialog] = useState(false)
+  
+  // Sidebar expanded state with localStorage persistence
+  const [providersExpanded, setProvidersExpanded] = useState(() => {
+    const saved = localStorage.getItem(SIDEBAR_EXPANDED_KEY)
+    return saved !== null ? saved === 'true' : true
+  })
+  
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_EXPANDED_KEY, String(providersExpanded))
+  }, [providersExpanded])
+  
+  // Combine all accounts with provider info
+  const allAccounts: AccountNavItem[] = [
+    ...antiAccounts.map(a => ({
+      id: a.id,
+      displayName: a.displayName || a.name || a.email,
+      providerId: 'antigravity' as const
+    })),
+    ...ghAccounts.map(a => ({
+      id: a.id,
+      displayName: a.displayName || a.name || a.login,
+      providerId: 'githubCopilot' as const
+    })),
+    ...zaiAccounts.map(a => ({
+      id: a.id,
+      displayName: a.displayName || a.name,
+      providerId: 'zaiCoding' as const
+    }))
+  ]
+  
+  // Check if current path is a provider account page
+  const isProviderAccountActive = location.pathname.startsWith('/provider/')
 
   return (
     <div className="flex h-screen bg-background">
@@ -32,26 +81,104 @@ export function MainLayout() {
           <p className="text-xs text-muted-foreground mt-1">{t('branding.subtitle')}</p>
         </div>
         
-        <nav className="flex-1 px-3">
+        <nav className="flex-1 px-3 overflow-y-auto">
           <ul className="space-y-1">
-            {navItems.map((item) => (
-              <li key={item.to}>
-                <NavLink
-                  to={item.to}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                      isActive
-                        ? 'bg-primary text-primary-foreground'
+            {/* Overview */}
+            <li>
+              <NavLink
+                to="/overview"
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  )
+                }
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                {t('nav.overview')}
+              </NavLink>
+            </li>
+            
+            {/* Providers Collapsible */}
+            <li>
+              <Collapsible open={providersExpanded} onOpenChange={setProvidersExpanded}>
+                <CollapsibleTrigger asChild>
+                  <button
+                    className={cn(
+                      'flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm transition-colors',
+                      isProviderAccountActive
+                        ? 'bg-accent text-accent-foreground'
                         : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    )}
+                  >
+                    <span className="flex items-center gap-3">
+                      <Package className="h-4 w-4" />
+                      {t('nav.providers')}
+                    </span>
+                    <ChevronDown 
+                      className={cn(
+                        'h-4 w-4 transition-transform duration-200',
+                        providersExpanded && 'rotate-180'
+                      )} 
+                    />
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-1 ml-4 space-y-1">
+                  {/* Account links */}
+                  {allAccounts.map((account) => {
+                    const provider = getProviderById(account.providerId)
+                    const Icon = provider?.icon || Package
+                    
+                    return (
+                      <NavLink
+                        key={`${account.providerId}-${account.id}`}
+                        to={`/provider/${account.providerId}/${account.id}`}
+                        className={({ isActive }) =>
+                          cn(
+                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                            isActive
+                              ? 'bg-primary text-primary-foreground'
+                              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          )
+                        }
+                      >
+                        <Icon className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">{account.displayName}</span>
+                      </NavLink>
                     )
-                  }
-                >
-                  <item.icon className="h-4 w-4" />
-                  {t(item.labelKey)}
-                </NavLink>
-              </li>
-            ))}
+                  })}
+                  
+                  {/* Add Provider button */}
+                  <button
+                    onClick={() => setShowAddDialog(true)}
+                    className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t('nav.addProvider')}
+                  </button>
+                </CollapsibleContent>
+              </Collapsible>
+            </li>
+            
+            {/* Settings */}
+            <li>
+              <NavLink
+                to="/settings"
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  )
+                }
+              >
+                <Settings className="h-4 w-4" />
+                {t('nav.settings')}
+              </NavLink>
+            </li>
           </ul>
         </nav>
 
@@ -73,6 +200,12 @@ export function MainLayout() {
           <Outlet />
         </div>
       </main>
+      
+      {/* Unified Add Account Dialog */}
+      <AddAccountDialog
+        isOpen={showAddDialog}
+        onClose={() => setShowAddDialog(false)}
+      />
     </div>
   )
 }
