@@ -1,87 +1,35 @@
-import { create } from 'zustand'
-import type { 
-  AntigravityAccount, 
-  ModelQuota,
-  AntigravityUsage,
-  LoginResult
-} from '@shared/types'
+import type { AntigravityAccount, AntigravityUsage, LoginResult } from '@shared/types'
+import { ErrorCode } from '@shared/types'
+import {
+  type OAuthProviderState,
+  createOAuthProviderStore
+} from './createProviderStore'
 
 // Use renderer-specific partial type for updates (excludes sensitive fields)
 type AntigravityAccountUpdate = Partial<Pick<AntigravityAccount, 'displayName' | 'showInOverview' | 'selectedModels'>>
 
-interface AntigravityState {
-  accounts: AntigravityAccount[]
-  usageData: AntigravityUsage[]
-  isLoading: boolean
-  error: string | null
-  fetchAccounts: () => Promise<void>
-  fetchUsage: () => Promise<void>
-  login: () => Promise<LoginResult<AntigravityAccount>>
-  deleteAccount: (accountId: string) => Promise<boolean>
-  updateAccount: (accountId: string, data: AntigravityAccountUpdate) => Promise<boolean>
-}
+type AntigravityState = OAuthProviderState<AntigravityAccount, AntigravityUsage>
 
-export const useAntigravityStore = create<AntigravityState>((set, get) => ({
-  accounts: [],
-  usageData: [],
-  isLoading: false,
-  error: null,
-
-  fetchAccounts: async () => {
-    try {
-      const accounts = await window.api.storage.getAccounts<AntigravityAccount>('antigravity')
-      set({ accounts })
-    } catch (error) {
-      set({ error: String(error) })
+export const useAntigravityStore = createOAuthProviderStore<AntigravityAccount, AntigravityUsage>({
+  providerId: 'antigravity',
+  providerName: 'Antigravity',
+  fetchUsageApi: () => window.api.antigravity.fetchAllUsage(),
+  loginApi: () => window.api.antigravity.login(),
+  handleUsageError: (errorMessage) => {
+    // Only show toast for non-auth errors
+    if (errorMessage.includes('401') || errorMessage.includes('unauthorized')) {
+      return true // Skip default toast
     }
+    return false
   },
-
-  fetchUsage: async () => {
-    set({ isLoading: true, error: null })
-    try {
-      const usageData = await window.api.antigravity.fetchAllUsage()
-      set({ usageData, isLoading: false })
-    } catch (error) {
-      set({ error: String(error), isLoading: false })
+  parseOAuthErrorExtension: (lowerError) => {
+    // Antigravity-specific: check for project errors
+    if (lowerError.includes('project')) {
+      return ErrorCode.PROVIDER_ANTIGRAVITY_PROJECT_ERROR
     }
-  },
-
-  login: async () => {
-    set({ isLoading: true, error: null })
-    try {
-      const result = await window.api.antigravity.login()
-      if (result.success) {
-        await get().fetchAccounts()
-      }
-      set({ isLoading: false })
-      return result
-    } catch (error) {
-      set({ error: String(error), isLoading: false })
-      return { success: false, error: String(error) }
-    }
-  },
-
-  deleteAccount: async (accountId: string) => {
-    try {
-      const result = await window.api.storage.deleteAccount('antigravity', accountId)
-      if (result) {
-        await get().fetchAccounts()
-      }
-      return result
-    } catch {
-      return false
-    }
-  },
-
-  updateAccount: async (accountId: string, data: AntigravityAccountUpdate) => {
-    try {
-      const result = await window.api.storage.updateAccount('antigravity', accountId, data)
-      if (result) {
-        await get().fetchAccounts()
-      }
-      return result
-    } catch {
-      return false
-    }
+    return null
   }
-}))
+})
+
+// Re-export the state type for external usage
+export type { AntigravityState, AntigravityAccountUpdate }

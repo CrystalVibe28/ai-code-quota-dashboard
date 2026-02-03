@@ -11,7 +11,10 @@
     "lock": "Lock",
     "edit": "Edit",
     "save": "Save",
-    "backToOverview": "Back to Overview"
+    "backToOverview": "Back to Overview",
+    "tryAgain": "Try Again",
+    "retry": "Retry",
+    "dismiss": "Dismiss"
   },
   "nav": {
     "overview": "Overview",
@@ -19,7 +22,7 @@
     "addProvider": "Add Provider",
     "antigravity": "Antigravity",
     "githubCopilot": "GitHub Copilot",
-    "zaiCoding": "Z.ai Coding",
+    "zaiCoding": "Zai Coding Plan",
     "settings": "Settings"
   },
   "branding": {
@@ -54,8 +57,6 @@
     "refreshIntervalDesc": "How often to automatically refresh usage data",
     "quotaAlerts": "Quota Alerts",
     "quotaAlertsDesc": "Configure low quota warnings",
-    "lowQuotaThreshold": "Low Quota Threshold (%)",
-    "lowQuotaThresholdDesc": "Show warning when remaining quota falls below this percentage",
     "notifications": "Notifications",
     "notificationsDesc": "Show system notifications for low quota",
     "notificationThresholds": "Notification Thresholds",
@@ -81,7 +82,30 @@
     "closeToTrayDesc": "Minimize to system tray instead of closing the application",
     "autoLaunch": "Launch at Login",
     "autoLaunchDesc": "Automatically start the application when Windows starts",
-"autoLaunchUnsupported": "This feature is only available on Windows"
+"autoLaunchUnsupported": "This feature is only available on Windows",
+    "update": {
+      "title": "About & Updates",
+      "description": "Check for application updates",
+      "currentVersion": "Current Version",
+      "latestVersion": "Latest Version",
+      "upToDate": "You're up to date!",
+      "newVersion": "New!",
+      "checkNow": "Check for Updates",
+      "download": "Download",
+      "checking": "Checking...",
+      "lastChecked": "Last checked: {{time}}",
+      "publishedAt": "Published",
+      "checkFailed": "Failed to check for updates",
+      "never": "Never",
+      "justNow": "Just now",
+      "minutesAgo": "{{count}} min ago",
+      "hoursAgo": "{{count}} hr ago",
+      "daysAgo": "{{count}} days ago",
+      "updateAvailable": "Update Available",
+      "updateAvailableDesc": "Version {{version}} is available",
+      "skipVersion": "Skip this version",
+      "viewRelease": "View Release"
+    }
   },
   "overview": {
     "title": "Overview",
@@ -112,8 +136,8 @@
     "tokenPlaceholder": "Personal Access Token (gho_...)"
   },
   "zaiCoding": {
-    "title": "Z.ai Coding Plan",
-    "addAccountTitle": "Add Z.ai Coding Account",
+    "title": "Zai Coding Plan",
+    "addAccountTitle": "Add Zai Coding Plan Account",
     "apiKeyPlaceholder": "API Key",
     "limits": {
       "tokensLimit": "AI quota",
@@ -162,8 +186,6 @@
     "display": {
       "title": "Display",
       "description": "Control what information is shown",
-      "showOnlyLowQuota": "Show Only Low Quota",
-      "showOnlyLowQuotaDesc": "Only display cards below the threshold",
       "hideUnlimited": "Hide Unlimited Quotas",
       "hideUnlimitedDesc": "Hide cards with unlimited quota"
     },
@@ -273,5 +295,66 @@
         "shortcuts": "Keyboard Shortcuts",
         "shortcutsDesc": "Enable keyboard navigation"
       }
+  },
+  "errors": {
+    "unknown": "An unknown error occurred",
+    "network": "Network connection error",
+    "timeout": "Request timed out",
+    "validation": "Validation error",
+    "auth": {
+      "failed": "Authentication failed",
+      "expired": "Session expired",
+      "cancelled": "Authentication was cancelled",
+      "invalidPassword": "Incorrect password",
+      "passwordTooShort": "Password is too short"
+    },
+    "oauth": {
+      "failed": "OAuth authentication failed",
+      "cancelled": "Sign in was cancelled",
+      "timeout": "Sign in timed out",
+      "tokenExpired": "Access token has expired",
+      "tokenRefreshFailed": "Failed to refresh access token",
+      "invalidState": "Invalid OAuth state",
+      "accessDenied": "Access was denied",
+      "scopeError": "Required permissions were not granted",
+      "cancelledTitle": "Sign in cancelled",
+      "cancelledDesc": "You closed the sign in window. Click Try Again to restart.",
+      "timeoutTitle": "Sign in timed out",
+      "timeoutDesc": "The sign in process took too long. Please try again.",
+      "accessDeniedTitle": "Access denied",
+      "accessDeniedDesc": "You denied access or don't have permission. Please grant the required permissions.",
+      "networkTitle": "Network error",
+      "networkDesc": "Could not connect to the authentication server. Check your internet connection.",
+      "genericTitle": "Sign in failed",
+      "genericDesc": "An error occurred during sign in. Please try again."
+    },
+    "api": {
+      "general": "API request failed",
+      "rateLimit": "Rate limit exceeded. Please wait and try again.",
+      "unauthorized": "Unauthorized. Please sign in again.",
+      "forbidden": "Access forbidden",
+      "notFound": "Resource not found",
+      "serverError": "Server error. Please try again later.",
+      "invalidResponse": "Invalid response from server"
+    },
+    "account": {
+      "notFound": "Account not found",
+      "exists": "Account already exists",
+      "saveFailed": "Failed to save account",
+      "deleteFailed": "Failed to delete account",
+      "updateFailed": "Failed to update account"
+    },
+    "storage": {
+      "readFailed": "Failed to read data",
+      "writeFailed": "Failed to save data",
+      "encryptionFailed": "Encryption error",
+      "decryptionFailed": "Decryption error"
+    },
+    "provider": {
+      "copilotNoSubscription": "No active Copilot subscription found",
+      "copilotQuotaExceeded": "Copilot quota exceeded",
+      "antigravityProjectError": "Project configuration error",
+      "zaiInvalidKey": "Invalid API key"
+    }
   }
 }

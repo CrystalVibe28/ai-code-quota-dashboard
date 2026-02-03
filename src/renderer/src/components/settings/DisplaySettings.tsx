@@ -21,20 +21,6 @@ export function DisplaySettings() {
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <Label htmlFor="showOnlyLowQuota">{t('customization.display.showOnlyLowQuota')}</Label>
-            <p className="text-sm text-muted-foreground">
-              {t('customization.display.showOnlyLowQuotaDesc')}
-            </p>
-          </div>
-          <Switch
-            id="showOnlyLowQuota"
-            checked={global.showOnlyLowQuota}
-            onCheckedChange={(checked) => updateGlobal({ showOnlyLowQuota: checked })}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div>
             <Label htmlFor="hideUnlimitedQuota">{t('customization.display.hideUnlimited')}</Label>
             <p className="text-sm text-muted-foreground">
               {t('customization.display.hideUnlimitedDesc')}

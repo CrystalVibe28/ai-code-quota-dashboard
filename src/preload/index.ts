@@ -101,6 +101,28 @@ notification: {
       ipcRenderer.invoke('notification:check-and-notify', data),
     triggerCheck: (): Promise<boolean> =>
       ipcRenderer.invoke('notification:trigger-check')
+  },
+
+  update: {
+    check: (): Promise<{ success: boolean; data?: unknown; error?: string }> =>
+      ipcRenderer.invoke('update:check'),
+    getCurrentVersion: (): Promise<string> =>
+      ipcRenderer.invoke('update:get-current-version'),
+    getSkippedVersion: (): Promise<string | undefined> =>
+      ipcRenderer.invoke('update:get-skipped-version'),
+    skipVersion: (version: string): Promise<boolean> =>
+      ipcRenderer.invoke('update:skip-version', version),
+    clearSkippedVersion: (): Promise<boolean> =>
+      ipcRenderer.invoke('update:clear-skipped-version'),
+    getLastChecked: (): Promise<string | undefined> =>
+      ipcRenderer.invoke('update:get-last-checked'),
+    openReleasePage: (url?: string): Promise<boolean> =>
+      ipcRenderer.invoke('update:open-release-page', url),
+    onUpdateAvailable: (callback: (info: unknown) => void): (() => void) => {
+      const handler = (_: unknown, info: unknown): void => callback(info)
+      ipcRenderer.on('update:available', handler)
+      return () => ipcRenderer.removeListener('update:available', handler)
+    }
   }
 }
 

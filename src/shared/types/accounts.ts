@@ -44,7 +44,7 @@ export interface GithubCopilotAccount extends BaseAccount {
 }
 
 /**
- * Z.ai Coding account
+ * Zai Coding Plan account
  */
 export interface ZaiCodingAccount extends BaseAccount {
   name: string

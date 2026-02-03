@@ -137,7 +137,7 @@ export class TrayService {
     }
 
     if (data.zaiCoding?.length) {
-      lines.push('Z.ai Coding:')
+      lines.push('Zai Coding Plan:')
       data.zaiCoding.forEach(acc => {
         lines.push(`  ${acc.name}: ${acc.percent}%`)
       })

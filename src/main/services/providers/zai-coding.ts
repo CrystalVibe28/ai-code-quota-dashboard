@@ -74,7 +74,7 @@ export class ZaiCodingService {
         limits: data.data?.limits || []
       }
     } catch (error) {
-      console.error('[Z.ai Coding] Failed to fetch usage:', error)
+      console.error('[Zai Coding Plan] Failed to fetch usage:', error)
       return null
     }
   }

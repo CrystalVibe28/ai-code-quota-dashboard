@@ -1,7 +1,6 @@
 import type { GlobalConfig, ProviderId } from '@/types/customization'
 
 export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
-  showOnlyLowQuota: false,
   hideUnlimitedQuota: true,
   
   gridColumns: 'auto',

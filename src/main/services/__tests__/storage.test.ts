@@ -135,7 +135,7 @@ describe('StorageService data migration', () => {
         antigravity: [],
         githubCopilot: [],
         zaiCoding: [
-          { id: '1', name: 'My Z.ai Account' }
+          { id: '1', name: 'My Zai Coding Plan Account' }
         ],
         settings: DEFAULT_DATA.settings
       }
@@ -143,7 +143,7 @@ describe('StorageService data migration', () => {
       const migrated = migrateData(v1Data)
 
       expect(migrated._version).toBe(2)
-      expect(migrated.zaiCoding[0].displayName).toBe('My Z.ai Account')
+      expect(migrated.zaiCoding[0].displayName).toBe('My Zai Coding Plan Account')
     })
 
     it('should preserve existing displayName if present', () => {
@@ -207,8 +207,8 @@ describe('StorageService data migration', () => {
           { id: '4', login: 'user2', name: '' }
         ],
         zaiCoding: [
-          { id: '5', name: 'Z.ai 1' },
-          { id: '6', name: 'Z.ai 2' }
+          { id: '5', name: 'Zai Coding Plan 1' },
+          { id: '6', name: 'Zai Coding Plan 2' }
         ],
         settings: DEFAULT_DATA.settings
       }
@@ -220,8 +220,8 @@ describe('StorageService data migration', () => {
       expect(migrated.antigravity[1].displayName).toBe('user2@example.com')
       expect(migrated.githubCopilot[0].displayName).toBe('GitHub User 1')
       expect(migrated.githubCopilot[1].displayName).toBe('user2')
-      expect(migrated.zaiCoding[0].displayName).toBe('Z.ai 1')
-      expect(migrated.zaiCoding[1].displayName).toBe('Z.ai 2')
+      expect(migrated.zaiCoding[0].displayName).toBe('Zai Coding Plan 1')
+      expect(migrated.zaiCoding[1].displayName).toBe('Zai Coding Plan 2')
     })
   })
 

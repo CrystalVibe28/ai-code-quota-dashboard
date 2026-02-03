@@ -23,7 +23,6 @@ export type AutoRefresh = 0 | 30 | 60 | 120 | 300
  */
 export interface GlobalConfig {
   // Display
-  showOnlyLowQuota: boolean
   hideUnlimitedQuota: boolean
   
   // Layout
@@ -102,7 +101,6 @@ export interface EffectiveCardConfig {
  */
 export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   // Display
-  showOnlyLowQuota: false,
   hideUnlimitedQuota: false,
   
   // Layout

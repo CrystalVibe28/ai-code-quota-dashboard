@@ -11,7 +11,10 @@
     "lock": "鎖定",
     "edit": "編輯",
     "save": "儲存",
-    "backToOverview": "返回總覽"
+    "backToOverview": "返回總覽",
+    "tryAgain": "重試",
+    "retry": "重試",
+    "dismiss": "關閉"
   },
   "nav": {
     "overview": "總覽",
@@ -19,7 +22,7 @@
     "addProvider": "新增供應商",
     "antigravity": "Antigravity",
     "githubCopilot": "GitHub Copilot",
-    "zaiCoding": "Z.ai Coding",
+    "zaiCoding": "Zai Coding Plan",
     "settings": "設定"
   },
   "branding": {
@@ -54,8 +57,6 @@
     "refreshIntervalDesc": "自動重新整理使用資料的頻率",
     "quotaAlerts": "配額警示",
     "quotaAlertsDesc": "配置低配額警告",
-    "lowQuotaThreshold": "低配額閾值（%）",
-    "lowQuotaThresholdDesc": "當剩餘配額低於此百分比時顯示警告",
     "notifications": "通知",
     "notificationsDesc": "顯示低配額的系統通知",
     "notificationThresholds": "通知閾值",
@@ -81,7 +82,30 @@
     "closeToTrayDesc": "關閉視窗時最小化到系統工具列而非完全關閉應用程式",
     "autoLaunch": "開機自動啟動",
     "autoLaunchDesc": "系統啟動時自動執行此應用程式",
-"autoLaunchUnsupported": "此功能僅支援 Windows 作業系統"
+"autoLaunchUnsupported": "此功能僅支援 Windows 作業系統",
+    "update": {
+      "title": "關於與更新",
+      "description": "檢查應用程式更新",
+      "currentVersion": "目前版本",
+      "latestVersion": "最新版本",
+      "upToDate": "已是最新版本！",
+      "newVersion": "新版本！",
+      "checkNow": "檢查更新",
+      "download": "下載",
+      "checking": "檢查中...",
+      "lastChecked": "上次檢查：{{time}}",
+      "publishedAt": "發布日期",
+      "checkFailed": "檢查更新失敗",
+      "never": "從未",
+      "justNow": "剛剛",
+      "minutesAgo": "{{count}} 分鐘前",
+      "hoursAgo": "{{count}} 小時前",
+      "daysAgo": "{{count}} 天前",
+      "updateAvailable": "有新版本可用",
+      "updateAvailableDesc": "版本 {{version}} 已發布",
+      "skipVersion": "跳過此版本",
+      "viewRelease": "查看更新"
+    }
   },
   "overview": {
     "title": "總覽",
@@ -112,8 +136,8 @@
     "tokenPlaceholder": "個人存取權杖（gho_...）"
   },
   "zaiCoding": {
-    "title": "Z.ai Coding 方案",
-    "addAccountTitle": "新增 Z.ai Coding 帳戶",
+    "title": "Zai Coding Plan",
+    "addAccountTitle": "新增 Zai Coding Plan 帳戶",
     "apiKeyPlaceholder": "API 金鑰",
     "limits": {
       "tokensLimit": "AI配額",
@@ -162,8 +186,6 @@
     "display": {
       "title": "顯示控制",
       "description": "控制顯示哪些資訊",
-      "showOnlyLowQuota": "僅顯示低配額",
-      "showOnlyLowQuotaDesc": "只顯示低於閾值的卡片",
       "hideUnlimited": "隱藏無限配額",
       "hideUnlimitedDesc": "隱藏無限制配額的卡片"
     },
@@ -273,5 +295,66 @@
         "shortcuts": "鍵盤快捷鍵",
         "shortcutsDesc": "啟用鍵盤導航"
       }
+  },
+  "errors": {
+    "unknown": "發生未知錯誤",
+    "network": "網路連線錯誤",
+    "timeout": "請求逾時",
+    "validation": "驗證錯誤",
+    "auth": {
+      "failed": "驗證失敗",
+      "expired": "工作階段已過期",
+      "cancelled": "驗證已取消",
+      "invalidPassword": "密碼錯誤",
+      "passwordTooShort": "密碼太短"
+    },
+    "oauth": {
+      "failed": "OAuth 驗證失敗",
+      "cancelled": "登入已取消",
+      "timeout": "登入逾時",
+      "tokenExpired": "存取權杖已過期",
+      "tokenRefreshFailed": "無法重新整理存取權杖",
+      "invalidState": "無效的 OAuth 狀態",
+      "accessDenied": "存取被拒絕",
+      "scopeError": "未授予所需權限",
+      "cancelledTitle": "登入已取消",
+      "cancelledDesc": "您關閉了登入視窗。點擊「重試」重新開始。",
+      "timeoutTitle": "登入逾時",
+      "timeoutDesc": "登入程序花費太長時間。請重試。",
+      "accessDeniedTitle": "存取被拒絕",
+      "accessDeniedDesc": "您拒絕了存取或沒有權限。請授予所需的權限。",
+      "networkTitle": "網路錯誤",
+      "networkDesc": "無法連線到驗證伺服器。請檢查您的網路連線。",
+      "genericTitle": "登入失敗",
+      "genericDesc": "登入時發生錯誤。請重試。"
+    },
+    "api": {
+      "general": "API 請求失敗",
+      "rateLimit": "已超過速率限制。請稍候再試。",
+      "unauthorized": "未授權。請重新登入。",
+      "forbidden": "存取被禁止",
+      "notFound": "找不到資源",
+      "serverError": "伺服器錯誤。請稍後再試。",
+      "invalidResponse": "伺服器回應無效"
+    },
+    "account": {
+      "notFound": "找不到帳戶",
+      "exists": "帳戶已存在",
+      "saveFailed": "無法儲存帳戶",
+      "deleteFailed": "無法刪除帳戶",
+      "updateFailed": "無法更新帳戶"
+    },
+    "storage": {
+      "readFailed": "無法讀取資料",
+      "writeFailed": "無法儲存資料",
+      "encryptionFailed": "加密錯誤",
+      "decryptionFailed": "解密錯誤"
+    },
+    "provider": {
+      "copilotNoSubscription": "找不到有效的 Copilot 訂閱",
+      "copilotQuotaExceeded": "Copilot 配額已超出",
+      "antigravityProjectError": "專案設定錯誤",
+      "zaiInvalidKey": "無效的 API 金鑰"
+    }
   }
 }

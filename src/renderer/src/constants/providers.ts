@@ -29,7 +29,7 @@ const PROVIDERS_UNSORTED: ProviderDefinition[] = [
   },
   {
     id: 'zaiCoding' as const,
-    name: 'Zai Coding',
+    name: 'Zai Coding Plan',
     labelKey: 'nav.zaiCoding',
     icon: Zap,
     mode: 'apiKey' as const

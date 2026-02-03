@@ -52,7 +52,7 @@ export interface GithubCopilotAccountUsage {
 }
 
 /**
- * Z.ai usage detail for a specific model
+ * Zai Coding Plan usage detail for a specific model
  */
 export interface ZaiUsageDetail {
   modelCode: string
@@ -60,7 +60,7 @@ export interface ZaiUsageDetail {
 }
 
 /**
- * Z.ai limit information
+ * Zai Coding Plan limit information
  */
 export interface ZaiLimit {
   type: string
@@ -73,14 +73,14 @@ export interface ZaiLimit {
 }
 
 /**
- * Z.ai usage data
+ * Zai Coding Plan usage data
  */
 export interface ZaiUsage {
   limits: ZaiLimit[]
 }
 
 /**
- * Z.ai account usage data
+ * Zai Coding Plan account usage data
  */
 export interface ZaiAccountUsage {
   accountId: string

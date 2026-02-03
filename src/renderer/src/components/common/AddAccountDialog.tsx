@@ -11,12 +11,110 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { X, CheckCircle2, Loader2 } from 'lucide-react'
+import { X, CheckCircle2, Loader2, AlertCircle, XCircle, Clock, ShieldX } from 'lucide-react'
 import { PROVIDERS } from '@/constants/providers'
 import { useAntigravityStore } from '@/stores/useAntigravityStore'
 import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
 import type { ProviderId } from '@/types/customization'
+
+// OAuth error type detection
+type OAuthErrorType = 'cancelled' | 'timeout' | 'access_denied' | 'network' | 'generic'
+
+function detectOAuthErrorType(error: string): OAuthErrorType {
+  const lowerError = error.toLowerCase()
+  if (lowerError.includes('cancel') || lowerError.includes('closed') || lowerError.includes('aborted')) {
+    return 'cancelled'
+  }
+  if (lowerError.includes('timeout') || lowerError.includes('timed out')) {
+    return 'timeout'
+  }
+  if (lowerError.includes('access_denied') || lowerError.includes('access denied') || lowerError.includes('permission')) {
+    return 'access_denied'
+  }
+  if (lowerError.includes('network') || lowerError.includes('fetch') || lowerError.includes('connection')) {
+    return 'network'
+  }
+  return 'generic'
+}
+
+interface OAuthErrorDisplayProps {
+  error: string
+  errorType: OAuthErrorType
+  onRetry: () => void
+  isLoading: boolean
+}
+
+function OAuthErrorDisplay({ error, errorType, onRetry, isLoading }: OAuthErrorDisplayProps) {
+  const { t } = useTranslation()
+  
+  const errorConfig = {
+    cancelled: {
+      icon: XCircle,
+      bgColor: 'bg-muted',
+      textColor: 'text-muted-foreground',
+      title: t('errors.oauth.cancelledTitle'),
+      description: t('errors.oauth.cancelledDesc'),
+      showRetry: true
+    },
+    timeout: {
+      icon: Clock,
+      bgColor: 'bg-yellow-500/10',
+      textColor: 'text-yellow-600 dark:text-yellow-400',
+      title: t('errors.oauth.timeoutTitle'),
+      description: t('errors.oauth.timeoutDesc'),
+      showRetry: true
+    },
+    access_denied: {
+      icon: ShieldX,
+      bgColor: 'bg-destructive/10',
+      textColor: 'text-destructive',
+      title: t('errors.oauth.accessDeniedTitle'),
+      description: t('errors.oauth.accessDeniedDesc'),
+      showRetry: true
+    },
+    network: {
+      icon: AlertCircle,
+      bgColor: 'bg-orange-500/10',
+      textColor: 'text-orange-600 dark:text-orange-400',
+      title: t('errors.oauth.networkTitle'),
+      description: t('errors.oauth.networkDesc'),
+      showRetry: true
+    },
+    generic: {
+      icon: AlertCircle,
+      bgColor: 'bg-destructive/10',
+      textColor: 'text-destructive',
+      title: t('errors.oauth.genericTitle'),
+      description: error,
+      showRetry: true
+    }
+  }
+  
+  const config = errorConfig[errorType]
+  const Icon = config.icon
+  
+  return (
+    <div className={`${config.bgColor} ${config.textColor} p-3 rounded-md space-y-2`}>
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 shrink-0" />
+        <span className="font-medium text-sm">{config.title}</span>
+      </div>
+      <p className="text-xs opacity-80 pl-6">{config.description}</p>
+      {config.showRetry && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onRetry}
+          disabled={isLoading}
+          className="ml-6 h-7 text-xs"
+        >
+          {t('common.tryAgain')}
+        </Button>
+      )}
+    </div>
+  )
+}
 
 interface AddAccountDialogProps {
   isOpen: boolean
@@ -31,6 +129,7 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
   const [selectedProviderId, setSelectedProviderId] = useState<ProviderId>(PROVIDERS[0].id)
   const [apiKey, setApiKey] = useState('')
   const [error, setError] = useState('')
+  const [errorType, setErrorType] = useState<OAuthErrorType>('generic')
   const [isLoading, setIsLoading] = useState(false)
   
   // OAuth state
@@ -52,6 +151,7 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
       setSelectedProviderId(defaultProvider.id)
       setApiKey('')
       setError('')
+      setErrorType('generic')
       setIsLoading(false)
       setOauthStep('initial')
       setConnectedAccount(null)
@@ -71,6 +171,7 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
     setConnectedAccount(null)
     setApiKey('')
     setError('')
+    setErrorType('generic')
   }, [selectedProviderId])
   
   if (!isOpen) return null
@@ -82,6 +183,7 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
   const handleOAuthLogin = async () => {
     setIsLoading(true)
     setError('')
+    setErrorType('generic')
     
     try {
       let result: { success: boolean; account?: any; error?: string }
@@ -104,10 +206,16 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
           setDisplayName(accountName)
         }
       } else {
-        setError(result.error || t('provider.loginFailed'))
+        const errorMessage = result.error || t('provider.loginFailed')
+        const detectedType = detectOAuthErrorType(errorMessage)
+        setError(errorMessage)
+        setErrorType(detectedType)
       }
     } catch (e) {
-      setError(String(e))
+      const errorMessage = String(e)
+      const detectedType = detectOAuthErrorType(errorMessage)
+      setError(errorMessage)
+      setErrorType(detectedType)
     } finally {
       setIsLoading(false)
     }
@@ -121,7 +229,7 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
     
     try {
       if (selectedProvider.mode === 'apiKey') {
-        // API Key mode (Zai Coding)
+        // API Key mode (Zai Coding Plan)
         if (!apiKey.trim()) {
           setError(t('addAccount.pleaseEnterApiKey'))
           setIsLoading(false)
@@ -264,8 +372,19 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
           )}
           
           {/* Error Message */}
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
+          {error && selectedProvider.mode === 'oauth' && (
+            <OAuthErrorDisplay
+              error={error}
+              errorType={errorType}
+              onRetry={handleOAuthLogin}
+              isLoading={isLoading}
+            />
+          )}
+          {error && selectedProvider.mode === 'apiKey' && (
+            <div className="bg-destructive/10 text-destructive p-3 rounded-md flex items-center gap-2 text-sm">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
           )}
 
           {/* Actions */}

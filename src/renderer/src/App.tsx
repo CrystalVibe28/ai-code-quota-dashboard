@@ -12,6 +12,9 @@ import { ProviderAccount } from './pages/ProviderAccount'
 import { Settings } from './pages/Settings'
 import { CustomizationProvider } from './contexts/CustomizationContext'
 import { useTheme } from './hooks/useTheme'
+import { ErrorBoundary } from './components/common/ErrorBoundary'
+import { Toaster } from './components/common/Toaster'
+import { UpdateNotifier } from './components/common/UpdateNotifier'
 
 function App() {
   const { isUnlocked, isLoading, checkAuth } = useAuthStore()
@@ -100,26 +103,35 @@ const refreshAllData = useCallback(async () => {
   }
 
   if (!isUnlocked) {
-    return <LockScreen />
+    return (
+      <>
+        <LockScreen />
+        <Toaster />
+      </>
+    )
   }
 
   return (
-    <HashRouter>
-      <CustomizationProvider>
-        <Routes>
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Navigate to="/overview" replace />} />
-            <Route path="overview" element={<Overview />} />
-            <Route path="provider/:providerId/:accountId" element={<ProviderAccount />} />
-            <Route path="settings" element={<Settings />} />
-            {/* Redirect old routes to overview */}
-            <Route path="antigravity" element={<Navigate to="/overview" replace />} />
-            <Route path="github-copilot" element={<Navigate to="/overview" replace />} />
-            <Route path="zai-coding" element={<Navigate to="/overview" replace />} />
-          </Route>
-        </Routes>
-      </CustomizationProvider>
-    </HashRouter>
+    <ErrorBoundary>
+      <HashRouter>
+        <CustomizationProvider>
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Navigate to="/overview" replace />} />
+              <Route path="overview" element={<Overview />} />
+              <Route path="provider/:providerId/:accountId" element={<ProviderAccount />} />
+              <Route path="settings" element={<Settings />} />
+              {/* Redirect old routes to overview */}
+              <Route path="antigravity" element={<Navigate to="/overview" replace />} />
+              <Route path="github-copilot" element={<Navigate to="/overview" replace />} />
+              <Route path="zai-coding" element={<Navigate to="/overview" replace />} />
+            </Route>
+          </Routes>
+        </CustomizationProvider>
+      </HashRouter>
+      <UpdateNotifier />
+      <Toaster />
+    </ErrorBoundary>
   )
 }
 

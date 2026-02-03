@@ -54,3 +54,18 @@ export type {
   EffectiveCardConfig
 } from './customization'
 export { DEFAULT_GLOBAL_CONFIG } from './customization'
+
+// Error types
+export type {
+  ErrorSeverity,
+  AppError,
+  ErrorAction,
+  TranslatableError
+} from './errors'
+export {
+  ErrorCode,
+  ERROR_I18N_KEYS,
+  createAppError,
+  parseError,
+  isAppError
+} from './errors'

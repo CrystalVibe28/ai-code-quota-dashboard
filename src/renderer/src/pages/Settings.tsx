@@ -16,6 +16,7 @@ import { LayoutSettings } from '@/components/settings/LayoutSettings'
 import { DisplaySettings } from '@/components/settings/DisplaySettings'
 import { DataSettings } from '@/components/settings/DataSettings'
 import { InteractionSettings } from '@/components/settings/InteractionSettings'
+import { UpdateSettings } from '@/components/settings/UpdateSettings'
 import type { NotificationThreshold } from '@shared/types/settings'
 import { DEFAULT_NOTIFICATION_THRESHOLDS } from '@shared/types/settings'
 
@@ -26,8 +27,7 @@ export function Settings() {
   const { resetAll } = useCustomizationStore()
 
   const [localValues, setLocalValues] = useState({
-    refreshInterval: settings.refreshInterval,
-    lowQuotaThreshold: settings.lowQuotaThreshold
+    refreshInterval: settings.refreshInterval
   })
 
   // Notification thresholds state
@@ -62,15 +62,14 @@ const handleSettingChange = useCallback(async (newSettings: Partial<typeof setti
 
   useEffect(() => {
     setLocalValues({
-      refreshInterval: settings.refreshInterval,
-      lowQuotaThreshold: settings.lowQuotaThreshold
+      refreshInterval: settings.refreshInterval
     })
     setThresholds(settings.notificationThresholds || [
       { value: 25, enabled: true },
       { value: 10, enabled: true },
       { value: 5, enabled: true }
     ])
-  }, [settings.refreshInterval, settings.lowQuotaThreshold, settings.notificationThresholds])
+  }, [settings.refreshInterval, settings.notificationThresholds])
 
   // Initialize auto launch state
   useEffect(() => {
@@ -170,27 +169,6 @@ const handleSettingChange = useCallback(async (newSettings: Partial<typeof setti
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="lowQuotaThreshold">{t('settings.lowQuotaThreshold')}</Label>
-                <p className="text-sm text-muted-foreground">
-                  {t('settings.lowQuotaThresholdDesc')}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="lowQuotaThreshold"
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={localValues.lowQuotaThreshold}
-                  onChange={(e) => handleInputChange('lowQuotaThreshold', Number(e.target.value))}
-                  className="w-24"
-                />
-                <span className="text-sm text-muted-foreground">%</span>
-              </div>
-            </div>
-
-<div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="notifications">{t('settings.notifications')}</Label>
                 <p className="text-sm text-muted-foreground">
@@ -398,6 +376,7 @@ const handleSettingChange = useCallback(async (newSettings: Partial<typeof setti
         <DisplaySettings />
         <DataSettings />
         <InteractionSettings />
+        <UpdateSettings />
 
         <Card>
           <CardHeader>

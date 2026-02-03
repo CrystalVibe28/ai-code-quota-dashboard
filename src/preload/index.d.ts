@@ -10,6 +10,7 @@ import type {
   Settings,
   CustomizationState
 } from '@shared/types'
+import type { UpdateInfo, UpdateCheckResult } from '@shared/types/update'
 
 interface AuthAPI {
   hasPassword: () => Promise<boolean>
@@ -85,6 +86,17 @@ interface NotificationAPI {
   triggerCheck: () => Promise<boolean>
 }
 
+interface UpdateAPI {
+  check: () => Promise<UpdateCheckResult>
+  getCurrentVersion: () => Promise<string>
+  getSkippedVersion: () => Promise<string | undefined>
+  skipVersion: (version: string) => Promise<boolean>
+  clearSkippedVersion: () => Promise<boolean>
+  getLastChecked: () => Promise<string | undefined>
+  openReleasePage: (url?: string) => Promise<boolean>
+  onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void
+}
+
 interface CustomAPI {
   auth: AuthAPI
   storage: StorageAPI
@@ -93,6 +105,7 @@ interface CustomAPI {
   zaiCoding: ZaiCodingAPI
   app: AppAPI
   notification: NotificationAPI
+  update: UpdateAPI
 }
 
 declare global {

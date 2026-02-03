@@ -274,7 +274,7 @@ export class NotificationService {
             .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
             .join(' ')
           itemsToNotify.push({
-            provider: 'Z.ai',
+            provider: 'Zai Coding Plan',
             accountName: account.name,
             itemName: displayType,
             percentage,
@@ -296,6 +296,7 @@ export class NotificationService {
     thresholds: number[]
   ): number | null {
     const state = this.state.items.get(cardId)
+    const isFirstCheck = state === undefined // First time seeing this item (e.g., app startup)
     const previousThreshold = state?.lastNotifiedThreshold ?? null
     const previousPercentage = state?.lastPercentage ?? 100
 
@@ -321,8 +322,14 @@ export class NotificationService {
       return null
     }
 
+    // On first check (app startup), just record state without notifying
+    // This prevents notifications when the app is first launched
+    if (isFirstCheck) {
+      return null
+    }
+
     if (previousThreshold === null) {
-      // First time crossing any threshold
+      // Quota dropped below a threshold (was above all thresholds before)
       return currentThreshold
     }
 

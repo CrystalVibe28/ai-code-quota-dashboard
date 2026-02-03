@@ -5,7 +5,6 @@ import type { GlobalConfig, ProviderConfig, CardConfig } from '@/types/customiza
 
 describe('useCustomizationStore', () => {
   const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
-    showOnlyLowQuota: false,
     hideUnlimitedQuota: true,
     gridColumns: 'auto',
     cardSize: 'default',

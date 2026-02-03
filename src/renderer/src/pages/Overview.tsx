@@ -63,7 +63,6 @@ const refreshAll = async () => {
   
   const shouldShowCard = (percentage: number, isUnlimited: boolean) => {
     if (global.hideUnlimitedQuota && isUnlimited) return false
-    if (global.showOnlyLowQuota && !hasLowQuota(percentage)) return false
     return true
   }
 

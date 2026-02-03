@@ -19,7 +19,7 @@
     "addProvider": "添加供应商",
     "antigravity": "Antigravity",
     "githubCopilot": "GitHub Copilot",
-    "zaiCoding": "Z.ai Coding",
+    "zaiCoding": "Zai Coding Plan",
     "settings": "设置"
   },
   "branding": {
@@ -54,8 +54,6 @@
     "refreshIntervalDesc": "自动刷新用量数据的频率",
     "quotaAlerts": "配额警报",
     "quotaAlertsDesc": "配置低配额警告",
-    "lowQuotaThreshold": "低配额阈值（%）",
-    "lowQuotaThresholdDesc": "当剩余配额低于此百分比时显示警告",
     "notifications": "通知",
     "notificationsDesc": "显示低配额的系统通知",
     "notificationThresholds": "通知阈值",
@@ -82,6 +80,29 @@
     "autoLaunch": "开机自动启动",
     "autoLaunchDesc": "系统启动时自动运行此应用程序",
 "autoLaunchUnsupported": "此功能仅支持 Windows 操作系统",
+    "update": {
+      "title": "关于与更新",
+      "description": "检查应用程序更新",
+      "currentVersion": "当前版本",
+      "latestVersion": "最新版本",
+      "upToDate": "已是最新版本！",
+      "newVersion": "新版本！",
+      "checkNow": "检查更新",
+      "download": "下载",
+      "checking": "检查中...",
+      "lastChecked": "上次检查：{{time}}",
+      "publishedAt": "发布日期",
+      "checkFailed": "检查更新失败",
+      "never": "从未",
+      "justNow": "刚刚",
+      "minutesAgo": "{{count}} 分钟前",
+      "hoursAgo": "{{count}} 小时前",
+      "daysAgo": "{{count}} 天前",
+      "updateAvailable": "有新版本可用",
+      "updateAvailableDesc": "版本 {{version}} 已发布",
+      "skipVersion": "跳过此版本",
+      "viewRelease": "查看更新"
+    },
     "notificationReminderInterval": "提醒间隔（分钟）",
     "notificationReminderIntervalDesc": "低配额项目的提醒频率"
   },
@@ -114,8 +135,8 @@
     "tokenPlaceholder": "个人访问令牌（gho_...）"
   },
   "zaiCoding": {
-    "title": "Z.ai Coding 方案",
-    "addAccountTitle": "添加 Z.ai Coding 账户",
+    "title": "Zai Coding Plan",
+    "addAccountTitle": "添加 Zai Coding Plan 账户",
     "apiKeyPlaceholder": "API 密钥",
     "limits": {
       "tokensLimit": "AI配额",
@@ -164,8 +185,6 @@
     "display": {
       "title": "显示控制",
       "description": "控制显示哪些信息",
-      "showOnlyLowQuota": "仅显示低配额",
-      "showOnlyLowQuotaDesc": "只显示低于阈值的卡片",
       "hideUnlimited": "隐藏无限配额",
       "hideUnlimitedDesc": "隐藏无限制配额的卡片"
     },

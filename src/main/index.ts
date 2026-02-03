@@ -17,6 +17,7 @@ import { registerGithubCopilotHandlers } from './ipc/github-copilot'
 import { registerZaiCodingHandlers } from './ipc/zai-coding'
 import { registerAppHandlers } from './ipc/app'
 import { registerNotificationHandlers } from './ipc/notification'
+import { registerUpdateHandlers, notifyUpdateAvailable } from './ipc/update'
 
 let mainWindow: BrowserWindow | null = null
 let isQuitting = false
@@ -123,6 +124,7 @@ function registerAllIpcHandlers(): void {
   registerZaiCodingHandlers()
   registerAppHandlers()
   registerNotificationHandlers()
+  registerUpdateHandlers()
 }
 
 const trayService = TrayService.getInstance()
@@ -258,7 +260,7 @@ async function performBackgroundRefresh(): Promise<void> {
             })
           )
         } catch (error) {
-          console.error('[Background Refresh] Z.ai Coding fetch failed:', error)
+          console.error('[Background Refresh] Zai Coding Plan fetch failed:', error)
           return []
         }
       })()
@@ -368,6 +370,18 @@ app.whenReady().then(() => {
   setTimeout(async () => {
     await performBackgroundRefresh()
   }, 5000)
+
+  // Check for updates after 10 seconds, then every 24 hours
+  setTimeout(() => {
+    notifyUpdateAvailable(mainWindow)
+  }, 10000)
+
+  setInterval(
+    () => {
+      notifyUpdateAvailable(mainWindow)
+    },
+    24 * 60 * 60 * 1000
+  ) // 24 hours
 })
 
 app.on('window-all-closed', () => {

@@ -1,3 +1,4 @@
+import { memo, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn, getProgressColor, getQuotaColor, formatResetTime } from '@/lib/utils'
 import { Progress } from '@/components/ui/progress'
@@ -43,7 +44,7 @@ const progressStyleClasses: Record<ProgressStyle, string> = {
   striped: 'bg-[length:1rem_1rem] bg-[linear-gradient(45deg,rgba(255,255,255,.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,.15)_50%,rgba(255,255,255,.15)_75%,transparent_75%,transparent)]'
 }
 
-export function UsageCard({
+export const UsageCard = memo(function UsageCard({
   title,
   subtitle,
   percentage,
@@ -62,15 +63,20 @@ export function UsageCard({
   onVisibilityToggle
 }: UsageCardProps) {
   const { t } = useTranslation()
-  const percentageInt = Math.round(percentage)
-  
-  const showPercent = valueFormat === 'percent' || valueFormat === 'both'
-  const showAbsolute = (valueFormat === 'absolute' || valueFormat === 'both') && remaining !== undefined
 
-  const handleVisibilityClick = (e: React.MouseEvent) => {
+  // 使用 useMemo 快取計算結果，避免每次渲染重新計算
+  const percentageInt = useMemo(() => Math.round(percentage), [percentage])
+
+  const { showPercent, showAbsolute } = useMemo(() => ({
+    showPercent: valueFormat === 'percent' || valueFormat === 'both',
+    showAbsolute: (valueFormat === 'absolute' || valueFormat === 'both') && remaining !== undefined
+  }), [valueFormat, remaining])
+
+  // 使用 useCallback 快取事件處理函數，避免子元件不必要的重新渲染
+  const handleVisibilityClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     onVisibilityToggle?.(!isVisibleInOverview)
-  }
+  }, [onVisibilityToggle, isVisibleInOverview])
   
   return (
     <Card 
@@ -135,4 +141,4 @@ export function UsageCard({
       </CardContent>
     </Card>
   )
-}
+})

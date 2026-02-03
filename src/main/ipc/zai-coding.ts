@@ -24,7 +24,7 @@ export function registerZaiCodingHandlers(): void {
 
       return await zaiCodingService.fetchUsage(account.apiKey)
     } catch (error) {
-      console.error('[Z.ai Coding IPC] Failed to fetch usage:', error)
+      console.error('[Zai Coding Plan IPC] Failed to fetch usage:', error)
       return null
     }
   })
@@ -38,7 +38,7 @@ export function registerZaiCodingHandlers(): void {
             const usage = await zaiCodingService.fetchUsage(account.apiKey)
             return { accountId: account.id, name: account.name, usage }
           } catch (error) {
-            console.error('[Z.ai Coding] fetch-usage error for', account.name, ':', error)
+            console.error('[Zai Coding Plan] fetch-usage error for', account.name, ':', error)
             return { accountId: account.id, name: account.name, usage: null, error: String(error) }
           }
         })
@@ -52,7 +52,7 @@ export function registerZaiCodingHandlers(): void {
 
       return results
     } catch (error) {
-      console.error('[Z.ai Coding IPC] Failed to fetch all usage:', error)
+      console.error('[Zai Coding Plan IPC] Failed to fetch all usage:', error)
       return []
     }
   })
