@@ -42,12 +42,12 @@ export class StorageService {
     if (StorageService.instance) {
       return StorageService.instance
     }
-    
+
     this.dataPath = join(app.getPath('userData'), 'data')
     this.storagePath = join(this.dataPath, 'credentials.enc')
     this.cryptoService = new CryptoService()
     this.ensureDataDir()
-    
+
     StorageService.instance = this
   }
 
@@ -75,26 +75,54 @@ export class StorageService {
     return this.password !== null
   }
 
+  /**
+   * Maps system locale to supported language code
+   * Supports: 'en', 'zh-TW', 'zh-CN'
+   */
+  private mapLocaleToLanguage(locale: string): string {
+    const lowerLocale = locale.toLowerCase()
+
+    // Traditional Chinese variants
+    if (lowerLocale === 'zh-tw' || lowerLocale === 'zh-hant') {
+      return 'zh-TW'
+    }
+
+    // Simplified Chinese variants
+    if (lowerLocale === 'zh-cn' || lowerLocale === 'zh-hans' || lowerLocale === 'zh') {
+      return 'zh-CN'
+    }
+
+    // Default to English for all other locales
+    return 'en'
+  }
+
   private loadData(): StorageData {
     if (!this.password) throw new Error('Storage is locked')
-    
+
     if (!existsSync(this.storagePath)) {
-      return { ...DEFAULT_DATA, _version: CURRENT_DATA_VERSION }
+      // First installation: use system locale for initial language
+      const systemLocale = app.getLocale()
+      const initialLanguage = this.mapLocaleToLanguage(systemLocale)
+      return {
+        ...DEFAULT_DATA,
+        _version: CURRENT_DATA_VERSION,
+        settings: { ...DEFAULT_SETTINGS, language: initialLanguage }
+      }
     }
 
     try {
       const encrypted = readFileSync(this.storagePath, 'utf-8')
       const decrypted = this.cryptoService.decrypt(encrypted, this.password)
       const data = JSON.parse(decrypted) as StorageData
-      
+
       // Run migrations if needed
       const migratedData = this.migrateData(data)
-      
+
       // Save if migration occurred
       if (migratedData._version !== data._version) {
         this.saveData(migratedData)
       }
-      
+
       return migratedData
     } catch (error) {
       console.error('[Storage] Failed to load data:', error)
@@ -104,10 +132,10 @@ export class StorageService {
 
   private migrateData(data: StorageData): StorageData {
     const version = data._version || 1
-    
+
     if (version < 2) {
       console.log('[Storage] Migrating data from v1 to v2: Adding displayName field')
-      
+
       // Migration v1 -> v2: Add displayName field to all accounts
       if (data.antigravity) {
         data.antigravity = data.antigravity.map(acc => ({
@@ -115,33 +143,33 @@ export class StorageService {
           displayName: acc.displayName || acc.name || acc.email
         }))
       }
-      
+
       if (data.githubCopilot) {
         data.githubCopilot = data.githubCopilot.map(acc => ({
           ...acc,
           displayName: acc.displayName || acc.name || acc.login
         }))
       }
-      
+
       if (data.zaiCoding) {
         data.zaiCoding = data.zaiCoding.map(acc => ({
           ...acc,
           displayName: acc.displayName || acc.name
         }))
       }
-      
+
       data._version = 2
     }
-    
+
     // Future migrations can be added here:
     // if (version < 3) { ... }
-    
+
     return data
   }
 
   private saveData(data: StorageData): void {
     if (!this.password) throw new Error('Storage is locked')
-    
+
     const json = JSON.stringify(data, null, 2)
     const encrypted = this.cryptoService.encrypt(json, this.password)
     writeFileSync(this.storagePath, encrypted)
@@ -171,7 +199,7 @@ export class StorageService {
 
   async saveAccount(provider: string, account: AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount): Promise<boolean> {
     const data = this.getData()
-    
+
     switch (provider) {
       case 'antigravity': {
         const acc = account as AntigravityAccount
@@ -206,14 +234,14 @@ export class StorageService {
       default:
         return false
     }
-    
+
     this.saveData(data)
     return true
   }
 
   async deleteAccount(provider: string, accountId: string): Promise<boolean> {
     const data = this.getData()
-    
+
     switch (provider) {
       case 'antigravity':
         data.antigravity = data.antigravity.filter(a => a.id !== accountId)
@@ -227,18 +255,18 @@ export class StorageService {
       default:
         return false
     }
-    
+
     this.saveData(data)
     return true
   }
 
   async updateAccount(
-    provider: string, 
-    accountId: string, 
+    provider: string,
+    accountId: string,
     updates: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount>
   ): Promise<boolean> {
     const data = this.getData()
-    
+
     switch (provider) {
       case 'antigravity': {
         const idx = data.antigravity.findIndex(a => a.id === accountId)
@@ -264,7 +292,7 @@ export class StorageService {
       default:
         return false
     }
-    
+
     this.saveData(data)
     return true
   }

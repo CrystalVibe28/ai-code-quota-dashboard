@@ -20,6 +20,7 @@ interface AuthAPI {
   lock: () => Promise<void>
   skipPassword: () => Promise<boolean>
   isPasswordSkipped: () => Promise<boolean>
+  unlockWithSkippedPassword: () => Promise<boolean>
 }
 
 interface StorageAPI {
@@ -93,6 +94,7 @@ interface UpdateAPI {
   skipVersion: (version: string) => Promise<boolean>
   clearSkippedVersion: () => Promise<boolean>
   getLastChecked: () => Promise<string | undefined>
+  getLastUpdateInfo: () => Promise<UpdateInfo | null>
   openReleasePage: (url?: string) => Promise<boolean>
   onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void
 }

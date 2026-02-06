@@ -95,6 +95,8 @@ function createWindow(): void {
       clearInterval(refreshTimer)
       refreshTimer = null
     }
+    // Trigger immediate data sync when window becomes visible
+    mainWindow?.webContents.send('app:refresh-all')
   })
 
   mainWindow.on('hide', () => {
@@ -113,6 +115,8 @@ function createWindow(): void {
       clearInterval(refreshTimer)
       refreshTimer = null
     }
+    // Trigger immediate data sync when window is restored from minimized
+    mainWindow?.webContents.send('app:refresh-all')
   })
 }
 
@@ -282,7 +286,7 @@ async function performBackgroundRefresh(): Promise<void> {
       zaiCoding: zaiTray
     })
 
-notificationService.checkAndNotify(
+    notificationService.checkAndNotify(
       antigravityResults,
       copilotResults,
       zaiResults,

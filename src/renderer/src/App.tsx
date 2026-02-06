@@ -28,7 +28,7 @@ function App() {
   const initializedRef = useRef(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
-const refreshAllData = useCallback(async () => {
+  const refreshAllData = useCallback(async () => {
     await Promise.all([
       fetchAntiAccounts(),
       fetchGhAccounts(),
@@ -85,14 +85,17 @@ const refreshAllData = useCallback(async () => {
     })
 
     window.electron.ipcRenderer.on('app:refresh-all', () => {
-      refreshAllData()
+      // Only refresh if storage is unlocked to avoid "Storage is locked" errors
+      if (isUnlocked) {
+        refreshAllData()
+      }
     })
 
     return () => {
       window.electron.ipcRenderer.removeAllListeners('app:navigate-to-overview')
       window.electron.ipcRenderer.removeAllListeners('app:refresh-all')
     }
-  }, [refreshAllData])
+  }, [isUnlocked, refreshAllData])
 
   if (isLoading) {
     return (

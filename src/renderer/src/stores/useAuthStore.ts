@@ -27,7 +27,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const hasPassword = await window.api.auth.hasPassword()
       const isPasswordSkipped = await window.api.auth.isPasswordSkipped()
-      set({ hasPassword, isPasswordSkipped, isLoading: false, error: null })
+      // Auto-unlock when password was skipped
+      if (isPasswordSkipped) {
+        await window.api.auth.unlockWithSkippedPassword()
+        set({ hasPassword, isPasswordSkipped, isUnlocked: true, isLoading: false, error: null })
+      } else {
+        set({ hasPassword, isPasswordSkipped, isLoading: false, error: null })
+      }
     } catch (error) {
       set({ hasPassword: false, isPasswordSkipped: false, isLoading: false })
       useErrorStore.getState().showError(
@@ -100,7 +106,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       useErrorStore.getState().showErrorFromException(error)
     }
   },
-  
+
   clearError: () => {
     set({ error: null })
   }

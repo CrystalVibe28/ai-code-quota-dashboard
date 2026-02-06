@@ -27,7 +27,7 @@ export function registerAuthHandlers(): void {
   ipcMain.handle('auth:change-password', async (_, oldPassword: string, newPassword: string) => {
     const isValid = await cryptoService.verifyPassword(oldPassword)
     if (!isValid) return false
-    
+
     await cryptoService.changePassword(oldPassword, newPassword)
     storageService.unlock(newPassword)
     return true
@@ -45,5 +45,13 @@ export function registerAuthHandlers(): void {
 
   ipcMain.handle('auth:is-password-skipped', async () => {
     return cryptoService.isPasswordSkipped()
+  })
+
+  ipcMain.handle('auth:unlock-with-skipped-password', async () => {
+    if (cryptoService.isPasswordSkipped()) {
+      storageService.unlock(cryptoService.getSkippedPasswordKey())
+      return true
+    }
+    return false
   })
 }

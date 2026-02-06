@@ -32,7 +32,19 @@ export class ZaiCodingService {
       })
 
       if (response.ok) {
-        const data = await response.json()
+        // Get response text first to handle empty responses
+        const responseText = await response.text()
+        if (!responseText || responseText.trim() === '') {
+          return { valid: false, error: 'Empty response from server' }
+        }
+
+        let data: { success: boolean; msg?: string }
+        try {
+          data = JSON.parse(responseText)
+        } catch {
+          return { valid: false, error: 'Invalid JSON response from server' }
+        }
+
         if (data.success) {
           return { valid: true }
         }
@@ -64,8 +76,21 @@ export class ZaiCodingService {
         return null
       }
 
-      const data = await response.json()
-      
+      // Get response text first to handle empty responses
+      const responseText = await response.text()
+      if (!responseText || responseText.trim() === '') {
+        console.warn('[Zai Coding Plan] Empty response body received')
+        return null
+      }
+
+      let data: { success: boolean; data?: { limits?: Limit[] }; msg?: string }
+      try {
+        data = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error('[Zai Coding Plan] Failed to parse response JSON:', parseError)
+        return null
+      }
+
       if (!data.success) {
         return null
       }

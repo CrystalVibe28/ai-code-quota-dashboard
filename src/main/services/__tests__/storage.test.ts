@@ -61,6 +61,27 @@ function migrateData(data: StorageData): StorageData {
   return data
 }
 
+/**
+ * Pure function extracted from StorageService for testing
+ * Maps system locale to supported language code
+ */
+function mapLocaleToLanguage(locale: string): string {
+  const lowerLocale = locale.toLowerCase()
+
+  // Traditional Chinese variants
+  if (lowerLocale === 'zh-tw' || lowerLocale === 'zh-hant') {
+    return 'zh-TW'
+  }
+
+  // Simplified Chinese variants
+  if (lowerLocale === 'zh-cn' || lowerLocale === 'zh-hans' || lowerLocale === 'zh') {
+    return 'zh-CN'
+  }
+
+  // Default to English for all other locales
+  return 'en'
+}
+
 describe('StorageService data migration', () => {
   describe('migrateData v1 -> v2', () => {
     it('should add displayName to antigravity accounts from email', () => {
@@ -299,6 +320,45 @@ describe('StorageService data migration', () => {
       expect(DEFAULT_DATA.antigravity).toEqual([])
       expect(DEFAULT_DATA.githubCopilot).toEqual([])
       expect(DEFAULT_DATA.zaiCoding).toEqual([])
+    })
+  })
+
+  describe('mapLocaleToLanguage', () => {
+    it('should return zh-TW for zh-TW locale', () => {
+      expect(mapLocaleToLanguage('zh-TW')).toBe('zh-TW')
+      expect(mapLocaleToLanguage('zh-tw')).toBe('zh-TW')
+    })
+
+    it('should return zh-TW for zh-Hant locale', () => {
+      expect(mapLocaleToLanguage('zh-Hant')).toBe('zh-TW')
+      expect(mapLocaleToLanguage('zh-hant')).toBe('zh-TW')
+    })
+
+    it('should return zh-CN for zh-CN locale', () => {
+      expect(mapLocaleToLanguage('zh-CN')).toBe('zh-CN')
+      expect(mapLocaleToLanguage('zh-cn')).toBe('zh-CN')
+    })
+
+    it('should return zh-CN for zh-Hans locale', () => {
+      expect(mapLocaleToLanguage('zh-Hans')).toBe('zh-CN')
+      expect(mapLocaleToLanguage('zh-hans')).toBe('zh-CN')
+    })
+
+    it('should return zh-CN for generic zh locale', () => {
+      expect(mapLocaleToLanguage('zh')).toBe('zh-CN')
+    })
+
+    it('should return en for English locales', () => {
+      expect(mapLocaleToLanguage('en')).toBe('en')
+      expect(mapLocaleToLanguage('en-US')).toBe('en')
+      expect(mapLocaleToLanguage('en-GB')).toBe('en')
+    })
+
+    it('should return en for unsupported locales', () => {
+      expect(mapLocaleToLanguage('ja')).toBe('en')
+      expect(mapLocaleToLanguage('ko')).toBe('en')
+      expect(mapLocaleToLanguage('de')).toBe('en')
+      expect(mapLocaleToLanguage('fr')).toBe('en')
     })
   })
 })

@@ -34,6 +34,7 @@ function compareVersions(v1: string, v2: string): number {
 export class UpdateService {
   private static instance: UpdateService
   private updateSettings: UpdateSettings = {}
+  private lastUpdateInfo: UpdateInfo | null = null
 
   static getInstance(): UpdateService {
     if (!UpdateService.instance) {
@@ -75,6 +76,13 @@ export class UpdateService {
    */
   getLastChecked(): string | undefined {
     return this.updateSettings.lastChecked
+  }
+
+  /**
+   * Get last update info from previous check
+   */
+  getLastUpdateInfo(): UpdateInfo | null {
+    return this.lastUpdateInfo
   }
 
   /**
@@ -127,6 +135,9 @@ export class UpdateService {
         releaseNotes: release.body,
         publishedAt: release.published_at
       }
+
+      // Save last check result
+      this.lastUpdateInfo = updateInfo
 
       console.log(
         `[UpdateService] Check complete: current=${currentVersion}, latest=${latestVersion}, hasUpdate=${hasUpdate}`

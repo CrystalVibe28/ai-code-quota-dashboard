@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RefreshCw, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ import type { ProviderId } from '@/types/customization'
 export function Overview() {
   const { t } = useTranslation()
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const copilotLabelMap: Record<string, string> = {
     chat: 'Chat messages',
@@ -40,20 +41,15 @@ export function Overview() {
   const { global, getSortedProviders, getCardConfig, isCardVisible } = useCustomization()
   const { providers, updateProvider } = useCustomizationStore()
 
-  useEffect(() => {
-    if (global.autoRefresh === 0) return
-    const interval = setInterval(refreshAll, global.autoRefresh * 1000)
-    return () => clearInterval(interval)
-  }, [global.autoRefresh])
-
-const refreshAll = async () => {
+const refreshAll = useCallback(async () => {
     setIsRefreshing(true)
     await Promise.all([fetchAntiAccounts(), fetchGhAccounts(), fetchZaiAccounts()])
     await Promise.all([fetchAntiUsage(), fetchGhUsage(), fetchZaiUsage()])
+    setRefreshKey(prev => prev + 1)
     setIsRefreshing(false)
     // Trigger notification check after refreshing data
     window.api.notification.triggerCheck().catch(() => {})
-  }
+  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage])
 
   const visibleAntiAccounts = antiAccounts.filter(a => a.showInOverview)
   const visibleGhAccounts = ghAccounts.filter(a => a.showInOverview)
@@ -101,6 +97,7 @@ const refreshAll = async () => {
             showResetTime={config.showResetTime}
             cardRadius={config.cardRadius}
             className={hasLowQuota(percentage) ? 'border-destructive' : ''}
+            refreshKey={refreshKey}
           />
         )
       }).filter(Boolean)
@@ -138,6 +135,7 @@ const refreshAll = async () => {
             showResetTime={config.showResetTime}
             cardRadius={config.cardRadius}
             className={hasLowQuota(percentage) ? 'border-destructive' : ''}
+            refreshKey={refreshKey}
           />
         )
       }).filter(Boolean)
@@ -171,6 +169,7 @@ const refreshAll = async () => {
             showResetTime={config.showResetTime}
             cardRadius={config.cardRadius}
             className={hasLowQuota(percentage) ? 'border-destructive' : ''}
+            refreshKey={refreshKey}
           />
         )
       }).filter(Boolean)

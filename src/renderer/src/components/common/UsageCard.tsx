@@ -23,6 +23,8 @@ interface UsageCardProps {
   showVisibilityToggle?: boolean
   isVisibleInOverview?: boolean
   onVisibilityToggle?: (visible: boolean) => void
+  /** Used to force re-render when refreshing to update relative time display */
+  refreshKey?: number
 }
 
 const sizeClasses: Record<CardSize, string> = {
@@ -60,7 +62,8 @@ export const UsageCard = memo(function UsageCard({
   onClick,
   showVisibilityToggle = false,
   isVisibleInOverview = true,
-  onVisibilityToggle
+  onVisibilityToggle,
+  refreshKey: _refreshKey
 }: UsageCardProps) {
   const { t } = useTranslation()
 

@@ -56,6 +56,11 @@ export function registerUpdateHandlers(): void {
     return updateService.getLastChecked()
   })
 
+  // Get last update info
+  ipcMain.handle('update:get-last-update-info', () => {
+    return updateService.getLastUpdateInfo()
+  })
+
   // Open release page in browser
   ipcMain.handle('update:open-release-page', async (_, url?: string) => {
     try {

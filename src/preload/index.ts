@@ -4,19 +4,20 @@ import { electronAPI } from '@electron-toolkit/preload'
 const api = {
   auth: {
     hasPassword: (): Promise<boolean> => ipcRenderer.invoke('auth:has-password'),
-    verifyPassword: (password: string): Promise<boolean> => 
+    verifyPassword: (password: string): Promise<boolean> =>
       ipcRenderer.invoke('auth:verify-password', password),
-    setPassword: (password: string): Promise<boolean> => 
+    setPassword: (password: string): Promise<boolean> =>
       ipcRenderer.invoke('auth:set-password', password),
     changePassword: (oldPassword: string, newPassword: string): Promise<boolean> =>
       ipcRenderer.invoke('auth:change-password', oldPassword, newPassword),
     lock: (): Promise<void> => ipcRenderer.invoke('auth:lock'),
     skipPassword: (): Promise<boolean> => ipcRenderer.invoke('auth:skip-password'),
-    isPasswordSkipped: (): Promise<boolean> => ipcRenderer.invoke('auth:is-password-skipped')
+    isPasswordSkipped: (): Promise<boolean> => ipcRenderer.invoke('auth:is-password-skipped'),
+    unlockWithSkippedPassword: (): Promise<boolean> => ipcRenderer.invoke('auth:unlock-with-skipped-password')
   },
 
   storage: {
-    getAccounts: (provider: string): Promise<unknown[]> => 
+    getAccounts: (provider: string): Promise<unknown[]> =>
       ipcRenderer.invoke('storage:get-accounts', provider),
     saveAccount: (provider: string, account: unknown): Promise<boolean> =>
       ipcRenderer.invoke('storage:save-account', provider, account),
@@ -88,7 +89,7 @@ const api = {
       ipcRenderer.invoke('app:set-auto-launch', enabled)
   },
 
-notification: {
+  notification: {
     resetState: (): Promise<boolean> =>
       ipcRenderer.invoke('notification:reset-state'),
     restartTimer: (): Promise<boolean> =>
@@ -116,6 +117,8 @@ notification: {
       ipcRenderer.invoke('update:clear-skipped-version'),
     getLastChecked: (): Promise<string | undefined> =>
       ipcRenderer.invoke('update:get-last-checked'),
+    getLastUpdateInfo: (): Promise<unknown> =>
+      ipcRenderer.invoke('update:get-last-update-info'),
     openReleasePage: (url?: string): Promise<boolean> =>
       ipcRenderer.invoke('update:open-release-page', url),
     onUpdateAvailable: (callback: (info: unknown) => void): (() => void) => {

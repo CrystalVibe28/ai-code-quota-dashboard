@@ -37,16 +37,19 @@ describe('useAuthStore', () => {
       expect(state.isLoading).toBe(false)
     })
 
-    it('should handle skipped password state', async () => {
+    it('should handle skipped password state and auto-unlock', async () => {
       mockWindowApi.auth.hasPassword.mockResolvedValue(true)
       mockWindowApi.auth.isPasswordSkipped.mockResolvedValue(true)
+      mockWindowApi.auth.unlockWithSkippedPassword.mockResolvedValue(true)
 
       await useAuthStore.getState().checkAuth()
 
       const state = useAuthStore.getState()
       expect(state.hasPassword).toBe(true)
       expect(state.isPasswordSkipped).toBe(true)
+      expect(state.isUnlocked).toBe(true)
       expect(state.isLoading).toBe(false)
+      expect(mockWindowApi.auth.unlockWithSkippedPassword).toHaveBeenCalled()
     })
 
     it('should handle API error gracefully', async () => {

@@ -113,6 +113,20 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
       set({ lastChecked: time || null })
     })
 
+    // Get last update info from previous check
+    window.api.update.getLastUpdateInfo().then((info) => {
+      if (info) {
+        const data = info as UpdateInfo
+        set({
+          latestVersion: data.latestVersion,
+          hasUpdate: data.hasUpdate,
+          releaseUrl: data.releaseUrl,
+          releaseNotes: data.releaseNotes || null,
+          publishedAt: data.publishedAt || null
+        })
+      }
+    })
+
     // Listen for update available notifications from main process
     const cleanup = window.api.update.onUpdateAvailable((info) => {
       const data = info as UpdateInfo

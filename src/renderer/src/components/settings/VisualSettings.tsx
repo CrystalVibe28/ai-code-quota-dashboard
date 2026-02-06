@@ -25,7 +25,7 @@ export function VisualSettings() {
         </CardTitle>
         <CardDescription>{t('customization.visual.description')}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         <div>
           <Label className="mb-3 block">{t('customization.visual.theme')}</Label>
           <div className="flex gap-2">
@@ -35,8 +35,8 @@ export function VisualSettings() {
                 onClick={() => updateGlobal({ theme: value })}
                 className={cn(
                   'flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors',
-                  global.theme === value 
-                    ? 'border-primary bg-primary/10 text-primary' 
+                  global.theme === value
+                    ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border hover:bg-accent'
                 )}
               >
