@@ -31,7 +31,7 @@ interface AccountNavItem {
 export function MainLayout() {
   const { t } = useTranslation()
   const location = useLocation()
-  const { lock } = useAuthStore()
+  const { lock, isPasswordSkipped } = useAuthStore()
   
   // Get accounts from all stores
   const { accounts: antiAccounts } = useAntigravityStore()
@@ -182,17 +182,19 @@ export function MainLayout() {
           </ul>
         </nav>
 
-        <div className="p-3 border-t border-border">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2 text-muted-foreground"
-            onClick={lock}
-          >
-            <Lock className="h-4 w-4" />
-            {t('common.lock')}
-          </Button>
-        </div>
+        {!isPasswordSkipped && (
+          <div className="p-3 border-t border-border">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start gap-2 text-muted-foreground"
+              onClick={lock}
+            >
+              <Lock className="h-4 w-4" />
+              {t('common.lock')}
+            </Button>
+          </div>
+        )}
       </aside>
 
       <main className="flex-1 overflow-auto">

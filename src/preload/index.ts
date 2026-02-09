@@ -13,7 +13,11 @@ const api = {
     lock: (): Promise<void> => ipcRenderer.invoke('auth:lock'),
     skipPassword: (): Promise<boolean> => ipcRenderer.invoke('auth:skip-password'),
     isPasswordSkipped: (): Promise<boolean> => ipcRenderer.invoke('auth:is-password-skipped'),
-    unlockWithSkippedPassword: (): Promise<boolean> => ipcRenderer.invoke('auth:unlock-with-skipped-password')
+    unlockWithSkippedPassword: (): Promise<boolean> => ipcRenderer.invoke('auth:unlock-with-skipped-password'),
+    removePassword: (password: string): Promise<boolean> =>
+      ipcRenderer.invoke('auth:remove-password', password),
+    setPasswordFromSettings: (password: string): Promise<boolean> =>
+      ipcRenderer.invoke('auth:set-password-from-settings', password)
   },
 
   storage: {

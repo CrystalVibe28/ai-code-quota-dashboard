@@ -9,7 +9,10 @@ export const mockWindowApi = {
     setPassword: vi.fn().mockResolvedValue(true),
     skipPassword: vi.fn().mockResolvedValue(true),
     lock: vi.fn().mockResolvedValue(undefined),
-    unlockWithSkippedPassword: vi.fn().mockResolvedValue(true)
+    unlockWithSkippedPassword: vi.fn().mockResolvedValue(true),
+    changePassword: vi.fn().mockResolvedValue(true),
+    removePassword: vi.fn().mockResolvedValue(true),
+    setPasswordFromSettings: vi.fn().mockResolvedValue(true)
   },
   storage: {
     getAccounts: vi.fn().mockResolvedValue([]),

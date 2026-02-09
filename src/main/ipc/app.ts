@@ -1,6 +1,5 @@
 import { ipcMain, app } from 'electron'
 import { StorageService } from '../services/storage'
-import { TrayService } from '../services/tray'
 import { restartBackgroundRefresh, stopBackgroundRefresh, startBackgroundRefresh } from '../index'
 
 const storageService = new StorageService()
@@ -19,13 +18,6 @@ export function registerAppHandlers(): void {
   ipcMain.handle('app:set-close-to-tray', async (_, value: boolean) => {
     try {
       await storageService.saveSettings({ closeToTray: value })
-
-      const trayService = TrayService.getInstance()
-      if (value) {
-        trayService.createTray()
-      } else {
-        trayService.destroyTray()
-      }
 
       restartBackgroundRefresh()
       return true

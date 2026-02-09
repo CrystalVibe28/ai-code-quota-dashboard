@@ -16,6 +16,7 @@ import { LayoutSettings } from '@/components/settings/LayoutSettings'
 import { DisplaySettings } from '@/components/settings/DisplaySettings'
 import { DataSettings } from '@/components/settings/DataSettings'
 import { InteractionSettings } from '@/components/settings/InteractionSettings'
+import { SecuritySettings } from '@/components/settings/SecuritySettings'
 import { UpdateSettings } from '@/components/settings/UpdateSettings'
 import type { NotificationThreshold } from '@shared/types/settings'
 import { DEFAULT_NOTIFICATION_THRESHOLDS } from '@shared/types/settings'
@@ -328,6 +329,8 @@ const handleSettingChange = useCallback(async (newSettings: Partial<typeof setti
             </select>
           </CardContent>
         </Card>
+
+        <SecuritySettings />
 
         <Card>
           <CardHeader>

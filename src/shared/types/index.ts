@@ -17,6 +17,9 @@ export type {
   GithubCopilotLoginResult
 } from './accounts'
 
+// Provider adapter interface
+export type { ProviderAdapter } from './provider'
+
 // Usage types
 export type {
   ModelQuota,

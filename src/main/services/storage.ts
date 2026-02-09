@@ -75,6 +75,18 @@ export class StorageService {
     return this.password !== null
   }
 
+  reEncrypt(oldPassword: string, newPassword: string): void {
+    if (!this.cachedData) throw new Error('Storage is locked')
+
+    this.password = newPassword
+    try {
+      this.saveData(this.cachedData)
+    } catch (error) {
+      this.password = oldPassword
+      throw error
+    }
+  }
+
   /**
    * Maps system locale to supported language code
    * Supports: 'en', 'zh-TW', 'zh-CN'

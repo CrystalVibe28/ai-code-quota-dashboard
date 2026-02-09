@@ -28,8 +28,8 @@ export function registerAuthHandlers(): void {
     const isValid = await cryptoService.verifyPassword(oldPassword)
     if (!isValid) return false
 
+    storageService.reEncrypt(oldPassword, newPassword)
     await cryptoService.changePassword(oldPassword, newPassword)
-    storageService.unlock(newPassword)
     return true
   })
 
@@ -53,5 +53,22 @@ export function registerAuthHandlers(): void {
       return true
     }
     return false
+  })
+
+  ipcMain.handle('auth:remove-password', async (_, currentPassword: string) => {
+    const isValid = await cryptoService.verifyPassword(currentPassword)
+    if (!isValid) return false
+
+    storageService.reEncrypt(currentPassword, cryptoService.getSkippedPasswordKey())
+    await cryptoService.skipPassword()
+    return true
+  })
+
+  ipcMain.handle('auth:set-password-from-settings', async (_, newPassword: string) => {
+    if (!cryptoService.isPasswordSkipped()) return false
+
+    storageService.reEncrypt(cryptoService.getSkippedPasswordKey(), newPassword)
+    await cryptoService.setPassword(newPassword)
+    return true
   })
 }

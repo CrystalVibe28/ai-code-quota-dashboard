@@ -21,6 +21,8 @@ interface AuthAPI {
   skipPassword: () => Promise<boolean>
   isPasswordSkipped: () => Promise<boolean>
   unlockWithSkippedPassword: () => Promise<boolean>
+  removePassword: (password: string) => Promise<boolean>
+  setPasswordFromSettings: (password: string) => Promise<boolean>
 }
 
 interface StorageAPI {

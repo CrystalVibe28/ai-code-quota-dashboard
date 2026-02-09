@@ -5,6 +5,7 @@ import { existsSync, rmSync, readdirSync } from 'fs'
 import { join as pathJoin } from 'path'
 import { TrayService } from './services/tray'
 import { StorageService } from './services/storage'
+import { CryptoService } from './services/crypto'
 import { NotificationService } from './services/notification'
 import { AntigravityService } from './services/providers/antigravity'
 import { GithubCopilotService } from './services/providers/github-copilot'
@@ -21,6 +22,7 @@ import { registerUpdateHandlers, notifyUpdateAvailable } from './ipc/update'
 
 let mainWindow: BrowserWindow | null = null
 let isQuitting = false
+const cryptoService = new CryptoService()
 
 function getIconPath(): string {
   if (is.dev) {
@@ -51,7 +53,21 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow?.show()
+    // Startup behavior:
+    // - Password set & not skipped: show window for password entry
+    // - Password skipped: run in background, auto-unlock
+    // - No password: show window for initial setup
+    const hasPassword = cryptoService.hasPassword()
+    const isPasswordSkipped = cryptoService.isPasswordSkipped()
+
+    if (hasPassword && isPasswordSkipped) {
+      const storageService = new StorageService()
+      storageService.unlock(cryptoService.getSkippedPasswordKey())
+      console.log('[Startup] Password skipped - running in background')
+      startBackgroundRefresh()
+    } else {
+      mainWindow?.show()
+    }
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -80,9 +96,6 @@ function createWindow(): void {
       if (settings.closeToTray) {
         event.preventDefault()
         mainWindow?.hide()
-
-        // Create tray if not exists
-        trayService.createTray()
       }
     } catch (error) {
       console.error('[Window] Failed to check closeToTray setting:', error)
@@ -360,6 +373,8 @@ app.whenReady().then(() => {
 
   registerAllIpcHandlers()
   createWindow()
+
+  trayService.createTray()
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) {

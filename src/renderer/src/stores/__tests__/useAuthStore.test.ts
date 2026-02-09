@@ -159,4 +159,71 @@ describe('useAuthStore', () => {
       expect(mockWindowApi.auth.lock).toHaveBeenCalled()
     })
   })
+
+  describe('changePassword', () => {
+    it('should call window.api.auth.changePassword and return true on success', async () => {
+      mockWindowApi.auth.changePassword.mockResolvedValue(true)
+
+      const result = await useAuthStore.getState().changePassword('old-password', 'new-password')
+
+      expect(result).toBe(true)
+      expect(mockWindowApi.auth.changePassword).toHaveBeenCalledWith('old-password', 'new-password')
+    })
+
+    it('should set error and return false when password is invalid', async () => {
+      mockWindowApi.auth.changePassword.mockResolvedValue(false)
+
+      const result = await useAuthStore.getState().changePassword('wrong-password', 'new-password')
+
+      expect(result).toBe(false)
+      const state = useAuthStore.getState()
+      expect(state.error).toBeTruthy()
+    })
+  })
+
+  describe('removePassword', () => {
+    it('should call window.api.auth.removePassword and set isPasswordSkipped to true', async () => {
+      mockWindowApi.auth.removePassword.mockResolvedValue(true)
+
+      const result = await useAuthStore.getState().removePassword('current-password')
+
+      expect(result).toBe(true)
+      expect(mockWindowApi.auth.removePassword).toHaveBeenCalledWith('current-password')
+      const state = useAuthStore.getState()
+      expect(state.isPasswordSkipped).toBe(true)
+    })
+
+    it('should set error and return false when password is invalid', async () => {
+      mockWindowApi.auth.removePassword.mockResolvedValue(false)
+
+      const result = await useAuthStore.getState().removePassword('wrong-password')
+
+      expect(result).toBe(false)
+      const state = useAuthStore.getState()
+      expect(state.error).toBeTruthy()
+    })
+  })
+
+  describe('setPasswordFromSettings', () => {
+    it('should call window.api.auth.setPasswordFromSettings and set isPasswordSkipped to false', async () => {
+      mockWindowApi.auth.setPasswordFromSettings.mockResolvedValue(true)
+
+      const result = await useAuthStore.getState().setPasswordFromSettings('new-password')
+
+      expect(result).toBe(true)
+      expect(mockWindowApi.auth.setPasswordFromSettings).toHaveBeenCalledWith('new-password')
+      const state = useAuthStore.getState()
+      expect(state.isPasswordSkipped).toBe(false)
+    })
+
+    it('should set error and return false on failure', async () => {
+      mockWindowApi.auth.setPasswordFromSettings.mockResolvedValue(false)
+
+      const result = await useAuthStore.getState().setPasswordFromSettings('new-password')
+
+      expect(result).toBe(false)
+      const state = useAuthStore.getState()
+      expect(state.error).toBeTruthy()
+    })
+  })
 })

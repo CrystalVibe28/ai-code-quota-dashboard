@@ -170,29 +170,47 @@ function createBaseActions<TAccount extends Account, TUsage>(
 
 /**
  * Create a base provider store with common CRUD operations
+ * @template TAccount - The account type for this provider
+ * @template TUsage - The usage data type for this provider
+ * @template TExtensions - Optional custom actions to extend the store
  */
-export function createProviderStore<TAccount extends Account, TUsage>(
-  config: ProviderStoreConfig<TAccount, TUsage>
+export function createProviderStore<TAccount extends Account, TUsage, TExtensions = {}>(
+  config: ProviderStoreConfig<TAccount, TUsage>,
+  extensions?: (
+    set: (partial: Partial<BaseProviderState<TAccount, TUsage>>) => void,
+    get: () => BaseProviderState<TAccount, TUsage> & TExtensions,
+    baseActions: BaseProviderState<TAccount, TUsage>
+  ) => TExtensions
 ) {
-  return create<BaseProviderState<TAccount, TUsage>>((set, get) =>
-    createBaseActions(config, set, get)
-  )
+  return create<BaseProviderState<TAccount, TUsage> & TExtensions>((set, get) => {
+    const baseActions = createBaseActions(config, set, get as () => BaseProviderState<TAccount, TUsage>)
+    const extendedActions = extensions ? extensions(set, get, baseActions) : ({} as TExtensions)
+    return { ...baseActions, ...extendedActions }
+  })
 }
 
 /**
  * Create an OAuth provider store with login support
+ * @template TAccount - The account type for this provider
+ * @template TUsage - The usage data type for this provider
+ * @template TExtensions - Optional custom actions to extend the store
  */
-export function createOAuthProviderStore<TAccount extends Account, TUsage>(
-  config: OAuthProviderStoreConfig<TAccount, TUsage>
+export function createOAuthProviderStore<TAccount extends Account, TUsage, TExtensions = {}>(
+  config: OAuthProviderStoreConfig<TAccount, TUsage>,
+  extensions?: (
+    set: (partial: Partial<OAuthProviderState<TAccount, TUsage>>) => void,
+    get: () => OAuthProviderState<TAccount, TUsage> & TExtensions,
+    baseActions: OAuthProviderState<TAccount, TUsage>
+  ) => TExtensions
 ) {
-  return create<OAuthProviderState<TAccount, TUsage>>((set, get) => {
+  return create<OAuthProviderState<TAccount, TUsage> & TExtensions>((set, get) => {
     const baseActions = createBaseActions(
       config,
       set as (partial: Partial<BaseProviderState<TAccount, TUsage>>) => void,
       get as () => BaseProviderState<TAccount, TUsage>
     )
 
-    return {
+    const oauthActions: OAuthProviderState<TAccount, TUsage> = {
       ...baseActions,
 
       login: async () => {
@@ -206,7 +224,6 @@ export function createOAuthProviderStore<TAccount extends Account, TUsage>(
             const errorCode = parseOAuthError(result.error, config.parseOAuthErrorExtension)
             set({ error: result.error || null, isLoading: false })
 
-            // Don't show toast for user cancellation
             if (errorCode !== ErrorCode.OAUTH_CANCELLED) {
               useErrorStore.getState().showError(errorCode, result.error || 'Login failed')
             }
@@ -220,6 +237,9 @@ export function createOAuthProviderStore<TAccount extends Account, TUsage>(
         }
       }
     }
+
+    const extendedActions = extensions ? extensions(set, get, oauthActions) : ({} as TExtensions)
+    return { ...oauthActions, ...extendedActions }
   })
 }
 

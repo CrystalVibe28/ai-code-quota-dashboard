@@ -88,7 +88,7 @@ const refreshAll = useCallback(async () => {
           <UsageCard
             key={cardId}
             title={model.modelName}
-            subtitle={accountUsage.name}
+            subtitle={account.displayName || accountUsage.name}
             percentage={percentage}
             resetTime={model.resetTime}
             cardSize={config.cardSize}
@@ -124,7 +124,7 @@ const refreshAll = useCallback(async () => {
           <UsageCard
             key={cardId}
             title={getCopilotLabel(key)}
-            subtitle={accountUsage.name}
+            subtitle={account.displayName || accountUsage.name}
             percentage={percentage}
             remaining={quota.remaining}
             total={quota.entitlement}
@@ -158,7 +158,7 @@ const refreshAll = useCallback(async () => {
           <UsageCard
             key={cardId}
             title={getZaiLimitLabel(limit.type)}
-            subtitle={accountUsage.name}
+            subtitle={account.displayName || accountUsage.name}
             percentage={percentage}
             remaining={limit.remaining}
             total={limit.usage}

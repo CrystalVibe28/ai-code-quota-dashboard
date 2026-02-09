@@ -1,44 +1,35 @@
-import { create } from 'zustand'
 import type { ZaiCodingAccount, ZaiAccountUsage } from '@shared/types'
 import { ErrorCode } from '@shared/types'
 import { useErrorStore } from './useErrorStore'
-import {
-  type BaseProviderState,
-  createBaseStateCreator
-} from './createProviderStore'
+import { createProviderStore } from './createProviderStore'
 
-// Use renderer-specific partial type for updates (excludes sensitive fields)
 type ZaiCodingAccountUpdate = Partial<Pick<ZaiCodingAccount, 'displayName' | 'showInOverview' | 'selectedLimits' | 'name'>>
 
-interface ZaiCodingState extends BaseProviderState<ZaiCodingAccount, ZaiAccountUsage> {
-  addAccount: (name: string, apiKey: string) => Promise<{ success: boolean; error?: string }>
-}
-
-export const useZaiCodingStore = create<ZaiCodingState>((set, get) => {
-  // Create base actions using factory
-  const baseActions = createBaseStateCreator<ZaiCodingAccount, ZaiAccountUsage>({
+export const useZaiCodingStore = createProviderStore<
+  ZaiCodingAccount,
+  ZaiAccountUsage,
+  {
+    addAccount: (name: string, apiKey: string) => Promise<{ success: boolean; error?: string }>
+    updateAccount: (accountId: string, data: ZaiCodingAccountUpdate) => Promise<boolean>
+  }
+>(
+  {
     providerId: 'zaiCoding',
     providerName: 'Zai Coding Plan',
     fetchUsageApi: () => window.api.zaiCoding.fetchAllUsage(),
     handleUsageError: (errorMessage) => {
-      // Check for API key errors
       if (errorMessage.includes('invalid') || errorMessage.includes('401')) {
         useErrorStore.getState().showError(ErrorCode.PROVIDER_ZAI_INVALID_KEY, 'Invalid API key')
         return true
       }
       return false
     }
-  })(set, get, { setState: set, getState: get, getInitialState: () => get(), subscribe: () => () => {} })
-
-  return {
-    ...baseActions,
-
-    // Override updateAccount to use specific update type
+  },
+  (set, get, baseActions) => ({
     updateAccount: async (accountId: string, data: ZaiCodingAccountUpdate) => {
       return baseActions.updateAccount(accountId, data)
     },
 
-    // ZaiCoding-specific: add account with API key validation
     addAccount: async (name: string, apiKey: string) => {
       set({ isLoading: true, error: null })
       try {
@@ -70,5 +61,6 @@ export const useZaiCodingStore = create<ZaiCodingState>((set, get) => {
         return { success: false, error: errorMessage }
       }
     }
-  }
-})
+  })
+)
+

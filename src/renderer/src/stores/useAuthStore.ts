@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { ErrorCode } from '@shared/types'
 import { useErrorStore } from './useErrorStore'
+import i18n from '@/i18n'
+import { toast } from '@/hooks/useToast'
 
 interface AuthState {
   isUnlocked: boolean
@@ -12,6 +14,9 @@ interface AuthState {
   unlock: (password: string) => Promise<boolean>
   setPassword: (password: string) => Promise<boolean>
   skipPassword: () => Promise<boolean>
+  changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
+  removePassword: (currentPassword: string) => Promise<boolean>
+  setPasswordFromSettings: (newPassword: string) => Promise<boolean>
   lock: () => Promise<void>
   clearError: () => void
 }
@@ -94,6 +99,68 @@ export const useAuthStore = create<AuthState>((set) => ({
       const errorMessage = 'Failed to skip password setup'
       set({ error: errorMessage })
       useErrorStore.getState().showError(ErrorCode.STORAGE_WRITE_FAILED, errorMessage)
+      return false
+    }
+  },
+
+  changePassword: async (oldPassword: string, newPassword: string) => {
+    set({ error: null })
+    try {
+      const success = await window.api.auth.changePassword(oldPassword, newPassword)
+      if (success) {
+        toast.success(i18n.t('security.changePasswordSuccess'))
+        return true
+      } else {
+        const errorMsg = i18n.t('security.incorrectPassword')
+        set({ error: errorMsg })
+        return false
+      }
+    } catch (error) {
+      const errorMsg = String(error)
+      set({ error: errorMsg })
+      useErrorStore.getState().showError(ErrorCode.AUTH_FAILED, errorMsg)
+      return false
+    }
+  },
+
+  removePassword: async (currentPassword: string) => {
+    set({ error: null })
+    try {
+      const success = await window.api.auth.removePassword(currentPassword)
+      if (success) {
+        set({ isPasswordSkipped: true })
+        toast.success(i18n.t('security.removePasswordSuccess'))
+        return true
+      } else {
+        const errorMsg = i18n.t('security.incorrectPassword')
+        set({ error: errorMsg })
+        return false
+      }
+    } catch (error) {
+      const errorMsg = String(error)
+      set({ error: errorMsg })
+      useErrorStore.getState().showError(ErrorCode.AUTH_FAILED, errorMsg)
+      return false
+    }
+  },
+
+  setPasswordFromSettings: async (newPassword: string) => {
+    set({ error: null })
+    try {
+      const success = await window.api.auth.setPasswordFromSettings(newPassword)
+      if (success) {
+        set({ isPasswordSkipped: false })
+        toast.success(i18n.t('security.setPasswordSuccess'))
+        return true
+      } else {
+        const errorMsg = 'Not in skip-password mode'
+        set({ error: errorMsg })
+        return false
+      }
+    } catch (error) {
+      const errorMsg = String(error)
+      set({ error: errorMsg })
+      useErrorStore.getState().showError(ErrorCode.STORAGE_WRITE_FAILED, errorMsg)
       return false
     }
   },
