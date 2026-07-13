@@ -1,6 +1,6 @@
 {
   "name": "ai-code-quota-dashboard",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "AI Usage Dashboard - Multi-provider usage monitoring",
   "main": "./out/main/index.js",
   "author": "",
@@ -12,7 +12,7 @@
     "preview": "electron-vite preview",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
-    "build:win": "npm run build && electron-builder --win",
+    "build:win": "npm run build && electron-builder --win --publish never",
     "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux",
     "test": "vitest",
