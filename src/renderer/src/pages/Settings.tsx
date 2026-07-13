@@ -284,8 +284,8 @@ export function Settings() {
                             const newThresholds = [...thresholds]
                             newThresholds[index] = { ...threshold, name: event.target.value }
                             setThresholds(newThresholds)
-                            handleSettingChange({ notificationThresholds: newThresholds })
                           }}
+                          onBlur={() => handleSettingChange({ notificationThresholds: thresholds })}
                           className="min-w-32 flex-1 sm:max-w-48"
                           disabled={!threshold.enabled}
                         />
@@ -302,8 +302,8 @@ export function Settings() {
                               const newThresholds = [...thresholds]
                               newThresholds[index] = { ...threshold, value: Number(event.target.value) }
                               setThresholds(newThresholds)
-                              handleSettingChange({ notificationThresholds: newThresholds })
                             }}
+                            onBlur={() => handleSettingChange({ notificationThresholds: thresholds })}
                             className="w-20"
                             disabled={!threshold.enabled}
                           />
