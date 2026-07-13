@@ -88,6 +88,16 @@ describe('utils', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(formatResetTime(futureTime, mockT as any)).toBe('2 小時 30 分鐘')
     })
+
+    it('should format an absolute date and time', () => {
+      const resetTime = new Date('2024-01-15T14:30:00Z').toISOString()
+      const expected = new Intl.DateTimeFormat('en-US', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      }).format(new Date(resetTime))
+
+      expect(formatResetTime(resetTime, undefined, 'absolute', 'en-US')).toBe(expected)
+    })
   })
 
   describe('formatPercentage', () => {

@@ -1,5 +1,7 @@
 import { BrowserWindow, Notification } from 'electron'
 import type { NotificationThreshold } from '../../shared/types/settings'
+import { getAntigravityQuotaType } from '@shared/antigravityQuota'
+import { formatCodexQuotaLabel } from '../../shared/codexQuota'
 
 /**
  * Severity levels for notifications
@@ -92,6 +94,55 @@ interface ZaiUsageResult {
   error?: string
 }
 
+interface CodexRateWindow {
+  used_percent: number
+  limit_window_seconds: number
+  reset_after_seconds: number
+  reset_at: number
+}
+
+interface CodexRateLimit {
+  allowed: boolean
+  limit_reached: boolean
+  primary_window: CodexRateWindow | null
+  secondary_window: CodexRateWindow | null
+}
+
+interface CodexUsageData {
+  plan_type: string
+  rate_limit: CodexRateLimit | null
+  code_review_rate_limit: CodexRateLimit | null
+}
+
+interface CodexUsageResult {
+  accountId: string
+  name: string
+  email: string
+  usage: CodexUsageData | null
+  error?: string
+}
+
+interface OpencodeGoLimit {
+  type: string
+  remaining: number
+  percentage: number
+  resetTime?: string | number
+}
+
+interface OpencodeGoUsage {
+  workspaceId: string
+  workspaceName?: string
+  limits: OpencodeGoLimit[]
+}
+
+interface OpencodeGoUsageResult {
+  accountId: string
+  name: string
+  workspaceId: string
+  usage: OpencodeGoUsage | null
+  error?: string
+}
+
 // i18n translations for notifications
 const TRANSLATIONS: Record<string, Record<string, string>> = {
   en: {
@@ -99,21 +150,33 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     'notification.urgent.title': '🔴 Quota Running Low',
     'notification.critical.title': '🚨 Quota Critical',
     'notification.itemsBelow': '{{count}} item(s) below {{threshold}}%',
-    'notification.andMore': '...and {{count}} more'
+    'notification.andMore': '...and {{count}} more',
+    'notification.antigravityQuotaTypes.geminiFiveHour': 'Gemini 5-hour quota',
+    'notification.antigravityQuotaTypes.geminiWeekly': 'Gemini weekly quota',
+    'notification.antigravityQuotaTypes.claudeGptFiveHour': 'Claude/GPT 5-hour quota',
+    'notification.antigravityQuotaTypes.claudeGptWeekly': 'Claude/GPT weekly quota'
   },
   'zh-TW': {
     'notification.warning.title': '⚠️ 配額偏低警告',
     'notification.urgent.title': '🔴 配額即將耗盡',
     'notification.critical.title': '🚨 配額嚴重不足',
     'notification.itemsBelow': '{{count}} 個項目低於 {{threshold}}%',
-    'notification.andMore': '...還有 {{count}} 個項目'
+    'notification.andMore': '...還有 {{count}} 個項目',
+    'notification.antigravityQuotaTypes.geminiFiveHour': 'Gemini 5 小時配額',
+    'notification.antigravityQuotaTypes.geminiWeekly': 'Gemini 每週配額',
+    'notification.antigravityQuotaTypes.claudeGptFiveHour': 'Claude/GPT 5 小時配額',
+    'notification.antigravityQuotaTypes.claudeGptWeekly': 'Claude/GPT 每週配額'
   },
   'zh-CN': {
     'notification.warning.title': '⚠️ 配额偏低警告',
     'notification.urgent.title': '🔴 配额即将耗尽',
     'notification.critical.title': '🚨 配额严重不足',
     'notification.itemsBelow': '{{count}} 个项目低于 {{threshold}}%',
-    'notification.andMore': '...还有 {{count}} 个项目'
+    'notification.andMore': '...还有 {{count}} 个项目',
+    'notification.antigravityQuotaTypes.geminiFiveHour': 'Gemini 5 小时配额',
+    'notification.antigravityQuotaTypes.geminiWeekly': 'Gemini 每周配额',
+    'notification.antigravityQuotaTypes.claudeGptFiveHour': 'Claude/GPT 5 小时配额',
+    'notification.antigravityQuotaTypes.claudeGptWeekly': 'Claude/GPT 每周配额'
   }
 }
 
@@ -121,6 +184,8 @@ export class NotificationService {
   private static instance: NotificationService
   private state: NotificationState
   private mainWindow: BrowserWindow | null = null
+  /** Keep references to active notifications to prevent GC from collecting them */
+  private activeNotifications: Set<Notification> = new Set()
 
   private constructor() {
     this.state = {
@@ -146,6 +211,8 @@ export class NotificationService {
     antigravityData: AntigravityUsageResult[],
     copilotData: CopilotUsageResult[],
     zaiData: ZaiUsageResult[],
+    codexData: CodexUsageResult[],
+    opencodeGoData: OpencodeGoUsageResult[],
     settings: AppSettings,
     filters: DisplayFilters
   ): void {
@@ -177,6 +244,8 @@ export class NotificationService {
     this.processAntigravityData(antigravityData, thresholds, itemsToNotify, filters)
     this.processCopilotData(copilotData, thresholds, itemsToNotify, filters)
     this.processZaiData(zaiData, thresholds, itemsToNotify, filters)
+    this.processCodexData(codexData, thresholds, itemsToNotify, filters)
+    this.processOpencodeGoData(opencodeGoData, thresholds, itemsToNotify, filters)
 
     if (itemsToNotify.length > 0) {
       this.sendNotifications(itemsToNotify, settings.language)
@@ -275,6 +344,96 @@ export class NotificationService {
             .join(' ')
           itemsToNotify.push({
             provider: 'Zai Coding Plan',
+            accountName: account.name,
+            itemName: displayType,
+            percentage,
+            severity: this.getSeverity(crossedThreshold, thresholds),
+            cardId
+          })
+        }
+      }
+    }
+  }
+
+  private processCodexData(
+    data: CodexUsageResult[],
+    thresholds: number[],
+    itemsToNotify: LowQuotaItem[],
+    filters: DisplayFilters
+  ): void {
+    for (const account of data) {
+      if (!account.usage) continue
+
+      const windowEntries: { kind: 'rateLimit' | 'codeReview'; cardIdSuffix: string; window: CodexRateWindow | null }[] = [
+        {
+          kind: 'rateLimit',
+          cardIdSuffix: 'rateLimit_primary',
+          window: account.usage.rate_limit?.primary_window ?? null
+        },
+        {
+          kind: 'rateLimit',
+          cardIdSuffix: 'rateLimit_secondary',
+          window: account.usage.rate_limit?.secondary_window ?? null
+        },
+        {
+          kind: 'codeReview',
+          cardIdSuffix: 'codeReview_primary',
+          window: account.usage.code_review_rate_limit?.primary_window ?? null
+        },
+        {
+          kind: 'codeReview',
+          cardIdSuffix: 'codeReview_secondary',
+          window: account.usage.code_review_rate_limit?.secondary_window ?? null
+        }
+      ]
+
+      for (const entry of windowEntries) {
+        if (!entry.window) continue
+
+        const percentage = 100 - Math.min(entry.window.used_percent, 100)
+        const cardId = `codex-${account.accountId}-${entry.cardIdSuffix}`
+
+        // Check if card is hidden
+        if (filters.hiddenCardIds.has(cardId)) continue
+
+        const crossedThreshold = this.checkThresholdCrossing(cardId, percentage, thresholds)
+        if (crossedThreshold) {
+          itemsToNotify.push({
+            provider: 'Codex',
+            accountName: account.email,
+            itemName: formatCodexQuotaLabel(entry.window.limit_window_seconds, entry.kind),
+            percentage,
+            severity: this.getSeverity(crossedThreshold, thresholds),
+            cardId
+          })
+        }
+      }
+    }
+  }
+
+  private processOpencodeGoData(
+    data: OpencodeGoUsageResult[],
+    thresholds: number[],
+    itemsToNotify: LowQuotaItem[],
+    filters: DisplayFilters
+  ): void {
+    for (const account of data) {
+      if (!account.usage) continue
+
+      for (const limit of account.usage.limits) {
+        const percentage = Math.round(limit.remaining)
+        const cardId = `opencodeGo-${account.accountId}-${limit.type}`
+
+        if (filters.hiddenCardIds.has(cardId)) continue
+
+        const crossedThreshold = this.checkThresholdCrossing(cardId, percentage, thresholds)
+        if (crossedThreshold) {
+          const displayType = limit.type
+            .replace(/Usage$/, '')
+            .replace(/([A-Z])/g, ' $1')
+            .trim()
+          itemsToNotify.push({
+            provider: 'Opencode Go',
             accountName: account.name,
             itemName: displayType,
             percentage,
@@ -413,7 +572,15 @@ export class NotificationService {
     const remainingCount = items.length - maxItems
 
     const itemLines = displayItems
-      .map(item => `• ${item.itemName} (${item.accountName}): ${item.percentage}%`)
+      .map(item => {
+        const quotaType = item.provider === 'Antigravity'
+          ? getAntigravityQuotaType(item.itemName)
+          : null
+        const itemName = quotaType
+          ? t(`notification.antigravityQuotaTypes.${quotaType}`)
+          : item.itemName
+        return `• ${itemName} (${item.accountName}): ${item.percentage}%`
+      })
       .join('\n')
 
     let body = itemLines
@@ -426,8 +593,14 @@ export class NotificationService {
       body
     })
 
+    this.activeNotifications.add(notification)
+
     notification.on('click', () => {
       this.showWindowAndNavigate()
+    })
+
+    notification.on('close', () => {
+      this.activeNotifications.delete(notification)
     })
 
     notification.show()

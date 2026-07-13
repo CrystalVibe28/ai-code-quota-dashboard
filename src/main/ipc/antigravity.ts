@@ -21,6 +21,10 @@ export function registerAntigravityHandlers(): void {
     }
   })
 
+  ipcMain.handle('antigravity:cancel-login', () => {
+    return antigravityService.cancelLogin()
+  })
+
   ipcMain.handle('antigravity:refresh-token', async (_, accountId: string) => {
     try {
       const accounts = await storageService.getAccounts('antigravity') as AntigravityAccount[]
@@ -82,8 +86,11 @@ export function registerAntigravityHandlers(): void {
 
       const trayService = TrayService.getInstance()
       const trayData = results
-        .filter(r => r.usage !== null)
-        .map(r => ({ name: r.name, percent: 0 }))
+        .filter(r => r.usage && r.usage.length > 0)
+        .map(r => ({
+          name: r.name,
+          percent: Math.round(Math.min(...r.usage!.map(quota => quota.remainingFraction)) * 100)
+        }))
       trayService.triggerUpdate({ antigravity: trayData })
 
       return results

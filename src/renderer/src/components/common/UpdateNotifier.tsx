@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from '@/hooks/useToast'
 import { useUpdateStore } from '@/stores/useUpdateStore'
@@ -8,16 +8,12 @@ import type { UpdateInfo } from '@shared/types/update'
 export function UpdateNotifier() {
   const { t } = useTranslation()
   const { skipVersion, openReleasePage, initialize, skippedVersion } = useUpdateStore()
-  const initializedRef = useRef(false)
 
   useEffect(() => {
-    if (initializedRef.current) return
-    initializedRef.current = true
+    return initialize()
+  }, [initialize])
 
-    // Initialize store (returns void, cleanup is internal)
-    initialize()
-
-    // Also listen for update notifications directly
+  useEffect(() => {
     const cleanup = window.api.update.onUpdateAvailable((info) => {
       const updateInfo = info as UpdateInfo
       
@@ -50,10 +46,8 @@ export function UpdateNotifier() {
       })
     })
 
-    return () => {
-      cleanup()
-    }
-  }, [initialize, openReleasePage, skipVersion, skippedVersion, t])
+    return cleanup
+  }, [openReleasePage, skipVersion, skippedVersion, t])
 
   return null
 }

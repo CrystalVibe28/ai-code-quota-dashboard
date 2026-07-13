@@ -36,6 +36,12 @@ describe('UsageCard', () => {
 
       expect(screen.getByText('76%')).toBeInTheDocument()
     })
+
+    it('should show the requested decimal precision', () => {
+      render(<UsageCard title="Test" percentage={74.97692} decimalPlaces={1} />)
+
+      expect(screen.getByText('75.0%')).toBeInTheDocument()
+    })
   })
 
   describe('percentage colors', () => {
@@ -106,6 +112,12 @@ describe('UsageCard', () => {
       expect(screen.getByText('50%')).toBeInTheDocument()
       expect(screen.getByText('500 / 1,000')).toBeInTheDocument()
     })
+
+    it('should fall back to percentage when absolute values are unavailable', () => {
+      render(<UsageCard title="Test" percentage={74.9} valueFormat="absolute" decimalPlaces={1} />)
+
+      expect(screen.getByText('74.9%')).toBeInTheDocument()
+    })
   })
 
   describe('reset time', () => {
@@ -137,6 +149,26 @@ describe('UsageCard', () => {
         />
       )
 
+      expect(screen.queryByText('2h 30m')).not.toBeInTheDocument()
+    })
+
+    it('should show an absolute reset time', () => {
+      const resetTime = new Date('2024-01-15T14:30:00Z').toISOString()
+      const expected = new Intl.DateTimeFormat('en', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      }).format(new Date(resetTime))
+
+      render(
+        <UsageCard
+          title="Test"
+          percentage={50}
+          resetTime={resetTime}
+          timeFormat="absolute"
+        />
+      )
+
+      expect(screen.getByText(expected)).toBeInTheDocument()
       expect(screen.queryByText('2h 30m')).not.toBeInTheDocument()
     })
   })

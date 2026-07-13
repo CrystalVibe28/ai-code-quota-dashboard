@@ -8,7 +8,8 @@ import {
   Lock,
   Package,
   ChevronDown,
-  Plus
+  Plus,
+  Gauge
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -16,7 +17,9 @@ import { useAuthStore } from '@/stores/useAuthStore'
 import { useAntigravityStore } from '@/stores/useAntigravityStore'
 import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
-import { PROVIDERS, getProviderById } from '@/constants/providers'
+import { useCodexStore } from '@/stores/useCodexStore'
+import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
+import { getProviderById } from '@/constants/providers'
 import { AddAccountDialog } from '@/components/common/AddAccountDialog'
 import type { ProviderId } from '@/types/customization'
 
@@ -28,6 +31,10 @@ interface AccountNavItem {
   providerId: ProviderId
 }
 
+export interface MainLayoutOutletContext {
+  openAddProvider: () => void
+}
+
 export function MainLayout() {
   const { t } = useTranslation()
   const location = useLocation()
@@ -37,6 +44,8 @@ export function MainLayout() {
   const { accounts: antiAccounts } = useAntigravityStore()
   const { accounts: ghAccounts } = useGithubCopilotStore()
   const { accounts: zaiAccounts } = useZaiCodingStore()
+  const { accounts: codexAccounts } = useCodexStore()
+  const { accounts: opencodeGoAccounts } = useOpencodeGoStore()
   
   // Dialog state
   const [showAddDialog, setShowAddDialog] = useState(false)
@@ -67,6 +76,16 @@ export function MainLayout() {
       id: a.id,
       displayName: a.displayName || a.name,
       providerId: 'zaiCoding' as const
+    })),
+    ...codexAccounts.map(a => ({
+      id: a.id,
+      displayName: a.displayName || a.email,
+      providerId: 'codex' as const
+    })),
+    ...opencodeGoAccounts.map(a => ({
+      id: a.id,
+      displayName: a.displayName || a.workspaceName || a.workspaceId,
+      providerId: 'opencodeGo' as const
     }))
   ]
   
@@ -74,30 +93,43 @@ export function MainLayout() {
   const isProviderAccountActive = location.pathname.startsWith('/provider/')
 
   return (
-    <div className="flex h-screen bg-background">
-      <aside className="w-64 border-r border-border bg-card flex flex-col">
-        <div className="p-6">
-          <h1 className="text-xl font-bold text-foreground">{t('branding.title')}</h1>
-          <p className="text-xs text-muted-foreground mt-1">{t('branding.subtitle')}</p>
+    <div className="flex h-screen overflow-hidden bg-background">
+      <a
+        href="#main-content"
+        className="fixed left-3 top-3 z-[60] -translate-y-20 rounded-md bg-brand px-3 py-2 font-semibold text-brand-foreground shadow-fluent-16 transition-transform focus:translate-y-0"
+      >
+        {t('common.skipToContent')}
+      </a>
+
+      <aside className="flex w-[72px] shrink-0 flex-col border-r bg-surface-sunken md:w-[264px]">
+        <div className="flex h-16 items-center gap-3 border-b px-4 md:px-5">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand text-brand-foreground shadow-fluent-2">
+            <Gauge className="h-5 w-5" aria-hidden="true" />
+          </div>
+          <div className="hidden min-w-0 md:block">
+            <h1 className="truncate text-base font-semibold leading-[22px] text-foreground">{t('branding.title')}</h1>
+            <p className="truncate text-xs leading-4 text-muted-foreground">{t('branding.subtitle')}</p>
+          </div>
         </div>
         
-        <nav className="flex-1 px-3 overflow-y-auto">
-          <ul className="space-y-1">
+        <nav className="flex-1 overflow-y-auto px-2 py-3 md:px-3" aria-label={t('branding.title')}>
+          <ul className="space-y-1.5">
             {/* Overview */}
             <li>
               <NavLink
                 to="/overview"
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                    'relative flex min-h-11 items-center justify-center gap-3 rounded-md px-3 text-sm font-medium transition-colors duration-150 before:absolute before:left-0 before:h-5 before:w-0.5 before:rounded-full before:bg-primary before:opacity-0 md:min-h-9 md:justify-start',
                     isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      ? 'bg-accent text-accent-foreground before:opacity-100'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                   )
                 }
+                title={t('nav.overview')}
               >
-                <LayoutDashboard className="h-4 w-4" />
-                {t('nav.overview')}
+                <LayoutDashboard className="h-5 w-5 shrink-0 md:h-4 md:w-4" aria-hidden="true" />
+                <span className="hidden truncate md:block">{t('nav.overview')}</span>
               </NavLink>
             </li>
             
@@ -107,25 +139,27 @@ export function MainLayout() {
                 <CollapsibleTrigger asChild>
                   <button
                     className={cn(
-                      'flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm transition-colors',
+                      'flex min-h-11 w-full cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors duration-150 md:min-h-9 md:justify-between',
                       isProviderAccountActive
                         ? 'bg-accent text-accent-foreground'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                     )}
+                    aria-label={t('nav.providers')}
                   >
                     <span className="flex items-center gap-3">
-                      <Package className="h-4 w-4" />
-                      {t('nav.providers')}
+                      <Package className="h-5 w-5 shrink-0 md:h-4 md:w-4" aria-hidden="true" />
+                      <span className="hidden md:block">{t('nav.providers')}</span>
                     </span>
                     <ChevronDown 
                       className={cn(
-                        'h-4 w-4 transition-transform duration-200',
+                        'hidden h-4 w-4 transition-transform duration-200 md:block',
                         providersExpanded && 'rotate-180'
                       )} 
+                      aria-hidden="true"
                     />
                   </button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="mt-1 ml-4 space-y-1">
+                <CollapsibleContent className="mt-1 space-y-1 md:ml-5">
                   {/* Account links */}
                   {allAccounts.map((account) => {
                     const provider = getProviderById(account.providerId)
@@ -137,15 +171,16 @@ export function MainLayout() {
                         to={`/provider/${account.providerId}/${account.id}`}
                         className={({ isActive }) =>
                           cn(
-                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                            'relative flex min-h-11 items-center justify-center gap-3 rounded-md px-3 text-sm transition-colors duration-150 before:absolute before:left-0 before:h-5 before:w-0.5 before:rounded-full before:bg-primary before:opacity-0 md:min-h-9 md:justify-start',
                             isActive
-                              ? 'bg-primary text-primary-foreground'
-                              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                              ? 'bg-accent text-accent-foreground before:opacity-100'
+                              : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                           )
                         }
+                        title={`${provider?.name || ''} · ${account.displayName}`}
                       >
-                        <Icon className="h-4 w-4 flex-shrink-0" />
-                        <span className="truncate">{account.displayName}</span>
+                        <Icon className="h-5 w-5 flex-shrink-0 md:h-4 md:w-4" aria-hidden="true" />
+                        <span className="hidden truncate md:block">{account.displayName}</span>
                       </NavLink>
                     )
                   })}
@@ -153,10 +188,12 @@ export function MainLayout() {
                   {/* Add Provider button */}
                   <button
                     onClick={() => setShowAddDialog(true)}
-                    className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-3 rounded-md px-3 text-sm text-muted-foreground transition-colors duration-150 hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:min-h-9 md:justify-start"
+                    title={t('nav.addProvider')}
+                    aria-label={t('nav.addProvider')}
                   >
-                    <Plus className="h-4 w-4" />
-                    {t('nav.addProvider')}
+                    <Plus className="h-5 w-5 md:h-4 md:w-4" aria-hidden="true" />
+                    <span className="hidden md:block">{t('nav.addProvider')}</span>
                   </button>
                 </CollapsibleContent>
               </Collapsible>
@@ -168,38 +205,40 @@ export function MainLayout() {
                 to="/settings"
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                    'relative flex min-h-11 items-center justify-center gap-3 rounded-md px-3 text-sm font-medium transition-colors duration-150 before:absolute before:left-0 before:h-5 before:w-0.5 before:rounded-full before:bg-primary before:opacity-0 md:min-h-9 md:justify-start',
                     isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      ? 'bg-accent text-accent-foreground before:opacity-100'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                   )
                 }
+                title={t('nav.settings')}
               >
-                <Settings className="h-4 w-4" />
-                {t('nav.settings')}
+                <Settings className="h-5 w-5 shrink-0 md:h-4 md:w-4" aria-hidden="true" />
+                <span className="hidden md:block">{t('nav.settings')}</span>
               </NavLink>
             </li>
           </ul>
         </nav>
 
         {!isPasswordSkipped && (
-          <div className="p-3 border-t border-border">
+          <div className="border-t p-2 md:p-3">
             <Button
               variant="ghost"
               size="sm"
-              className="w-full justify-start gap-2 text-muted-foreground"
+              className="w-full justify-center text-muted-foreground md:justify-start"
               onClick={lock}
+              title={t('common.lock')}
             >
-              <Lock className="h-4 w-4" />
-              {t('common.lock')}
+              <Lock className="h-5 w-5 md:h-4 md:w-4" aria-hidden="true" />
+              <span className="hidden md:block">{t('common.lock')}</span>
             </Button>
           </div>
         )}
       </aside>
 
-      <main className="flex-1 overflow-auto">
-        <div className="p-6">
-          <Outlet />
+      <main id="main-content" className="min-w-0 flex-1 overflow-y-auto bg-background" tabIndex={-1}>
+        <div className="min-h-full p-4 sm:p-6 lg:p-8">
+          <Outlet context={{ openAddProvider: () => setShowAddDialog(true) } satisfies MainLayoutOutletContext} />
         </div>
       </main>
       

@@ -19,7 +19,7 @@ export function DisplaySettings() {
         <CardDescription>{t('customization.display.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="fluent-setting-row">
           <div>
             <Label htmlFor="hideUnlimitedQuota">{t('customization.display.hideUnlimited')}</Label>
             <p className="text-sm text-muted-foreground">

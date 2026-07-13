@@ -14,7 +14,10 @@
     "backToOverview": "Back to Overview",
     "tryAgain": "Try Again",
     "retry": "Retry",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "skipToContent": "Skip to main content",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "nav": {
     "overview": "Overview",
@@ -23,6 +26,8 @@
     "antigravity": "Antigravity",
     "githubCopilot": "GitHub Copilot",
     "zaiCoding": "Zai Coding Plan",
+    "codex": "Codex",
+    "opencodeGo": "Opencode Go",
     "settings": "Settings"
   },
   "branding": {
@@ -91,6 +96,7 @@
     "removeThreshold": "Remove",
     "resetThresholds": "Reset",
     "thresholdNamePlaceholder": "Name",
+    "thresholdValue": "Quota threshold percentage",
     "customThreshold": "Custom",
     "dangerZone": "Danger Zone",
     "dangerZoneDesc": "Irreversible actions",
@@ -104,8 +110,17 @@
     "closeToTray": "Minimize to Tray",
     "closeToTrayDesc": "Minimize to system tray instead of closing the application",
     "autoLaunch": "Launch at Login",
-    "autoLaunchDesc": "Automatically start the application when Windows starts",
-"autoLaunchUnsupported": "This feature is only available on Windows",
+    "autoLaunchDesc": "Automatically start the application when the system starts",
+    "sections": {
+      "system": "System & language",
+      "systemDesc": "Manage data refresh, language, and background behavior",
+      "alerts": "Quota alerts",
+      "alertsDesc": "Choose when and how low quota notifications appear",
+      "appearance": "Appearance & data",
+      "appearanceDesc": "Adjust the Fluent 2 theme, layout, and quota presentation",
+      "privacy": "Security & maintenance",
+      "privacyDesc": "Manage access protection, version details, and app updates"
+    },
     "update": {
       "title": "About & Updates",
       "description": "Check for application updates",
@@ -132,6 +147,10 @@
   },
   "overview": {
     "title": "Overview",
+    "subtitle": "See remaining quota across every AI coding service in one place",
+    "providerSummary": "{{count}} providers",
+    "accountSummary": "{{count}} visible accounts",
+    "quotaSummary": "{{count}} quotas",
     "lastUpdated": "Last updated: {{time}}",
     "noAccountsConfigured": "No accounts configured",
     "addAccountsHint": "Add accounts in the provider pages to see usage here"
@@ -148,10 +167,19 @@
     "loginFailed": "Login failed",
     "accountNotFound": "Account not found",
     "accountSettings": "Account Settings",
+    "accountSettingsDesc": "Manage the name, overview visibility, and account access",
+    "visibleInOverview": "Shown in overview",
+    "hiddenFromOverview": "Hidden from overview",
     "editName": "Edit Name"
   },
   "antigravity": {
-    "title": "Antigravity"
+    "title": "Antigravity",
+    "quotaTypes": {
+      "geminiFiveHour": "Gemini 5-hour quota",
+      "geminiWeekly": "Gemini weekly quota",
+      "claudeGptFiveHour": "Claude/GPT 5-hour quota",
+      "claudeGptWeekly": "Claude/GPT weekly quota"
+    }
   },
   "githubCopilot": {
     "title": "GitHub Copilot",
@@ -167,8 +195,35 @@
       "timeLimit": "Tool usage"
     }
   },
+  "codex": {
+    "title": "Codex",
+    "noQuotaData": "No quota data available for this plan",
+    "quotaTypes": {
+      "rateLimitPrimary": "Primary quota",
+      "rateLimitSecondary": "Secondary quota",
+      "codeReviewPrimary": "Code review primary quota",
+      "codeReviewSecondary": "Code review secondary quota",
+      "fiveHour": "5-hour quota",
+      "hourly": "{{count}}-hour quota",
+      "daily": "{{count}}-day quota",
+      "weekly": "Weekly quota",
+      "monthly": "Monthly quota",
+      "quota": "Quota",
+      "codeReviewWithQuota": "Code review: {{quota}}"
+    }
+  },
+  "opencodeGo": {
+    "title": "Opencode Go",
+    "noQuotaData": "No Opencode Go usage data available",
+    "quotaTypes": {
+      "rolling": "5-hour quota",
+      "weekly": "Weekly quota",
+      "monthly": "Monthly quota"
+    }
+  },
   "addAccount": {
     "addProvider": "Add Provider",
+    "description": "Choose a service and connect an account. Its quotas will appear in your overview.",
     "displayName": "Display Name",
     "displayNamePlaceholder": "Custom name (optional, defaults to {{provider}})",
     "selectProvider": "Provider",
@@ -211,15 +266,6 @@
       "description": "Control what information is shown",
       "hideUnlimited": "Hide Unlimited Quotas",
       "hideUnlimitedDesc": "Hide cards with unlimited quota"
-    },
-    
-    "layout": {
-      "title": "Layout",
-      "description": "Adjust the grid and card arrangement",
-      "gridColumns": "Grid Columns",
-      "gridColumnsDesc": "Number of columns in the card grid",
-      "cardSize": "Card Size",
-      "cardSizeDesc": "Size of usage cards"
     },
     
       "visual": {
@@ -269,6 +315,10 @@
         },
         "cardSize": "Card Size",
         "cardSizeDesc": "Size of usage cards",
+        "providerOrder": "Provider Order",
+        "providerOrderDesc": "Set the order of provider sections on the overview",
+        "moveUp": "Move {{provider}} up",
+        "moveDown": "Move {{provider}} down",
         "sizeOptions": {
           "compact": "Compact",
           "default": "Default",
@@ -377,7 +427,10 @@
       "copilotNoSubscription": "No active Copilot subscription found",
       "copilotQuotaExceeded": "Copilot quota exceeded",
       "antigravityProjectError": "Project configuration error",
-      "zaiInvalidKey": "Invalid API key"
+      "zaiInvalidKey": "Invalid API key",
+      "codexTokenExpired": "Codex access token has expired",
+      "codexAccountBanned": "Codex account has been suspended",
+      "codexRateLimited": "Codex rate limit exceeded"
     }
   }
 }

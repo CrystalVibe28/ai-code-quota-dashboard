@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { SettingsSelect } from '@/components/settings/SettingsSelect'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
 import { MousePointerClick } from 'lucide-react'
 
@@ -19,26 +20,26 @@ export function InteractionSettings() {
         <CardDescription>{t('customization.interaction.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="fluent-setting-row">
           <div>
             <Label htmlFor="cardClickAction">{t('customization.interaction.cardClick')}</Label>
             <p className="text-sm text-muted-foreground">
               {t('customization.interaction.cardClickDesc')}
             </p>
           </div>
-          <select
+          <SettingsSelect
             id="cardClickAction"
             value={global.cardClickAction}
-            onChange={(e) => updateGlobal({ cardClickAction: e.target.value as 'none' | 'detail' | 'copy' })}
-            className="w-32 bg-background border border-input rounded-md px-3 py-2 text-sm"
-          >
-            <option value="none">{t('customization.interaction.clickOptions.none')}</option>
-            <option value="detail">{t('customization.interaction.clickOptions.detail')}</option>
-            <option value="copy">{t('customization.interaction.clickOptions.copy')}</option>
-          </select>
+            onValueChange={(value) => updateGlobal({ cardClickAction: value as 'none' | 'detail' | 'copy' })}
+            options={[
+              { value: 'none', label: t('customization.interaction.clickOptions.none') },
+              { value: 'detail', label: t('customization.interaction.clickOptions.detail') },
+              { value: 'copy', label: t('customization.interaction.clickOptions.copy') }
+            ]}
+          />
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="fluent-setting-row">
           <div>
             <Label htmlFor="keyboardShortcuts">{t('customization.interaction.shortcuts')}</Label>
             <p className="text-sm text-muted-foreground">

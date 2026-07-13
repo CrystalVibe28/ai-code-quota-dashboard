@@ -31,7 +31,9 @@ const initialState: CustomizationState = {
   providers: {
     antigravity: {},
     githubCopilot: {},
-    zaiCoding: {}
+    zaiCoding: {},
+    codex: {},
+    opencodeGo: {}
   },
   cards: {}
 }
@@ -89,12 +91,19 @@ export const useCustomizationStore = create<CustomizationStore>((set, get) => ({
       const stored = await window.api.storage.getCustomization()
       if (stored) {
         const typedStored = stored as Partial<CustomizationState>
+        const global = { ...DEFAULT_GLOBAL_CONFIG, ...typedStored.global }
+        global.providerOrder = [
+          ...global.providerOrder,
+          ...DEFAULT_GLOBAL_CONFIG.providerOrder.filter(providerId => !global.providerOrder.includes(providerId))
+        ]
         set({
-          global: { ...DEFAULT_GLOBAL_CONFIG, ...typedStored.global },
+          global,
           providers: { 
             antigravity: {}, 
             githubCopilot: {}, 
             zaiCoding: {},
+            codex: {},
+            opencodeGo: {},
             ...typedStored.providers 
           },
           cards: typedStored.cards || {}

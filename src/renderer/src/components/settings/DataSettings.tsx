@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { SettingsSelect } from '@/components/settings/SettingsSelect'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
 import { BarChart3 } from 'lucide-react'
 
@@ -19,63 +20,59 @@ export function DataSettings() {
         <CardDescription>{t('customization.data.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="fluent-setting-row">
           <div>
             <Label htmlFor="valueFormat">{t('customization.data.valueFormat')}</Label>
             <p className="text-sm text-muted-foreground">
               {t('customization.data.valueFormatDesc')}
             </p>
           </div>
-          <select
+          <SettingsSelect
             id="valueFormat"
             value={global.valueFormat}
-            onChange={(e) => updateGlobal({ valueFormat: e.target.value as 'percent' | 'absolute' | 'both' })}
-            className="w-32 bg-background border border-input rounded-md px-3 py-2 text-sm"
-          >
-            <option value="percent">{t('customization.data.valueOptions.percent')}</option>
-            <option value="absolute">{t('customization.data.valueOptions.absolute')}</option>
-            <option value="both">{t('customization.data.valueOptions.both')}</option>
-          </select>
+            onValueChange={(value) => updateGlobal({ valueFormat: value as 'percent' | 'absolute' | 'both' })}
+            options={[
+              { value: 'percent', label: t('customization.data.valueOptions.percent') },
+              { value: 'absolute', label: t('customization.data.valueOptions.absolute') },
+              { value: 'both', label: t('customization.data.valueOptions.both') }
+            ]}
+          />
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="fluent-setting-row">
           <div>
             <Label htmlFor="decimalPlaces">{t('customization.data.decimalPlaces')}</Label>
             <p className="text-sm text-muted-foreground">
               {t('customization.data.decimalPlacesDesc')}
             </p>
           </div>
-          <select
+          <SettingsSelect
             id="decimalPlaces"
-            value={global.decimalPlaces}
-            onChange={(e) => updateGlobal({ decimalPlaces: Number(e.target.value) as 0 | 1 | 2 })}
-            className="w-32 bg-background border border-input rounded-md px-3 py-2 text-sm"
-          >
-            <option value={0}>0</option>
-            <option value={1}>1</option>
-            <option value={2}>2</option>
-          </select>
+            value={String(global.decimalPlaces)}
+            onValueChange={(value) => updateGlobal({ decimalPlaces: Number(value) as 0 | 1 | 2 })}
+            options={[0, 1, 2].map((value) => ({ value: String(value), label: String(value) }))}
+          />
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="fluent-setting-row">
           <div>
             <Label htmlFor="timeFormat">{t('customization.data.timeFormat')}</Label>
             <p className="text-sm text-muted-foreground">
               {t('customization.data.timeFormatDesc')}
             </p>
           </div>
-          <select
+          <SettingsSelect
             id="timeFormat"
             value={global.timeFormat}
-            onChange={(e) => updateGlobal({ timeFormat: e.target.value as 'relative' | 'absolute' })}
-            className="w-32 bg-background border border-input rounded-md px-3 py-2 text-sm"
-          >
-            <option value="relative">{t('customization.data.timeOptions.relative')}</option>
-            <option value="absolute">{t('customization.data.timeOptions.absolute')}</option>
-          </select>
+            onValueChange={(value) => updateGlobal({ timeFormat: value as 'relative' | 'absolute' })}
+            options={[
+              { value: 'relative', label: t('customization.data.timeOptions.relative') },
+              { value: 'absolute', label: t('customization.data.timeOptions.absolute') }
+            ]}
+          />
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="fluent-setting-row">
           <div>
             <Label htmlFor="showResetTime">{t('customization.data.showResetTime')}</Label>
             <p className="text-sm text-muted-foreground">

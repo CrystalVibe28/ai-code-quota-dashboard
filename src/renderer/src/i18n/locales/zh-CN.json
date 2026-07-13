@@ -11,7 +11,13 @@
     "lock": "锁定",
     "edit": "编辑",
     "save": "保存",
-    "backToOverview": "返回概览"
+    "backToOverview": "返回概览",
+    "tryAgain": "重试",
+    "retry": "重试",
+    "dismiss": "关闭",
+    "skipToContent": "跳至主要内容",
+    "showPassword": "显示密码",
+    "hidePassword": "隐藏密码"
   },
   "nav": {
     "overview": "概览",
@@ -20,6 +26,8 @@
     "antigravity": "Antigravity",
     "githubCopilot": "GitHub Copilot",
     "zaiCoding": "Zai Coding Plan",
+    "codex": "Codex",
+    "opencodeGo": "Opencode Go",
     "settings": "设置"
   },
   "branding": {
@@ -88,6 +96,7 @@
     "removeThreshold": "移除",
     "resetThresholds": "重置",
     "thresholdNamePlaceholder": "名称",
+    "thresholdValue": "配额阈值百分比",
     "customThreshold": "自定义",
     "dangerZone": "危险区域",
     "dangerZoneDesc": "不可逆的操作",
@@ -102,7 +111,16 @@
     "closeToTrayDesc": "关闭窗口时最小化到托盘而非完全关闭应用程序",
     "autoLaunch": "开机自动启动",
     "autoLaunchDesc": "系统启动时自动运行此应用程序",
-"autoLaunchUnsupported": "此功能仅支持 Windows 操作系统",
+    "sections": {
+      "system": "系统与语言",
+      "systemDesc": "管理数据刷新、语言与后台运行方式",
+      "alerts": "配额警报",
+      "alertsDesc": "决定何时以及如何提醒配额不足",
+      "appearance": "外观与数据显示",
+      "appearanceDesc": "调整 Fluent 2 主题、布局与配额显示方式",
+      "privacy": "安全性与维护",
+      "privacyDesc": "管理访问保护、版本信息与应用程序更新"
+    },
     "update": {
       "title": "关于与更新",
       "description": "检查应用程序更新",
@@ -131,6 +149,10 @@
   },
   "overview": {
     "title": "概览",
+    "subtitle": "集中查看所有 AI 编程服务的剩余配额",
+    "providerSummary": "{{count}} 个供应商",
+    "accountSummary": "{{count}} 个可见账户",
+    "quotaSummary": "{{count}} 项配额",
     "lastUpdated": "最后更新：{{time}}",
     "noAccountsConfigured": "尚未配置账户",
     "addAccountsHint": "在提供者页面添加账户以在此处查看用量"
@@ -147,10 +169,19 @@
     "loginFailed": "登录失败",
     "accountNotFound": "找不到账户",
     "accountSettings": "账户设置",
+    "accountSettingsDesc": "管理名称、概览显示与账户访问",
+    "visibleInOverview": "显示于概览",
+    "hiddenFromOverview": "未显示于概览",
     "editName": "编辑名称"
   },
   "antigravity": {
-    "title": "Antigravity"
+    "title": "Antigravity",
+    "quotaTypes": {
+      "geminiFiveHour": "Gemini 5 小时配额",
+      "geminiWeekly": "Gemini 每周配额",
+      "claudeGptFiveHour": "Claude/GPT 5 小时配额",
+      "claudeGptWeekly": "Claude/GPT 每周配额"
+    }
   },
   "githubCopilot": {
     "title": "GitHub Copilot",
@@ -166,8 +197,35 @@
       "timeLimit": "工具使用"
     }
   },
+  "codex": {
+    "title": "Codex",
+    "noQuotaData": "此方案没有可用的配额数据",
+    "quotaTypes": {
+      "rateLimitPrimary": "主要配额",
+      "rateLimitSecondary": "次要配额",
+      "codeReviewPrimary": "代码审查主要配额",
+      "codeReviewSecondary": "代码审查次要配额",
+      "fiveHour": "5 小时配额",
+      "hourly": "{{count}} 小时配额",
+      "daily": "{{count}} 天配额",
+      "weekly": "每周配额",
+      "monthly": "每月配额",
+      "quota": "配额",
+      "codeReviewWithQuota": "代码审查：{{quota}}"
+    }
+  },
+  "opencodeGo": {
+    "title": "Opencode Go",
+    "noQuotaData": "没有可用的 Opencode Go 用量数据",
+    "quotaTypes": {
+      "rolling": "5 小时配额",
+      "weekly": "每周配额",
+      "monthly": "每月配额"
+    }
+  },
   "addAccount": {
     "addProvider": "添加供应商",
+    "description": "选择服务并连接账户，配额会自动加入概览。",
     "displayName": "显示名称",
     "displayNamePlaceholder": "自定义名称（可选，默认为 {{provider}}）",
     "selectProvider": "供应商",
@@ -210,15 +268,6 @@
       "description": "控制显示哪些信息",
       "hideUnlimited": "隐藏无限配额",
       "hideUnlimitedDesc": "隐藏无限制配额的卡片"
-    },
-    
-    "layout": {
-      "title": "布局设置",
-      "description": "调整网格与卡片排列",
-      "gridColumns": "网格列数",
-      "gridColumnsDesc": "卡片网格的列数",
-      "cardSize": "卡片尺寸",
-      "cardSizeDesc": "用量卡片的大小"
     },
     
       "visual": {
@@ -268,6 +317,10 @@
         },
         "cardSize": "卡片尺寸",
         "cardSizeDesc": "用量卡片的大小",
+        "providerOrder": "供应商顺序",
+        "providerOrderDesc": "设置总览中供应商区段的显示顺序",
+        "moveUp": "向上移动 {{provider}}",
+        "moveDown": "向下移动 {{provider}}",
         "sizeOptions": {
           "compact": "紧凑",
           "default": "默认",
@@ -317,5 +370,12 @@
         "shortcuts": "键盘快捷键",
         "shortcutsDesc": "启用键盘导航"
       }
+  },
+  "errors": {
+    "provider": {
+      "codexTokenExpired": "Codex 访问令牌已过期",
+      "codexAccountBanned": "Codex 账户已被封禁",
+      "codexRateLimited": "Codex 速率限制已超出"
+    }
   }
 }

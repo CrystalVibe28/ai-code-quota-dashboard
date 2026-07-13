@@ -8,7 +8,7 @@ describe('useCustomizationStore', () => {
     hideUnlimitedQuota: true,
     gridColumns: 'auto',
     cardSize: 'default',
-    providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding'],
+    providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo'],
     theme: 'system',
     accentColor: 'blue',
     progressStyle: 'solid',
@@ -30,7 +30,9 @@ describe('useCustomizationStore', () => {
       providers: {
         antigravity: {},
         githubCopilot: {},
-        zaiCoding: {}
+        zaiCoding: {},
+        codex: {},
+        opencodeGo: {}
       },
       cards: {}
     })
@@ -48,7 +50,9 @@ describe('useCustomizationStore', () => {
       expect(state.providers).toEqual({
         antigravity: {},
         githubCopilot: {},
-        zaiCoding: {}
+        zaiCoding: {},
+        codex: {},
+        opencodeGo: {}
       })
     })
 
@@ -213,7 +217,9 @@ describe('useCustomizationStore', () => {
         providers: { 
           antigravity: { collapsed: true },
           githubCopilot: {},
-          zaiCoding: {}
+          zaiCoding: {},
+          codex: {},
+          opencodeGo: {}
         },
         cards: { 'card1': { visible: false } }
       }
@@ -290,7 +296,9 @@ describe('useCustomizationStore', () => {
       expect(state.providers).toEqual({
         antigravity: {},
         githubCopilot: {},
-        zaiCoding: {}
+        zaiCoding: {},
+        codex: {},
+        opencodeGo: {}
       })
       expect(state.cards).toEqual({})
     })

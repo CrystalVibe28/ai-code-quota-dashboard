@@ -82,7 +82,26 @@ export function registerAppHandlers(): void {
 
   ipcMain.handle('app:set-auto-launch', (_, enabled: boolean) => {
     try {
-      app.setLoginItemSettings({ openAtLogin: enabled })
+      const platform = process.platform
+
+      if (enabled) {
+        const loginSettings: Electron.Settings = {
+          openAtLogin: true,
+          args: ['--hidden']
+        }
+
+        // macOS: also set openAsHidden for older macOS versions (< 13)
+        if (platform === 'darwin') {
+          loginSettings.openAsHidden = true
+        }
+
+        app.setLoginItemSettings(loginSettings)
+      } else {
+        app.setLoginItemSettings({
+          openAtLogin: false,
+          args: []
+        })
+      }
       return true
     } catch (error) {
       console.error('[App IPC] Failed to set auto launch:', error)

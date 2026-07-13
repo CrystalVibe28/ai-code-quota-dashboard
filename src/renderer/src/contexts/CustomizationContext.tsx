@@ -49,6 +49,8 @@ export function CustomizationProvider({ children }: { children: ReactNode }) {
         cardSize: providerConfig.cardSize ?? global.cardSize,
         progressStyle: providerConfig.progressStyle ?? global.progressStyle,
         valueFormat: cardConfig.valueFormat ?? global.valueFormat,
+        decimalPlaces: global.decimalPlaces,
+        timeFormat: global.timeFormat,
         showResetTime: cardConfig.showResetTime ?? global.showResetTime,
         cardRadius: global.cardRadius,
         lowQuotaThreshold: global.lowQuotaThreshold

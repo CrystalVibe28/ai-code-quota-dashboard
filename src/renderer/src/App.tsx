@@ -5,6 +5,8 @@ import { useSettingsStore } from './stores/useSettingsStore'
 import { useAntigravityStore } from './stores/useAntigravityStore'
 import { useGithubCopilotStore } from './stores/useGithubCopilotStore'
 import { useZaiCodingStore } from './stores/useZaiCodingStore'
+import { useCodexStore } from './stores/useCodexStore'
+import { useOpencodeGoStore } from './stores/useOpencodeGoStore'
 import { MainLayout } from './components/layout/MainLayout'
 import { LockScreen } from './components/LockScreen'
 import { Overview } from './pages/Overview'
@@ -22,28 +24,41 @@ function App() {
   const { fetchAccounts: fetchAntiAccounts, fetchUsage: fetchAntiUsage } = useAntigravityStore()
   const { fetchAccounts: fetchGhAccounts, fetchUsage: fetchGhUsage } = useGithubCopilotStore()
   const { fetchAccounts: fetchZaiAccounts, fetchUsage: fetchZaiUsage } = useZaiCodingStore()
+  const { fetchAccounts: fetchCodexAccounts, fetchUsage: fetchCodexUsage } = useCodexStore()
+  const { fetchAccounts: fetchOpencodeGoAccounts, fetchUsage: fetchOpencodeGoUsage } = useOpencodeGoStore()
 
   useTheme()
 
   const initializedRef = useRef(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const refreshPromiseRef = useRef<Promise<void> | null>(null)
 
-  const refreshAllData = useCallback(async () => {
-    await Promise.all([
-      fetchAntiAccounts(),
-      fetchGhAccounts(),
-      fetchZaiAccounts()
-    ])
-    await Promise.all([
-      fetchAntiUsage(),
-      fetchGhUsage(),
-      fetchZaiUsage()
-    ])
-    // Trigger notification check after refreshing data
-    window.api.notification.triggerCheck().catch(() => {
-      // Silently ignore notification check failures
+  const refreshAllData = useCallback(() => {
+    if (refreshPromiseRef.current) return refreshPromiseRef.current
+
+    // ponytail: coalesces every refresh source; split only if independent refreshes become necessary.
+    refreshPromiseRef.current = (async () => {
+      await Promise.all([
+        fetchAntiAccounts(),
+        fetchGhAccounts(),
+        fetchZaiAccounts(),
+        fetchCodexAccounts(),
+        fetchOpencodeGoAccounts()
+      ])
+      const [antigravity, copilot, zai, codex, opencodeGo] = await Promise.all([
+        fetchAntiUsage(),
+        fetchGhUsage(),
+        fetchZaiUsage(),
+        fetchCodexUsage(),
+        fetchOpencodeGoUsage()
+      ])
+      await window.api.notification.checkAndNotify({ antigravity, copilot, zai, codex, opencodeGo }).catch(() => {})
+    })().finally(() => {
+      refreshPromiseRef.current = null
     })
-  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage])
+
+    return refreshPromiseRef.current
+  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage])
 
   useEffect(() => {
     checkAuth()
@@ -53,7 +68,9 @@ function App() {
     if (isUnlocked && !initializedRef.current) {
       initializedRef.current = true
       fetchSettings()
-      refreshAllData()
+      if (document.visibilityState === 'visible') {
+        refreshAllData()
+      }
     }
   }, [isUnlocked, fetchSettings, refreshAllData])
 
@@ -64,7 +81,11 @@ function App() {
       clearInterval(intervalRef.current)
     }
 
-    intervalRef.current = setInterval(refreshAllData, settings.refreshInterval * 1000)
+    intervalRef.current = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        refreshAllData()
+      }
+    }, settings.refreshInterval * 1000)
 
     return () => {
       if (intervalRef.current) {
@@ -128,6 +149,8 @@ function App() {
               <Route path="antigravity" element={<Navigate to="/overview" replace />} />
               <Route path="github-copilot" element={<Navigate to="/overview" replace />} />
               <Route path="zai-coding" element={<Navigate to="/overview" replace />} />
+              <Route path="codex" element={<Navigate to="/overview" replace />} />
+              <Route path="opencode-go" element={<Navigate to="/overview" replace />} />
             </Route>
           </Routes>
         </CustomizationProvider>

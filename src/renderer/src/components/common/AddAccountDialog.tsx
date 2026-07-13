@@ -1,21 +1,22 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from '@/components/ui/select'
 import { X, CheckCircle2, Loader2, AlertCircle, XCircle, Clock, ShieldX } from 'lucide-react'
 import { PROVIDERS } from '@/constants/providers'
 import { useAntigravityStore } from '@/stores/useAntigravityStore'
 import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
+import { useCodexStore } from '@/stores/useCodexStore'
+import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
 import type { ProviderId } from '@/types/customization'
 
 // OAuth error type detection
@@ -59,8 +60,8 @@ function OAuthErrorDisplay({ error, errorType, onRetry, isLoading }: OAuthErrorD
     },
     timeout: {
       icon: Clock,
-      bgColor: 'bg-yellow-500/10',
-      textColor: 'text-yellow-600 dark:text-yellow-400',
+      bgColor: 'bg-warning/10',
+      textColor: 'text-warning',
       title: t('errors.oauth.timeoutTitle'),
       description: t('errors.oauth.timeoutDesc'),
       showRetry: true
@@ -75,8 +76,8 @@ function OAuthErrorDisplay({ error, errorType, onRetry, isLoading }: OAuthErrorD
     },
     network: {
       icon: AlertCircle,
-      bgColor: 'bg-orange-500/10',
-      textColor: 'text-orange-600 dark:text-orange-400',
+      bgColor: 'bg-warning/10',
+      textColor: 'text-warning',
       title: t('errors.oauth.networkTitle'),
       description: t('errors.oauth.networkDesc'),
       showRetry: true
@@ -95,7 +96,7 @@ function OAuthErrorDisplay({ error, errorType, onRetry, isLoading }: OAuthErrorD
   const Icon = config.icon
   
   return (
-    <div className={`${config.bgColor} ${config.textColor} p-3 rounded-md space-y-2`}>
+    <div className={`${config.bgColor} ${config.textColor} space-y-2 rounded-md border border-current/20 p-3`} role="alert">
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4 shrink-0" />
         <span className="font-medium text-sm">{config.title}</span>
@@ -135,13 +136,55 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
   // OAuth state
   const [oauthStep, setOauthStep] = useState<'initial' | 'success'>('initial')
   const [connectedAccount, setConnectedAccount] = useState<any>(null)
+  const [dialog, setDialog] = useState<HTMLDialogElement | null>(null)
+  const oauthAttemptRef = useRef(0)
   
   // Stores
-  const { login: antigravityLogin, updateAccount: updateAntigravity, fetchAccounts: fetchAntigravity } = useAntigravityStore()
-  const { login: githubLogin, updateAccount: updateGithub, fetchAccounts: fetchGithub } = useGithubCopilotStore()
+  const {
+    login: antigravityLogin,
+    cancelLogin: cancelAntigravityLogin,
+    updateAccount: updateAntigravity,
+    fetchAccounts: fetchAntigravity
+  } = useAntigravityStore()
+  const {
+    login: githubLogin,
+    cancelLogin: cancelGithubLogin,
+    updateAccount: updateGithub,
+    fetchAccounts: fetchGithub
+  } = useGithubCopilotStore()
   const { addAccount: addZaiAccount, fetchAccounts: fetchZai } = useZaiCodingStore()
+  const {
+    login: codexLogin,
+    cancelLogin: cancelCodexLogin,
+    updateAccount: updateCodex,
+    fetchAccounts: fetchCodex
+  } = useCodexStore()
+  const {
+    login: opencodeGoLogin,
+    cancelLogin: cancelOpencodeGoLogin,
+    updateAccount: updateOpencodeGo,
+    fetchAccounts: fetchOpencodeGo
+  } = useOpencodeGoStore()
   
   const selectedProvider = PROVIDERS.find(p => p.id === selectedProviderId) || PROVIDERS[0]
+
+  useEffect(() => {
+    if (!dialog || !isOpen) return
+
+    if (typeof dialog.showModal === 'function') {
+      if (!dialog.open) dialog.showModal()
+    } else {
+      dialog.setAttribute('open', '')
+    }
+
+    return () => {
+      if (typeof dialog.close === 'function' && dialog.open) {
+        dialog.close()
+      } else {
+        dialog.removeAttribute('open')
+      }
+    }
+  }, [dialog, isOpen])
   
   // Reset form when dialog opens/closes
   useEffect(() => {
@@ -179,8 +222,41 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
   const handleProviderChange = (value: string) => {
     setSelectedProviderId(value as ProviderId)
   }
-  
+
+  const isOAuthLoginInProgress = selectedProvider.mode === 'oauth' && oauthStep === 'initial' && isLoading
+
+  const cancelActiveOAuthLogin = async (): Promise<void> => {
+    try {
+      if (selectedProviderId === 'antigravity') {
+        await cancelAntigravityLogin()
+      } else if (selectedProviderId === 'githubCopilot') {
+        await cancelGithubLogin()
+      } else if (selectedProviderId === 'codex') {
+        await cancelCodexLogin()
+      } else if (selectedProviderId === 'opencodeGo') {
+        await cancelOpencodeGoLogin()
+      }
+    } catch {
+      // Ignore cancellation errors while closing the dialog
+    }
+  }
+
+  const handleClose = () => {
+    if (isOAuthLoginInProgress) {
+      oauthAttemptRef.current += 1
+      setIsLoading(false)
+      setError('')
+      setErrorType('generic')
+      void cancelActiveOAuthLogin()
+    }
+
+    onClose()
+  }
+
   const handleOAuthLogin = async () => {
+    const attemptId = oauthAttemptRef.current + 1
+    oauthAttemptRef.current = attemptId
+
     setIsLoading(true)
     setError('')
     setErrorType('generic')
@@ -192,8 +268,16 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         result = await antigravityLogin()
       } else if (selectedProviderId === 'githubCopilot') {
         result = await githubLogin()
+      } else if (selectedProviderId === 'codex') {
+        result = await codexLogin()
+      } else if (selectedProviderId === 'opencodeGo') {
+        result = await opencodeGoLogin()
       } else {
         result = { success: false, error: 'Unknown provider' }
+      }
+
+      if (attemptId !== oauthAttemptRef.current) {
+        return
       }
       
       if (result.success && result.account) {
@@ -201,7 +285,7 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         setOauthStep('success')
         
         // Update display name from account info if user hasn't customized it
-        const accountName = result.account.name || result.account.login || result.account.email
+        const accountName = result.account.name || result.account.login || result.account.email || result.account.workspaceName || result.account.workspaceId
         if (displayName === selectedProvider.name && accountName) {
           setDisplayName(accountName)
         }
@@ -212,12 +296,18 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         setErrorType(detectedType)
       }
     } catch (e) {
+      if (attemptId !== oauthAttemptRef.current) {
+        return
+      }
+
       const errorMessage = String(e)
       const detectedType = detectOAuthErrorType(errorMessage)
       setError(errorMessage)
       setErrorType(detectedType)
     } finally {
-      setIsLoading(false)
+      if (attemptId === oauthAttemptRef.current) {
+        setIsLoading(false)
+      }
     }
   }
   
@@ -258,6 +348,12 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         } else if (selectedProviderId === 'githubCopilot') {
           await updateGithub(connectedAccount.id, { displayName: finalDisplayName })
           await fetchGithub()
+        } else if (selectedProviderId === 'codex') {
+          await updateCodex(connectedAccount.id, { displayName: finalDisplayName })
+          await fetchCodex()
+        } else if (selectedProviderId === 'opencodeGo') {
+          await updateOpencodeGo(connectedAccount.id, { displayName: finalDisplayName })
+          await fetchOpencodeGo()
         }
         
         onClose()
@@ -276,58 +372,94 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
     return oauthStep === 'success' && connectedAccount
   }
 
+  const SelectedProviderIcon = selectedProvider.icon
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-[450px] animate-in fade-in zoom-in-95 duration-200">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{t('addAccount.addProvider')}</CardTitle>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Display Name */}
-          <div className="space-y-2">
-            <Label htmlFor="displayName">{t('addAccount.displayName')}</Label>
-            <Input
-              id="displayName"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              disabled={isLoading}
-            />
+    <dialog
+      ref={setDialog}
+      className="m-auto max-h-[calc(100vh-32px)] w-[calc(100%-32px)] max-w-[520px] overflow-hidden rounded-xl border bg-card p-0 text-card-foreground shadow-fluent-64 backdrop:bg-black/40 backdrop:backdrop-blur-[2px]"
+      aria-labelledby="add-provider-title"
+      aria-describedby="add-provider-description"
+      onCancel={(event) => {
+        event.preventDefault()
+        handleClose()
+      }}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) handleClose()
+      }}
+    >
+      <div className="flex max-h-[calc(100vh-32px)] flex-col" onClick={(event) => event.stopPropagation()}>
+        <header className="flex items-start justify-between gap-4 border-b px-5 py-4">
+          <div>
+            <h2 id="add-provider-title" className="text-xl font-semibold leading-[26px]">{t('addAccount.addProvider')}</h2>
+            <p id="add-provider-description" className="mt-1 text-sm leading-5 text-muted-foreground">
+              {t('addAccount.description')}
+            </p>
           </div>
-          
-          {/* Provider Selection - Dropdown */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="-mr-2 -mt-1 shadow-none"
+            onClick={handleClose}
+            disabled={isLoading && !isOAuthLoginInProgress}
+            aria-label={t('common.dismiss')}
+          >
+            <X aria-hidden="true" />
+          </Button>
+        </header>
+
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
           <div className="space-y-2">
-            <Label>{t('addAccount.selectProvider')}</Label>
-            <Select 
-              value={selectedProviderId} 
+            <Label htmlFor="provider">{t('addAccount.selectProvider')}</Label>
+            <Select
+              value={selectedProviderId}
               onValueChange={handleProviderChange}
               disabled={isLoading}
             >
-              <SelectTrigger>
-                <SelectValue />
+              <SelectTrigger id="provider" autoFocus aria-describedby="provider-auth-mode">
+                <SelectValue>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <SelectedProviderIcon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                    <span className="truncate">{selectedProvider.name}</span>
+                  </span>
+                </SelectValue>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent container={dialog}>
                 {PROVIDERS.map((provider) => {
-                  const Icon = provider.icon
+                  const ProviderIcon = provider.icon
+
                   return (
-                    <SelectItem key={provider.id} value={provider.id}>
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-4 w-4" />
+                    <SelectItem key={provider.id} value={provider.id} textValue={provider.name} className="py-2">
+                      <span className="flex items-center gap-2">
+                        <ProviderIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>{provider.name}</span>
-                        <span className="text-xs text-muted-foreground ml-1">
-                          ({provider.mode === 'oauth' ? 'OAuth' : 'API Key'})
+                        <span className="text-xs text-muted-foreground">
+                          {provider.mode === 'oauth' ? 'OAuth' : t('addAccount.apiKey')}
                         </span>
-                      </div>
+                      </span>
                     </SelectItem>
                   )
                 })}
               </SelectContent>
             </Select>
+            <p id="provider-auth-mode" className="text-xs leading-4 text-muted-foreground">
+              {selectedProvider.mode === 'oauth'
+                ? t('addAccount.oauthMode', { provider: selectedProvider.oauthProvider })
+                : t('addAccount.apiKeyMode')}
+            </p>
           </div>
-          
-          {/* Authentication Section */}
+
+          <div className="space-y-2">
+            <Label htmlFor="displayName">{t('addAccount.displayName')}</Label>
+            <Input
+              id="displayName"
+              value={displayName}
+              placeholder={t('addAccount.displayNamePlaceholder', { provider: selectedProvider.name })}
+              onChange={(e) => setDisplayName(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
+
           {selectedProvider.mode === 'apiKey' ? (
             <div className="space-y-2">
               <Label htmlFor="apiKey">{t('addAccount.apiKey')}</Label>
@@ -351,7 +483,7 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="animate-spin" aria-hidden="true" />
                       {t('common.signingIn')}
                     </>
                   ) : (
@@ -359,19 +491,18 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
                   )}
                 </Button>
               ) : (
-                <div className="bg-green-500/10 text-green-600 dark:text-green-400 p-3 rounded-md flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="h-4 w-4" />
+                <div className="flex items-center gap-2 rounded-md border border-success/30 bg-success/10 p-3 text-sm text-success" aria-live="polite">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <span>
-                    {t('addAccount.connectedAs', { 
-                      user: connectedAccount?.login || connectedAccount?.email || connectedAccount?.name || 'User' 
+                    {t('addAccount.connectedAs', {
+                      user: connectedAccount?.login || connectedAccount?.email || connectedAccount?.name || 'User'
                     })}
                   </span>
                 </div>
               )}
             </div>
           )}
-          
-          {/* Error Message */}
+
           {error && selectedProvider.mode === 'oauth' && (
             <OAuthErrorDisplay
               error={error}
@@ -381,33 +512,29 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
             />
           )}
           {error && selectedProvider.mode === 'apiKey' && (
-            <div className="bg-destructive/10 text-destructive p-3 rounded-md flex items-center gap-2 text-sm">
-              <AlertCircle className="h-4 w-4 shrink-0" />
+            <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+              <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{error}</span>
             </div>
           )}
+        </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 justify-end pt-2">
-            <Button variant="outline" onClick={onClose} disabled={isLoading}>
-              {t('common.cancel')}
-            </Button>
-            <Button 
-              onClick={handleSubmit} 
-              disabled={isLoading || !canSubmit()}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('common.adding')}
-                </>
-              ) : (
-                t('common.add')
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        <footer className="flex justify-end gap-2 border-t bg-surface-sunken px-5 py-3">
+          <Button variant="outline" onClick={handleClose} disabled={isLoading && !isOAuthLoginInProgress}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleSubmit} disabled={isLoading || !canSubmit()}>
+            {isLoading ? (
+              <>
+                <Loader2 className="animate-spin" aria-hidden="true" />
+                {t('common.adding')}
+              </>
+            ) : (
+              t('common.add')
+            )}
+          </Button>
+        </footer>
+      </div>
+    </dialog>
   )
 }

@@ -10,9 +10,8 @@
     "target": "ESNext",
     "outDir": "out",
     "rootDir": ".",
-    "baseUrl": ".",
     "paths": {
-      "@shared/*": ["src/shared/*"]
+      "@shared/*": ["./src/shared/*"]
     },
     "resolveJsonModule": true,
     "types": ["electron-vite/node", "node"]

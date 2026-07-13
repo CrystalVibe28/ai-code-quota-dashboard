@@ -12,9 +12,10 @@ export interface BaseProviderState<TAccount extends Account, TUsage> {
   isLoading: boolean
   error: string | null
   fetchAccounts: () => Promise<void>
-  fetchUsage: () => Promise<void>
+  fetchUsage: () => Promise<TUsage[]>
   deleteAccount: (accountId: string) => Promise<boolean>
   updateAccount: (accountId: string, data: Partial<TAccount>) => Promise<boolean>
+  reset: () => void
   clearError: () => void
 }
 
@@ -24,6 +25,7 @@ export interface BaseProviderState<TAccount extends Account, TUsage> {
 export interface OAuthProviderState<TAccount extends Account, TUsage>
   extends BaseProviderState<TAccount, TUsage> {
   login: () => Promise<LoginResult<TAccount>>
+  cancelLogin: () => Promise<boolean>
 }
 
 /**
@@ -46,6 +48,7 @@ export interface ProviderStoreConfig<TAccount extends Account, TUsage> {
 export interface OAuthProviderStoreConfig<TAccount extends Account, TUsage>
   extends ProviderStoreConfig<TAccount, TUsage> {
   loginApi: () => Promise<LoginResult<TAccount>>
+  cancelLoginApi?: () => Promise<boolean>
   /**
    * Custom OAuth error parser (optional extension)
    */
@@ -97,6 +100,8 @@ function createBaseActions<TAccount extends Account, TUsage>(
   get: () => BaseProviderState<TAccount, TUsage>
 ): BaseProviderState<TAccount, TUsage> {
   const { providerId, providerName, fetchUsageApi, handleUsageError } = config
+  let generation = 0
+  let usageRequest: Promise<TUsage[]> | null = null
 
   return {
     accounts: [],
@@ -105,31 +110,48 @@ function createBaseActions<TAccount extends Account, TUsage>(
     error: null,
 
     fetchAccounts: async () => {
+      const requestGeneration = generation
       try {
         const accounts = await window.api.storage.getAccounts<TAccount>(providerId)
+        if (requestGeneration !== generation) return
         set({ accounts, error: null })
       } catch (error) {
+        if (requestGeneration !== generation) return
         const errorMessage = `Failed to fetch ${providerName} accounts`
         set({ error: errorMessage })
         useErrorStore.getState().showError(ErrorCode.STORAGE_READ_FAILED, errorMessage)
       }
     },
 
-    fetchUsage: async () => {
-      set({ isLoading: true, error: null })
-      try {
-        const usageData = await fetchUsageApi()
-        set({ usageData, isLoading: false })
-      } catch (error) {
-        const errorMessage = String(error)
-        set({ error: errorMessage, isLoading: false })
+    fetchUsage: () => {
+      if (usageRequest) return usageRequest
 
-        // Use custom error handler if provided
-        const handled = handleUsageError?.(errorMessage) ?? false
-        if (!handled) {
-          useErrorStore.getState().showError(ErrorCode.API_ERROR, 'Failed to fetch usage data')
+      const requestGeneration = generation
+      set({ isLoading: true, error: null })
+      let request!: Promise<TUsage[]>
+      request = (async () => {
+        try {
+          const usageData = await fetchUsageApi()
+          if (requestGeneration !== generation) return []
+          set({ usageData, isLoading: false })
+          return usageData
+        } catch (error) {
+          if (requestGeneration !== generation) return []
+          const errorMessage = String(error)
+          set({ error: errorMessage, isLoading: false })
+
+          // Use custom error handler if provided
+          const handled = handleUsageError?.(errorMessage) ?? false
+          if (!handled) {
+            useErrorStore.getState().showError(ErrorCode.API_ERROR, 'Failed to fetch usage data')
+          }
+          return []
+        } finally {
+          if (usageRequest === request) usageRequest = null
         }
-      }
+      })()
+      usageRequest = request
+      return request
     },
 
     deleteAccount: async (accountId: string) => {
@@ -162,6 +184,12 @@ function createBaseActions<TAccount extends Account, TUsage>(
       }
     },
 
+    reset: () => {
+      generation += 1
+      usageRequest = null
+      set({ accounts: [], usageData: [], isLoading: false, error: null })
+    },
+
     clearError: () => {
       set({ error: null })
     }
@@ -183,8 +211,10 @@ export function createProviderStore<TAccount extends Account, TUsage, TExtension
   ) => TExtensions
 ) {
   return create<BaseProviderState<TAccount, TUsage> & TExtensions>((set, get) => {
-    const baseActions = createBaseActions(config, set, get as () => BaseProviderState<TAccount, TUsage>)
-    const extendedActions = extensions ? extensions(set, get, baseActions) : ({} as TExtensions)
+    const setBaseState = (partial: Partial<BaseProviderState<TAccount, TUsage>>) =>
+      set(partial as Partial<BaseProviderState<TAccount, TUsage> & TExtensions>)
+    const baseActions = createBaseActions(config, setBaseState, get as () => BaseProviderState<TAccount, TUsage>)
+    const extendedActions = extensions ? extensions(setBaseState, get, baseActions) : ({} as TExtensions)
     return { ...baseActions, ...extendedActions }
   })
 }
@@ -204,25 +234,39 @@ export function createOAuthProviderStore<TAccount extends Account, TUsage, TExte
   ) => TExtensions
 ) {
   return create<OAuthProviderState<TAccount, TUsage> & TExtensions>((set, get) => {
+    const setOAuthState = (partial: Partial<OAuthProviderState<TAccount, TUsage>>) =>
+      set(partial as Partial<OAuthProviderState<TAccount, TUsage> & TExtensions>)
     const baseActions = createBaseActions(
       config,
-      set as (partial: Partial<BaseProviderState<TAccount, TUsage>>) => void,
+      setOAuthState,
       get as () => BaseProviderState<TAccount, TUsage>
     )
 
     const oauthActions: OAuthProviderState<TAccount, TUsage> = {
       ...baseActions,
 
+      cancelLogin: async () => {
+        setOAuthState({ isLoading: false, error: null })
+
+        try {
+          return await (config.cancelLoginApi?.() ?? Promise.resolve(false))
+        } catch (error) {
+          setOAuthState({ error: String(error) })
+          return false
+        }
+      },
+
       login: async () => {
-        set({ isLoading: true, error: null })
+        setOAuthState({ isLoading: true, error: null })
         try {
           const result = await config.loginApi()
           if (result.success) {
             await get().fetchAccounts()
-            set({ isLoading: false })
+            setOAuthState({ isLoading: false })
+            void get().fetchUsage()
           } else {
             const errorCode = parseOAuthError(result.error, config.parseOAuthErrorExtension)
-            set({ error: result.error || null, isLoading: false })
+            setOAuthState({ error: result.error || null, isLoading: false })
 
             if (errorCode !== ErrorCode.OAUTH_CANCELLED) {
               useErrorStore.getState().showError(errorCode, result.error || 'Login failed')
@@ -231,14 +275,14 @@ export function createOAuthProviderStore<TAccount extends Account, TUsage, TExte
           return result
         } catch (error) {
           const errorMessage = String(error)
-          set({ error: errorMessage, isLoading: false })
+          setOAuthState({ error: errorMessage, isLoading: false })
           useErrorStore.getState().showError(ErrorCode.OAUTH_FAILED, errorMessage)
           return { success: false, error: errorMessage }
         }
       }
     }
 
-    const extendedActions = extensions ? extensions(set, get, oauthActions) : ({} as TExtensions)
+    const extendedActions = extensions ? extensions(setOAuthState, get, oauthActions) : ({} as TExtensions)
     return { ...oauthActions, ...extendedActions }
   })
 }

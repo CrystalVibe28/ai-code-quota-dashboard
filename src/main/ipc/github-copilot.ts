@@ -20,6 +20,10 @@ export function registerGithubCopilotHandlers(): void {
     }
   })
 
+  ipcMain.handle('github-copilot:cancel-login', () => {
+    return githubCopilotService.cancelLogin()
+  })
+
   ipcMain.handle('github-copilot:refresh-token', async (_, accountId: string) => {
     try {
       const accounts = await storageService.getAccounts('githubCopilot') as GithubCopilotAccount[]

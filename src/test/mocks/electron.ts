@@ -1,7 +1,7 @@
 import { vi } from 'vitest'
 
 // Mock Electron APIs for main process tests
-export const mockElectron = {
+const mockElectron = {
   app: {
     getPath: vi.fn().mockReturnValue('/mock/user/data'),
     getName: vi.fn().mockReturnValue('ai-code-quota-dashboard'),
@@ -55,7 +55,7 @@ export const mockElectron = {
 }
 
 // Mock fs module
-export const mockFs = {
+const mockFs = {
   existsSync: vi.fn().mockReturnValue(false),
   readFileSync: vi.fn().mockReturnValue('{}'),
   writeFileSync: vi.fn(),

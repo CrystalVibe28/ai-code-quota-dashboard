@@ -11,6 +11,7 @@ const api = {
     changePassword: (oldPassword: string, newPassword: string): Promise<boolean> =>
       ipcRenderer.invoke('auth:change-password', oldPassword, newPassword),
     lock: (): Promise<void> => ipcRenderer.invoke('auth:lock'),
+    clearAllData: (): Promise<void> => ipcRenderer.invoke('auth:clear-all-data'),
     skipPassword: (): Promise<boolean> => ipcRenderer.invoke('auth:skip-password'),
     isPasswordSkipped: (): Promise<boolean> => ipcRenderer.invoke('auth:is-password-skipped'),
     unlockWithSkippedPassword: (): Promise<boolean> => ipcRenderer.invoke('auth:unlock-with-skipped-password'),
@@ -42,6 +43,8 @@ const api = {
   antigravity: {
     login: (): Promise<{ success: boolean; account?: unknown; error?: string }> =>
       ipcRenderer.invoke('antigravity:login'),
+    cancelLogin: (): Promise<boolean> =>
+      ipcRenderer.invoke('antigravity:cancel-login'),
     refreshToken: (accountId: string): Promise<boolean> =>
       ipcRenderer.invoke('antigravity:refresh-token', accountId),
     fetchUsage: (accountId: string): Promise<unknown> =>
@@ -53,6 +56,8 @@ const api = {
   githubCopilot: {
     login: (): Promise<{ success: boolean; account?: unknown; error?: string }> =>
       ipcRenderer.invoke('github-copilot:login'),
+    cancelLogin: (): Promise<boolean> =>
+      ipcRenderer.invoke('github-copilot:cancel-login'),
     refreshToken: (accountId: string): Promise<boolean> =>
       ipcRenderer.invoke('github-copilot:refresh-token', accountId),
     fetchUsage: (accountId: string): Promise<unknown> =>
@@ -68,6 +73,32 @@ const api = {
       ipcRenderer.invoke('zai-coding:fetch-usage', accountId),
     fetchAllUsage: (): Promise<unknown[]> =>
       ipcRenderer.invoke('zai-coding:fetch-all-usage')
+  },
+
+  codex: {
+    login: (): Promise<{ success: boolean; account?: unknown; error?: string }> =>
+      ipcRenderer.invoke('codex:login'),
+    cancelLogin: (): Promise<boolean> =>
+      ipcRenderer.invoke('codex:cancel-login'),
+    refreshToken: (accountId: string): Promise<boolean> =>
+      ipcRenderer.invoke('codex:refresh-token', accountId),
+    fetchUsage: (accountId: string): Promise<unknown> =>
+      ipcRenderer.invoke('codex:fetch-usage', accountId),
+    fetchAllUsage: (): Promise<unknown[]> =>
+      ipcRenderer.invoke('codex:fetch-all-usage')
+  },
+
+  opencodeGo: {
+    login: (): Promise<{ success: boolean; account?: unknown; error?: string }> =>
+      ipcRenderer.invoke('opencode-go:login'),
+    cancelLogin: (): Promise<boolean> =>
+      ipcRenderer.invoke('opencode-go:cancel-login'),
+    refreshToken: (accountId: string): Promise<boolean> =>
+      ipcRenderer.invoke('opencode-go:refresh-token', accountId),
+    fetchUsage: (accountId: string): Promise<unknown> =>
+      ipcRenderer.invoke('opencode-go:fetch-usage', accountId),
+    fetchAllUsage: (): Promise<unknown[]> =>
+      ipcRenderer.invoke('opencode-go:fetch-all-usage')
   },
 
   app: {
@@ -102,10 +133,10 @@ const api = {
       antigravity: unknown[]
       copilot: unknown[]
       zai: unknown[]
+      codex: unknown[]
+      opencodeGo?: unknown[]
     }): Promise<boolean> =>
-      ipcRenderer.invoke('notification:check-and-notify', data),
-    triggerCheck: (): Promise<boolean> =>
-      ipcRenderer.invoke('notification:trigger-check')
+      ipcRenderer.invoke('notification:check-and-notify', data)
   },
 
   update: {

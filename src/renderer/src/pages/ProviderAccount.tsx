@@ -1,18 +1,25 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { RefreshCw, Trash2, Edit2, Eye, EyeOff } from 'lucide-react'
+import { RefreshCw, Trash2, Edit2, Eye, EyeOff, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { UsageCard } from '@/components/common/UsageCard'
+import { ErrorCard } from '@/components/common/ErrorCard'
 import { EditNameDialog } from '@/components/common/EditNameDialog'
 import { useAntigravityStore } from '@/stores/useAntigravityStore'
 import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
+import { useCodexStore } from '@/stores/useCodexStore'
+import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
 import { useCustomization } from '@/contexts/CustomizationContext'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
+import { getQuotaGridClassName } from '@/constants/customization'
 import { getProviderById } from '@/constants/providers'
 import type { ProviderId } from '@/types/customization'
+import { getAntigravityQuotaType } from '@shared/antigravityQuota'
+import { getCodexWindowLabel } from '@/lib/codexQuota'
+import { cn } from '@/lib/utils'
 
 export function ProviderAccount() {
   const { t } = useTranslation()
@@ -52,7 +59,27 @@ export function ProviderAccount() {
     updateAccount: updateZaiAccount
   } = useZaiCodingStore()
   
-  const { global, isCardVisible } = useCustomization()
+  const { 
+    accounts: codexAccounts, 
+    usageData: codexUsage, 
+    isLoading: codexLoading,
+    fetchAccounts: fetchCodexAccounts,
+    fetchUsage: fetchCodexUsage,
+    deleteAccount: deleteCodexAccount,
+    updateAccount: updateCodexAccount
+  } = useCodexStore()
+
+  const {
+    accounts: opencodeGoAccounts,
+    usageData: opencodeGoUsage,
+    isLoading: opencodeGoLoading,
+    fetchAccounts: fetchOpencodeGoAccounts,
+    fetchUsage: fetchOpencodeGoUsage,
+    deleteAccount: deleteOpencodeGoAccount,
+    updateAccount: updateOpencodeGoAccount
+  } = useOpencodeGoStore()
+  
+  const { global, getCardConfig, isCardVisible } = useCustomization()
   const { providers, updateCard } = useCustomizationStore()
   
   // Get provider info
@@ -72,9 +99,17 @@ export function ProviderAccount() {
       const acc = zaiAccounts.find(a => a.id === accountId)
       const usageItem = zaiUsage.find(u => u.accountId === accountId)
       return { account: acc, usage: usageItem, isLoading: zaiLoading }
+    } else if (providerId === 'codex') {
+      const acc = codexAccounts.find(a => a.id === accountId)
+      const usageItem = codexUsage.find(u => u.accountId === accountId)
+      return { account: acc, usage: usageItem, isLoading: codexLoading }
+    } else if (providerId === 'opencodeGo') {
+      const acc = opencodeGoAccounts.find(a => a.id === accountId)
+      const usageItem = opencodeGoUsage.find(u => u.accountId === accountId)
+      return { account: acc, usage: usageItem, isLoading: opencodeGoLoading }
     }
     return { account: undefined, usage: undefined, isLoading: false }
-  }, [providerId, accountId, antiAccounts, antiUsage, antiLoading, ghAccounts, ghUsage, ghLoading, zaiAccounts, zaiUsage, zaiLoading])
+  }, [providerId, accountId, antiAccounts, antiUsage, antiLoading, ghAccounts, ghUsage, ghLoading, zaiAccounts, zaiUsage, zaiLoading, codexAccounts, codexUsage, codexLoading, opencodeGoAccounts, opencodeGoUsage, opencodeGoLoading])
   
   const copilotLabelMap: Record<string, string> = {
     chat: 'Chat messages',
@@ -83,7 +118,12 @@ export function ProviderAccount() {
   }
   
   const getCopilotLabel = (key: string) => copilotLabelMap[key] ?? key.replace(/_/g, ' ')
-  
+
+  const getAntigravityQuotaLabel = (modelName: string) => {
+    const quotaType = getAntigravityQuotaType(modelName)
+    return quotaType ? t(`antigravity.quotaTypes.${quotaType}`) : modelName
+  }
+
   const getZaiLimitLabel = (key: string) => {
     const normalizedKey = key.toLowerCase()
     const mapping: Record<string, string> = {
@@ -91,6 +131,15 @@ export function ProviderAccount() {
       time_limit: t('zaiCoding.limits.timeLimit')
     }
     return mapping[normalizedKey] ?? key.replace(/_/g, ' ')
+  }
+
+  const getOpencodeGoLimitLabel = (key: string) => {
+    const mapping: Record<string, string> = {
+      rollingUsage: t('opencodeGo.quotaTypes.rolling'),
+      weeklyUsage: t('opencodeGo.quotaTypes.weekly'),
+      monthlyUsage: t('opencodeGo.quotaTypes.monthly')
+    }
+    return mapping[key] ?? key.replace(/([A-Z])/g, ' $1').replace(/Usage$/, '').trim()
   }
   
   if (!provider || !account) {
@@ -113,7 +162,8 @@ export function ProviderAccount() {
   }
   
   const Icon = provider.icon
-  const displayName = (account as any).displayName || (account as any).name || (account as any).email || (account as any).login || 'Unknown'
+  const displayName = (account as any).displayName || (account as any).name || (account as any).email || (account as any).login || (account as any).workspaceName || (account as any).workspaceId || 'Unknown'
+  const accountDetail = (account as any).email || (account as any).login || (account as any).workspaceName || (account as any).workspaceId
   const showInOverview = (account as any).showInOverview ?? true
   
   const handleRefresh = async () => {
@@ -126,6 +176,12 @@ export function ProviderAccount() {
     } else if (providerId === 'zaiCoding') {
       await fetchZaiAccounts()
       await fetchZaiUsage()
+    } else if (providerId === 'codex') {
+      await fetchCodexAccounts()
+      await fetchCodexUsage()
+    } else if (providerId === 'opencodeGo') {
+      await fetchOpencodeGoAccounts()
+      await fetchOpencodeGoUsage()
     }
   }
   
@@ -139,6 +195,10 @@ export function ProviderAccount() {
       success = await deleteGhAccount(accountId!)
     } else if (providerId === 'zaiCoding') {
       success = await deleteZaiAccount(accountId!)
+    } else if (providerId === 'codex') {
+      success = await deleteCodexAccount(accountId!)
+    } else if (providerId === 'opencodeGo') {
+      success = await deleteOpencodeGoAccount(accountId!)
     }
     
     if (success) {
@@ -154,6 +214,10 @@ export function ProviderAccount() {
       await updateGhAccount(accountId!, { showInOverview: newValue })
     } else if (providerId === 'zaiCoding') {
       await updateZaiAccount(accountId!, { showInOverview: newValue })
+    } else if (providerId === 'codex') {
+      await updateCodexAccount(accountId!, { showInOverview: newValue })
+    } else if (providerId === 'opencodeGo') {
+      await updateOpencodeGoAccount(accountId!, { showInOverview: newValue })
     }
   }
   
@@ -165,14 +229,18 @@ export function ProviderAccount() {
       success = await updateGhAccount(accountId!, { displayName: newName })
     } else if (providerId === 'zaiCoding') {
       success = await updateZaiAccount(accountId!, { displayName: newName })
+    } else if (providerId === 'codex') {
+      success = await updateCodexAccount(accountId!, { displayName: newName })
+    } else if (providerId === 'opencodeGo') {
+      success = await updateOpencodeGoAccount(accountId!, { displayName: newName })
     }
     return success ? { success: true } : { success: false, error: t('editName.failedToSave') }
   }
   
   const getGridClass = () => {
     const cols = providers[providerId as ProviderId]?.gridColumns ?? global.gridColumns
-    if (cols === 'auto') return 'grid gap-4 md:grid-cols-2 lg:grid-cols-3'
-    return `grid gap-4 grid-cols-${cols}`
+    const cardSize = providers[providerId as ProviderId]?.cardSize ?? global.cardSize
+    return getQuotaGridClassName(cols, cardSize)
   }
   
   // Render usage cards based on provider
@@ -183,12 +251,20 @@ export function ProviderAccount() {
       const usageData = usage.usage as any[]
       return usageData.map((model: any) => {
         const cardId = `antigravity-${accountId}-${model.modelName}`
+        const config = getCardConfig('antigravity', cardId)
         return (
           <UsageCard
             key={cardId}
-            title={model.modelName}
+            title={getAntigravityQuotaLabel(model.modelName)}
             percentage={model.remainingFraction * 100}
             resetTime={model.resetTime}
+            cardSize={config.cardSize}
+            progressStyle={config.progressStyle}
+            valueFormat={config.valueFormat}
+            decimalPlaces={config.decimalPlaces}
+            timeFormat={config.timeFormat}
+            showResetTime={config.showResetTime}
+            cardRadius={config.cardRadius}
             showVisibilityToggle
             isVisibleInOverview={isCardVisible('antigravity', cardId)}
             onVisibilityToggle={(visible) => updateCard(cardId, { visible })}
@@ -203,6 +279,7 @@ export function ProviderAccount() {
       return Object.entries(snapshots).map(([key, quota]: [string, any]) => {
         if (quota.unlimited && global.hideUnlimitedQuota) return null
         const cardId = `githubCopilot-${accountId}-${key}`
+        const config = getCardConfig('githubCopilot', cardId)
         return (
           <UsageCard
             key={cardId}
@@ -211,6 +288,13 @@ export function ProviderAccount() {
             remaining={quota.remaining}
             total={quota.entitlement}
             resetTime={usageData.quotaResetDate}
+            cardSize={config.cardSize}
+            progressStyle={config.progressStyle}
+            valueFormat={config.valueFormat}
+            decimalPlaces={config.decimalPlaces}
+            timeFormat={config.timeFormat}
+            showResetTime={config.showResetTime}
+            cardRadius={config.cardRadius}
             showVisibilityToggle
             isVisibleInOverview={isCardVisible('githubCopilot', cardId)}
             onVisibilityToggle={(visible) => updateCard(cardId, { visible })}
@@ -223,6 +307,7 @@ export function ProviderAccount() {
       const usageData = usage.usage as any
       return usageData.limits.map((limit: any) => {
         const cardId = `zaiCoding-${accountId}-${limit.type}`
+        const config = getCardConfig('zaiCoding', cardId)
         return (
           <UsageCard
             key={cardId}
@@ -231,6 +316,13 @@ export function ProviderAccount() {
             remaining={limit.remaining}
             total={limit.usage}
             resetTime={limit.nextResetTime}
+            cardSize={config.cardSize}
+            progressStyle={config.progressStyle}
+            valueFormat={config.valueFormat}
+            decimalPlaces={config.decimalPlaces}
+            timeFormat={config.timeFormat}
+            showResetTime={config.showResetTime}
+            cardRadius={config.cardRadius}
             showVisibilityToggle
             isVisibleInOverview={isCardVisible('zaiCoding', cardId)}
             onVisibilityToggle={(visible) => updateCard(cardId, { visible })}
@@ -238,81 +330,209 @@ export function ProviderAccount() {
         )
       })
     }
+
+    if (providerId === 'codex') {
+      const usageData = usage.usage as any
+      const windowEntries: { kind: 'rateLimit' | 'codeReview'; cardIdSuffix: string; window: any }[] = [
+        { kind: 'rateLimit', cardIdSuffix: 'rateLimit_primary', window: usageData.rate_limit?.primary_window },
+        { kind: 'rateLimit', cardIdSuffix: 'rateLimit_secondary', window: usageData.rate_limit?.secondary_window },
+        { kind: 'codeReview', cardIdSuffix: 'codeReview_primary', window: usageData.code_review_rate_limit?.primary_window },
+        { kind: 'codeReview', cardIdSuffix: 'codeReview_secondary', window: usageData.code_review_rate_limit?.secondary_window }
+      ]
+
+      const cards = windowEntries.map((entry) => {
+        if (!entry.window) return null
+        const cardId = `codex-${accountId}-${entry.cardIdSuffix}`
+        const percentage = 100 - Math.min(entry.window.used_percent, 100)
+        const resetTime = entry.window.reset_at ? entry.window.reset_at * 1000 : undefined
+        const config = getCardConfig('codex', cardId)
+        return (
+          <UsageCard
+            key={cardId}
+            title={getCodexWindowLabel(entry.window, entry.kind, t)}
+            percentage={percentage}
+            resetTime={resetTime}
+            cardSize={config.cardSize}
+            progressStyle={config.progressStyle}
+            valueFormat={config.valueFormat}
+            decimalPlaces={config.decimalPlaces}
+            timeFormat={config.timeFormat}
+            showResetTime={config.showResetTime}
+            cardRadius={config.cardRadius}
+            showVisibilityToggle
+            isVisibleInOverview={isCardVisible('codex', cardId)}
+            onVisibilityToggle={(visible) => updateCard(cardId, { visible })}
+          />
+        )
+      }).filter(Boolean)
+
+      if (cards.length === 0) {
+        return [
+          <Card key={`codex-${accountId}-no-data`} className="rounded-md">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Info className="h-4 w-4 flex-shrink-0" />
+                <span className="text-sm">{t('codex.noQuotaData')}</span>
+              </div>
+            </CardContent>
+          </Card>
+        ]
+      }
+
+      return cards
+    }
+
+    if (providerId === 'opencodeGo') {
+      const usageData = usage.usage as any
+      const cards = (usageData.limits || []).map((limit: any) => {
+        const cardId = `opencodeGo-${accountId}-${limit.type}`
+        const percentage = limit.unlimited ? 100 : limit.remaining
+        const config = getCardConfig('opencodeGo', cardId)
+        return (
+          <UsageCard
+            key={cardId}
+            title={getOpencodeGoLimitLabel(limit.type)}
+            percentage={percentage}
+            remaining={limit.remaining}
+            total={limit.limit}
+            resetTime={limit.resetTime}
+            cardSize={config.cardSize}
+            progressStyle={config.progressStyle}
+            valueFormat={config.valueFormat}
+            decimalPlaces={config.decimalPlaces}
+            timeFormat={config.timeFormat}
+            showResetTime={config.showResetTime}
+            cardRadius={config.cardRadius}
+            showVisibilityToggle
+            isVisibleInOverview={isCardVisible('opencodeGo', cardId)}
+            onVisibilityToggle={(visible) => updateCard(cardId, { visible })}
+          />
+        )
+      })
+
+      if (cards.length === 0) {
+        return [
+          <Card key={`opencodeGo-${accountId}-no-data`} className="rounded-md">
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Info className="h-4 w-4 flex-shrink-0" />
+                <span className="text-sm">{t('opencodeGo.noQuotaData')}</span>
+              </div>
+            </CardContent>
+          </Card>
+        ]
+      }
+
+      return cards
+    }
     
     return null
   }
 
+  const renderErrorCard = () => {
+    if (!usage?.error || usage?.usage) return null
+    
+    return (
+      <ErrorCard
+        title={provider?.name || ''}
+        subtitle={displayName}
+        errorMessage={usage.error}
+        onRetry={handleRefresh}
+      />
+    )
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Icon className="h-6 w-6 text-primary" />
+    <div className="fluent-page space-y-7">
+      <header className="fluent-page-header">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+            <Icon className="h-6 w-6" aria-hidden="true" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold">{displayName}</h1>
-            <p className="text-sm text-muted-foreground">{provider.name}</p>
+          <div className="min-w-0">
+            <h1 className="fluent-page-title truncate">{displayName}</h1>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm leading-5 text-muted-foreground">
+              <span>{provider.name}</span>
+              {accountDetail && accountDetail !== displayName && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span className="truncate">{accountDetail}</span>
+                </>
+              )}
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs leading-4',
+                  showInOverview ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
+                )}
+              >
+                {showInOverview ? <Eye className="h-3 w-3" aria-hidden="true" /> : <EyeOff className="h-3 w-3" aria-hidden="true" />}
+                {showInOverview ? t('provider.visibleInOverview') : t('provider.hiddenFromOverview')}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={handleRefresh} disabled={isLoading} variant="outline" size="sm">
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            {t('common.refresh')}
-          </Button>
-        </div>
-      </div>
+        <Button onClick={handleRefresh} disabled={isLoading} variant="outline">
+          <RefreshCw className={isLoading ? 'animate-spin' : ''} aria-hidden="true" />
+          {t('common.refresh')}
+        </Button>
+      </header>
       
-      {/* Account Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('provider.accountSettings')}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
+      <Card className="shadow-none">
+        <CardContent className="flex flex-col gap-2 p-2 sm:flex-row sm:items-center">
+          <div className="px-2 py-1 sm:mr-auto">
+            <p className="text-sm font-semibold leading-5">{t('provider.accountSettings')}</p>
+            <p className="text-xs leading-4 text-muted-foreground">{t('provider.accountSettingsDesc')}</p>
+          </div>
           <Button 
             variant="outline" 
-            size="sm"
             onClick={() => setShowEditDialog(true)}
           >
-            <Edit2 className="h-4 w-4 mr-2" />
+            <Edit2 aria-hidden="true" />
             {t('provider.editName')}
           </Button>
           
           <Button 
             variant="outline" 
-            size="sm"
             onClick={handleToggleOverview}
           >
             {showInOverview ? (
               <>
-                <EyeOff className="h-4 w-4 mr-2" />
+                <EyeOff aria-hidden="true" />
                 {t('provider.hideFromOverview')}
               </>
             ) : (
               <>
-                <Eye className="h-4 w-4 mr-2" />
+                <Eye aria-hidden="true" />
                 {t('provider.showInOverview')}
               </>
             )}
           </Button>
           
           <Button 
-            variant="destructive" 
-            size="sm"
+            variant="ghost"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
             onClick={handleDelete}
           >
-            <Trash2 className="h-4 w-4 mr-2" />
+            <Trash2 aria-hidden="true" />
             {t('provider.removeAccount')}
           </Button>
         </CardContent>
       </Card>
       
-      {/* Usage Cards */}
       {usage?.usage && (
-        <section>
-          <h2 className="text-lg font-semibold mb-3">{t('provider.usage')}</h2>
+        <section aria-labelledby="provider-usage-title">
+          <h2 id="provider-usage-title" className="mb-3 text-xl font-semibold leading-[26px]">{t('provider.usage')}</h2>
           <div className={getGridClass()}>
             {renderUsageCards()}
+          </div>
+        </section>
+      )}
+
+      {usage?.error && !usage?.usage && (
+        <section aria-labelledby="provider-usage-error-title">
+          <h2 id="provider-usage-error-title" className="mb-3 text-xl font-semibold leading-[26px]">{t('provider.usage')}</h2>
+          <div className={getGridClass()}>
+            {renderErrorCard()}
           </div>
         </section>
       )}

@@ -1,17 +1,25 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
-import { TFunction } from 'i18next'
+import type { TFunction } from 'i18next'
+import type { TimeFormat } from '@/types/customization'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatResetTime(resetTime: string | number | undefined, t?: TFunction): string {
+export function formatResetTime(
+  resetTime: string | number | undefined,
+  t?: TFunction,
+  timeFormat: TimeFormat = 'relative',
+  locale?: string
+): string {
   if (!resetTime) return ''
-  
-  const date = typeof resetTime === 'number' 
-    ? new Date(resetTime)
-    : new Date(resetTime)
+
+  const date = new Date(resetTime)
+  if (Number.isNaN(date.getTime())) return ''
+  if (timeFormat === 'absolute') {
+    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+  }
   
   const now = new Date()
   const diff = date.getTime() - now.getTime()

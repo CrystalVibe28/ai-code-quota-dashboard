@@ -10,12 +10,16 @@ import { NotificationService } from './services/notification'
 import { AntigravityService } from './services/providers/antigravity'
 import { GithubCopilotService } from './services/providers/github-copilot'
 import { ZaiCodingService } from './services/providers/zai-coding'
+import { CodexService } from './services/providers/codex'
+import { OpencodeGoService } from './services/providers/opencode-go'
 
 import { registerAuthHandlers } from './ipc/auth'
 import { registerStorageHandlers } from './ipc/storage'
 import { registerAntigravityHandlers } from './ipc/antigravity'
 import { registerGithubCopilotHandlers } from './ipc/github-copilot'
 import { registerZaiCodingHandlers } from './ipc/zai-coding'
+import { registerCodexHandlers } from './ipc/codex'
+import { registerOpencodeGoHandlers } from './ipc/opencode-go'
 import { registerAppHandlers } from './ipc/app'
 import { registerNotificationHandlers } from './ipc/notification'
 import { registerUpdateHandlers, notifyUpdateAvailable } from './ipc/update'
@@ -53,20 +57,30 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    // Startup behavior:
-    // - Password set & not skipped: show window for password entry
-    // - Password skipped: run in background, auto-unlock
-    // - No password: show window for initial setup
+    const isAutoLaunch = process.argv.includes('--hidden')
     const hasPassword = cryptoService.hasPassword()
     const isPasswordSkipped = cryptoService.isPasswordSkipped()
 
+    // Auto-unlock storage if password was skipped
     if (hasPassword && isPasswordSkipped) {
       const storageService = new StorageService()
       storageService.unlock(cryptoService.getSkippedPasswordKey())
-      console.log('[Startup] Password skipped - running in background')
+    }
+
+    // Decide whether to show the window:
+    // Hide ONLY when: auto-launched AND no real password (skipped or no password file)
+    const hasRealPassword = hasPassword && !isPasswordSkipped
+    const shouldHide = isAutoLaunch && !hasRealPassword
+
+    if (shouldHide) {
+      // Auto-start without real password → minimize to tray, background refresh only
+      console.log('[Startup] Auto-launched without password - hiding to tray')
       startBackgroundRefresh()
     } else {
+      // All other cases → show foreground window
+      console.log('[Startup] Showing main window', { isAutoLaunch, hasPassword, isPasswordSkipped })
       mainWindow?.show()
+      startBackgroundRefresh()
     }
   })
 
@@ -108,8 +122,10 @@ function createWindow(): void {
       clearInterval(refreshTimer)
       refreshTimer = null
     }
-    // Trigger immediate data sync when window becomes visible
-    mainWindow?.webContents.send('app:refresh-all')
+    // Wait for an in-flight background refresh before the renderer starts one.
+    void (backgroundRefreshPromise ?? Promise.resolve()).finally(() => {
+      mainWindow?.webContents.send('app:refresh-all')
+    })
   })
 
   mainWindow.on('hide', () => {
@@ -128,8 +144,10 @@ function createWindow(): void {
       clearInterval(refreshTimer)
       refreshTimer = null
     }
-    // Trigger immediate data sync when window is restored from minimized
-    mainWindow?.webContents.send('app:refresh-all')
+    // Wait for an in-flight background refresh before the renderer starts one.
+    void (backgroundRefreshPromise ?? Promise.resolve()).finally(() => {
+      mainWindow?.webContents.send('app:refresh-all')
+    })
   })
 }
 
@@ -139,6 +157,8 @@ function registerAllIpcHandlers(): void {
   registerAntigravityHandlers()
   registerGithubCopilotHandlers()
   registerZaiCodingHandlers()
+  registerCodexHandlers()
+  registerOpencodeGoHandlers()
   registerAppHandlers()
   registerNotificationHandlers()
   registerUpdateHandlers()
@@ -148,6 +168,7 @@ const trayService = TrayService.getInstance()
 const notificationService = NotificationService.getInstance()
 
 let refreshTimer: NodeJS.Timeout | null = null
+let backgroundRefreshPromise: Promise<void> | null = null
 
 // Single instance lock to prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock()
@@ -156,10 +177,12 @@ if (!gotTheLock) {
   app.quit()
 } else {
   app.on('second-instance', () => {
-    // Someone tried to run a second instance, focus our window
+    // Someone tried to run a second instance, show and focus our window
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore()
+      mainWindow.show()
       mainWindow.focus()
+      mainWindow.webContents.send('app:navigate-to-overview')
     }
   })
 }
@@ -209,6 +232,17 @@ function cleanCorruptedCache(): void {
 }
 
 async function performBackgroundRefresh(): Promise<void> {
+  if (backgroundRefreshPromise) return backgroundRefreshPromise
+
+  let refresh!: Promise<void>
+  refresh = performBackgroundRefreshInner().finally(() => {
+    if (backgroundRefreshPromise === refresh) backgroundRefreshPromise = null
+  })
+  backgroundRefreshPromise = refresh
+  return refresh
+}
+
+async function performBackgroundRefreshInner(): Promise<void> {
   try {
     const refreshStorageService = new StorageService()
     if (!refreshStorageService.isUnlocked()) return
@@ -219,8 +253,10 @@ async function performBackgroundRefresh(): Promise<void> {
     const antigravityService = new AntigravityService()
     const githubCopilotService = new GithubCopilotService()
     const zaiCodingService = new ZaiCodingService()
+    const codexService = new CodexService()
+    const opencodeGoService = new OpencodeGoService()
 
-    const [antigravityResults, copilotResults, zaiResults] = await Promise.all([
+    const [antigravityResults, copilotResults, zaiResults, codexResults, opencodeGoResults] = await Promise.all([
       (async () => {
         try {
           const accounts = await refreshStorageService.getAccounts('antigravity')
@@ -280,29 +316,111 @@ async function performBackgroundRefresh(): Promise<void> {
           console.error('[Background Refresh] Zai Coding Plan fetch failed:', error)
           return []
         }
+      })(),
+      (async () => {
+        try {
+          const accounts = await refreshStorageService.getAccounts('codex')
+          return Promise.all(
+            accounts.map(async (account: any) => {
+              try {
+                let currentAccount = account
+                if (Date.now() > account.expiresAt - 300000) {
+                  const newTokens = await codexService.refreshToken(account.refreshToken)
+                  if (newTokens) {
+                    await refreshStorageService.updateAccount('codex', account.id, {
+                      accessToken: newTokens.accessToken,
+                      refreshToken: newTokens.refreshToken,
+                      idToken: newTokens.idToken,
+                      expiresAt: newTokens.expiresAt,
+                      accountId: newTokens.accountId,
+                      organizationId: newTokens.organizationId,
+                      planType: newTokens.planType
+                    })
+                    currentAccount = { ...account, ...newTokens }
+                  } else {
+                    return { accountId: account.id, name: account.displayName, email: account.email, usage: null, error: 'Token refresh failed' }
+                  }
+                }
+                const usage = await codexService.fetchUsage(currentAccount)
+                return { accountId: account.id, name: account.displayName, email: account.email, usage }
+              } catch (error) {
+                return { accountId: account.id, name: account.displayName, email: account.email, usage: null, error: String(error) }
+              }
+            })
+          )
+        } catch (error) {
+          console.error('[Background Refresh] Codex fetch failed:', error)
+          return []
+        }
+      })(),
+      (async () => {
+        try {
+          const accounts = await refreshStorageService.getAccounts('opencodeGo')
+          return Promise.all(
+            accounts.map(async (account: any) => {
+              try {
+                let currentAccount = account
+                if (Date.now() > account.expiresAt - 300000) {
+                  const refreshed = await opencodeGoService.refreshCookies(account)
+                  if (refreshed) {
+                    await refreshStorageService.updateAccount('opencodeGo', account.id, refreshed)
+                    currentAccount = { ...account, ...refreshed }
+                  }
+                }
+                const usage = await opencodeGoService.fetchUsage(currentAccount)
+                return { accountId: account.id, name: account.displayName, workspaceId: account.workspaceId, usage }
+              } catch (error) {
+                return { accountId: account.id, name: account.displayName, workspaceId: account.workspaceId, usage: null, error: String(error) }
+              }
+            })
+          )
+        } catch (error) {
+          console.error('[Background Refresh] Opencode Go fetch failed:', error)
+          return []
+        }
       })()
     ])
 
     const antigravityTray = antigravityResults
-      .filter((r: any) => r.usage !== null)
-      .map((r: any) => ({ name: r.email, percent: r.usage?.percent || 0 }))
+      .filter((r: any) => r.usage?.length > 0)
+      .map((r: any) => ({
+        name: r.email,
+        percent: Math.round(Math.min(...r.usage.map((quota: any) => quota.remainingFraction)) * 100)
+      }))
     const copilotTray = copilotResults
       .filter((r: any) => r.usage !== null)
       .map((r: any) => ({ name: r.name, percent: r.usage?.percent || 0 }))
     const zaiTray = zaiResults
       .filter((r: any) => r.usage !== null)
       .map((r: any) => ({ name: r.name, percent: r.usage?.percent || 0 }))
+    const codexTray = codexResults
+      .filter((r: any) => r.usage !== null)
+      .map((r: any) => ({ name: r.name, percent: 0 }))
+    const opencodeGoTray = opencodeGoResults
+      .filter((r: any) => r.usage !== null)
+      .map((r: any) => ({
+        name: r.name,
+        percent: Math.round(
+          (r.usage?.limits?.length ?? 0) > 0
+            ? Math.min(...r.usage.limits.map((limit: any) => limit.remaining))
+            : 0
+        )
+      }))
 
     trayService.triggerUpdate({
       antigravity: antigravityTray,
       githubCopilot: copilotTray,
-      zaiCoding: zaiTray
+      zaiCoding: zaiTray,
+      codex: codexTray,
+      opencodeGo: opencodeGoTray
     })
 
     notificationService.checkAndNotify(
       antigravityResults,
       copilotResults,
       zaiResults,
+      codexResults,
+      opencodeGoResults,
       refreshSettings,
       {
         hideUnlimitedQuota: customization?.global?.hideUnlimitedQuota ?? false,

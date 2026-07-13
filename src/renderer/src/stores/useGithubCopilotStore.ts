@@ -11,6 +11,7 @@ export const useGithubCopilotStore = createOAuthProviderStore<GithubCopilotAccou
   providerName: 'GitHub Copilot',
   fetchUsageApi: () => window.api.githubCopilot.fetchAllUsage(),
   loginApi: () => window.api.githubCopilot.login(),
+  cancelLoginApi: () => window.api.githubCopilot.cancelLogin(),
   handleUsageError: (errorMessage) => {
     // Only show toast for non-auth errors (auth errors are handled separately)
     if (errorMessage.includes('401') || errorMessage.includes('unauthorized')) {

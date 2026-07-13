@@ -54,7 +54,10 @@ export enum ErrorCode {
   PROVIDER_COPILOT_NO_SUBSCRIPTION = 'ERR_COPILOT_NO_SUBSCRIPTION',
   PROVIDER_COPILOT_QUOTA_EXCEEDED = 'ERR_COPILOT_QUOTA_EXCEEDED',
   PROVIDER_ANTIGRAVITY_PROJECT_ERROR = 'ERR_ANTIGRAVITY_PROJECT',
-  PROVIDER_ZAI_INVALID_KEY = 'ERR_ZAI_INVALID_KEY'
+  PROVIDER_ZAI_INVALID_KEY = 'ERR_ZAI_INVALID_KEY',
+  PROVIDER_CODEX_TOKEN_EXPIRED = 'ERR_CODEX_TOKEN_EXPIRED',
+  PROVIDER_CODEX_ACCOUNT_BANNED = 'ERR_CODEX_ACCOUNT_BANNED',
+  PROVIDER_CODEX_RATE_LIMITED = 'ERR_CODEX_RATE_LIMITED'
 }
 
 /**
@@ -149,7 +152,10 @@ export const ERROR_I18N_KEYS: Record<ErrorCode, string> = {
   [ErrorCode.PROVIDER_COPILOT_NO_SUBSCRIPTION]: 'errors.provider.copilotNoSubscription',
   [ErrorCode.PROVIDER_COPILOT_QUOTA_EXCEEDED]: 'errors.provider.copilotQuotaExceeded',
   [ErrorCode.PROVIDER_ANTIGRAVITY_PROJECT_ERROR]: 'errors.provider.antigravityProjectError',
-  [ErrorCode.PROVIDER_ZAI_INVALID_KEY]: 'errors.provider.zaiInvalidKey'
+  [ErrorCode.PROVIDER_ZAI_INVALID_KEY]: 'errors.provider.zaiInvalidKey',
+  [ErrorCode.PROVIDER_CODEX_TOKEN_EXPIRED]: 'errors.provider.codexTokenExpired',
+  [ErrorCode.PROVIDER_CODEX_ACCOUNT_BANNED]: 'errors.provider.codexAccountBanned',
+  [ErrorCode.PROVIDER_CODEX_RATE_LIMITED]: 'errors.provider.codexRateLimited'
 }
 
 /**

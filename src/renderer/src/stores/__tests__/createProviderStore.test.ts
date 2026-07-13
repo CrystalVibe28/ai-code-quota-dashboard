@@ -8,14 +8,10 @@ import {
   type ProviderStoreConfig,
   type OAuthProviderStoreConfig
 } from '../createProviderStore'
-import type { Account, LoginResult } from '@shared/types'
+import type { AntigravityAccount, LoginResult } from '@shared/types'
 import { mockWindowApi } from '../../../../test/mocks/window-api'
 
-interface TestAccount extends Account {
-  id: string
-  name: string
-  displayName: string
-}
+type TestAccount = AntigravityAccount
 
 interface TestUsage {
   used: number
@@ -33,7 +29,7 @@ describe('createProviderStore with extensions', () => {
     const fetchUsageApi = vi.fn().mockResolvedValue(mockUsageData)
 
     const config: ProviderStoreConfig<TestAccount, TestUsage> = {
-      providerId: 'test-provider',
+      providerId: 'antigravity',
       providerName: 'Test Provider',
       fetchUsageApi
     }
@@ -62,7 +58,7 @@ describe('createProviderStore with extensions', () => {
     const fetchUsageApi = vi.fn().mockResolvedValue(mockUsageData)
 
     const config: ProviderStoreConfig<TestAccount, TestUsage> = {
-      providerId: 'test-provider',
+      providerId: 'antigravity',
       providerName: 'Test Provider',
       fetchUsageApi
     }
@@ -87,7 +83,7 @@ describe('createProviderStore with extensions', () => {
     expect(capturedBaseActions.fetchUsage).toBeDefined()
 
     await useStore.getState().refreshData()
-    expect(mockWindowApi.storage.getAccounts).toHaveBeenCalledWith('test-provider')
+    expect(mockWindowApi.storage.getAccounts).toHaveBeenCalledWith('antigravity')
     expect(fetchUsageApi).toHaveBeenCalled()
   })
 
@@ -96,7 +92,7 @@ describe('createProviderStore with extensions', () => {
     const fetchUsageApi = vi.fn().mockResolvedValue(mockUsageData)
 
     const config: ProviderStoreConfig<TestAccount, TestUsage> = {
-      providerId: 'test-provider',
+      providerId: 'antigravity',
       providerName: 'Test Provider',
       fetchUsageApi
     }
@@ -119,12 +115,34 @@ describe('createProviderStore with extensions', () => {
     expect(useStore.getState().getLoadingState()).toBe(false)
   })
 
+  it('should coalesce concurrent usage refreshes', async () => {
+    let resolveUsage: (usage: TestUsage[]) => void = () => {}
+    const fetchUsageApi = vi.fn(() => new Promise<TestUsage[]>((resolve) => {
+      resolveUsage = resolve
+    }))
+    const useStore = createProviderStore<TestAccount, TestUsage>({
+      providerId: 'antigravity',
+      providerName: 'Test Provider',
+      fetchUsageApi
+    })
+
+    const firstRequest = useStore.getState().fetchUsage()
+    const secondRequest = useStore.getState().fetchUsage()
+
+    expect(fetchUsageApi).toHaveBeenCalledTimes(1)
+    resolveUsage([{ used: 50, total: 100 }])
+    await expect(Promise.all([firstRequest, secondRequest])).resolves.toEqual([
+      [{ used: 50, total: 100 }],
+      [{ used: 50, total: 100 }]
+    ])
+  })
+
   it('should work without extensions (backwards compatibility)', async () => {
     const mockUsageData: TestUsage[] = [{ used: 50, total: 100 }]
     const fetchUsageApi = vi.fn().mockResolvedValue(mockUsageData)
 
     const config: ProviderStoreConfig<TestAccount, TestUsage> = {
-      providerId: 'test-provider',
+      providerId: 'antigravity',
       providerName: 'Test Provider',
       fetchUsageApi
     }
@@ -149,7 +167,7 @@ describe('createProviderStore with extensions', () => {
     const loginApi = vi.fn().mockResolvedValue({ success: true } as LoginResult<TestAccount>)
 
     const config: OAuthProviderStoreConfig<TestAccount, TestUsage> = {
-      providerId: 'test-oauth-provider',
+      providerId: 'antigravity',
       providerName: 'Test OAuth Provider',
       fetchUsageApi,
       loginApi
@@ -172,12 +190,45 @@ describe('createProviderStore with extensions', () => {
     expect(state.customOAuthAction()).toBe('oauth custom value')
   })
 
+  it('should not block successful OAuth login on usage refresh', async () => {
+    const mockUsageData: TestUsage[] = [{ used: 50, total: 100 }]
+    const loginApi = vi.fn().mockResolvedValue({ success: true } as LoginResult<TestAccount>)
+    let resolveUsage: (usage: TestUsage[]) => void = () => {}
+    const fetchUsageApi = vi.fn(() => new Promise<TestUsage[]>((resolve) => {
+      resolveUsage = resolve
+    }))
+
+    const config: OAuthProviderStoreConfig<TestAccount, TestUsage> = {
+      providerId: 'antigravity',
+      providerName: 'Test OAuth Provider',
+      fetchUsageApi,
+      loginApi
+    }
+
+    const useStore = createOAuthProviderStore<TestAccount, TestUsage>(config)
+    let settled = false
+    const loginPromise = useStore.getState().login().then((result) => {
+      settled = true
+      return result
+    })
+
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    try {
+      expect(settled).toBe(true)
+      await expect(loginPromise).resolves.toEqual({ success: true })
+      expect(fetchUsageApi).toHaveBeenCalled()
+    } finally {
+      resolveUsage(mockUsageData)
+    }
+  })
+
   it('should correctly infer extended store type', () => {
     const mockUsageData: TestUsage[] = [{ used: 50, total: 100 }]
     const fetchUsageApi = vi.fn().mockResolvedValue(mockUsageData)
 
     const config: ProviderStoreConfig<TestAccount, TestUsage> = {
-      providerId: 'test-provider',
+      providerId: 'antigravity',
       providerName: 'Test Provider',
       fetchUsageApi
     }
@@ -203,7 +254,7 @@ describe('createProviderStore with extensions', () => {
     const error: string | null = state.error
 
     const fetchAccounts: () => Promise<void> = state.fetchAccounts
-    const fetchUsage: () => Promise<void> = state.fetchUsage
+    const fetchUsage: () => Promise<TestUsage[]> = state.fetchUsage
     const deleteAccount: (accountId: string) => Promise<boolean> = state.deleteAccount
     const updateAccount: (accountId: string, data: Partial<TestAccount>) => Promise<boolean> = state.updateAccount
     const clearError: () => void = state.clearError

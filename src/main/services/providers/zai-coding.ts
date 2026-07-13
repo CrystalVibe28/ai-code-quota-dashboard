@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from './fetchWithTimeout'
+
 const API_URL = 'https://api.z.ai/api/monitor/usage/quota/limit'
 
 interface UsageDetail {
@@ -22,7 +24,7 @@ interface ZaiUsage {
 export class ZaiCodingService {
   async validateApiKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetchWithTimeout(API_URL, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -63,7 +65,7 @@ export class ZaiCodingService {
 
   async fetchUsage(apiKey: string): Promise<ZaiUsage | null> {
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetchWithTimeout(API_URL, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${apiKey}`,

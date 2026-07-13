@@ -1,5 +1,6 @@
-import { ipcMain } from 'electron'
+import { ipcMain, session } from 'electron'
 import { StorageService } from '../services/storage'
+import { OPENCODE_GO_AUTH_PARTITION } from '../services/providers/opencode-go'
 import type {
   AntigravityAccount,
   GithubCopilotAccount,
@@ -24,6 +25,14 @@ export function registerStorageHandlers(): void {
   })
 
   ipcMain.handle('storage:delete-account', async (_, provider: string, accountId: string) => {
+    if (provider === 'opencodeGo') {
+      const authSession = session.fromPartition(OPENCODE_GO_AUTH_PARTITION)
+      await Promise.all([
+        authSession.clearStorageData(),
+        authSession.clearCache()
+      ])
+    }
+
     return storageService.deleteAccount(provider, accountId)
   })
 

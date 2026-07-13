@@ -1,11 +1,11 @@
-import type { GlobalConfig, ProviderId } from '@/types/customization'
+import type { CardSize, GlobalConfig, GridColumns, ProviderId } from '@/types/customization'
 
 export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   hideUnlimitedQuota: true,
   
   gridColumns: 'auto',
   cardSize: 'default',
-  providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding'],
+  providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo'],
   
   theme: 'system',
   accentColor: 'blue',
@@ -27,16 +27,18 @@ export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
 export const PROVIDER_LABELS: Record<ProviderId, string> = {
   antigravity: 'nav.antigravity',
   githubCopilot: 'nav.githubCopilot',
-  zaiCoding: 'nav.zaiCoding'
+  zaiCoding: 'nav.zaiCoding',
+  codex: 'nav.codex',
+  opencodeGo: 'nav.opencodeGo'
 }
 
 export const ACCENT_COLORS = [
-  { id: 'blue', label: 'customization.visual.colors.blue', value: '221.2 83.2% 53.3%' },
-  { id: 'green', label: 'customization.visual.colors.green', value: '142.1 76.2% 36.3%' },
-  { id: 'purple', label: 'customization.visual.colors.purple', value: '262.1 83.3% 57.8%' },
-  { id: 'orange', label: 'customization.visual.colors.orange', value: '24.6 95% 53.1%' },
-  { id: 'pink', label: 'customization.visual.colors.pink', value: '346.8 77.2% 49.8%' },
-  { id: 'cyan', label: 'customization.visual.colors.cyan', value: '189.5 94.5% 42.7%' }
+  { id: 'blue', label: 'customization.visual.colors.blue', value: '207.9 85.3% 40%', darkValue: '210 89.7% 62%' },
+  { id: 'green', label: 'customization.visual.colors.green', value: '120 77.1% 27.5%', darkValue: '120 36.8% 51%' },
+  { id: 'purple', label: 'customization.visual.colors.purple', value: '237.8 49.1% 56.9%', darkValue: '236.9 85.5% 72.9%' },
+  { id: 'orange', label: 'customization.visual.colors.orange', value: '20.6 85.3% 42.7%', darkValue: '22.3 93.7% 62.4%' },
+  { id: 'pink', label: 'customization.visual.colors.pink', value: '306.6 54.6% 49.2%', darkValue: '322 75.8% 56.3%' },
+  { id: 'cyan', label: 'customization.visual.colors.cyan', value: '181.8 95.7% 27.1%', darkValue: '187.3 73% 46.5%' }
 ] as const
 
 export const GRID_COLUMN_OPTIONS = [
@@ -52,6 +54,23 @@ export const CARD_SIZE_OPTIONS = [
   { value: 'default', label: 'customization.layout.sizeOptions.default' },
   { value: 'large', label: 'customization.layout.sizeOptions.large' }
 ] as const
+
+const GRID_CLASS_NAMES: Record<Exclude<GridColumns, 'auto'>, string> = {
+  1: 'grid grid-cols-1 gap-4',
+  2: 'grid grid-cols-1 gap-4 md:grid-cols-2',
+  3: 'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3',
+  4: 'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4'
+}
+
+const AUTO_GRID_CLASS_NAMES: Record<CardSize, string> = {
+  compact: 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4',
+  default: 'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3',
+  large: 'grid grid-cols-1 gap-4 lg:grid-cols-2'
+}
+
+export function getQuotaGridClassName(columns: GridColumns, cardSize: CardSize): string {
+  return columns === 'auto' ? AUTO_GRID_CLASS_NAMES[cardSize] : GRID_CLASS_NAMES[columns]
+}
 
 export const AUTO_REFRESH_OPTIONS = [
   { value: 0, label: 'customization.interaction.refreshOptions.off' },

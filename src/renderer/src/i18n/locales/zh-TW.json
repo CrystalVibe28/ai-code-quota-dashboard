@@ -14,7 +14,10 @@
     "backToOverview": "返回總覽",
     "tryAgain": "重試",
     "retry": "重試",
-    "dismiss": "關閉"
+    "dismiss": "關閉",
+    "skipToContent": "跳至主要內容",
+    "showPassword": "顯示密碼",
+    "hidePassword": "隱藏密碼"
   },
   "nav": {
     "overview": "總覽",
@@ -23,6 +26,8 @@
     "antigravity": "Antigravity",
     "githubCopilot": "GitHub Copilot",
     "zaiCoding": "Zai Coding Plan",
+    "codex": "Codex",
+    "opencodeGo": "Opencode Go",
     "settings": "設定"
   },
   "branding": {
@@ -91,6 +96,7 @@
     "removeThreshold": "移除",
     "resetThresholds": "重置",
     "thresholdNamePlaceholder": "名稱",
+    "thresholdValue": "配額閾值百分比",
     "customThreshold": "自定義",
     "dangerZone": "危險區域",
     "dangerZoneDesc": "不可逆的操作",
@@ -105,7 +111,16 @@
     "closeToTrayDesc": "關閉視窗時最小化到系統工具列而非完全關閉應用程式",
     "autoLaunch": "開機自動啟動",
     "autoLaunchDesc": "系統啟動時自動執行此應用程式",
-"autoLaunchUnsupported": "此功能僅支援 Windows 作業系統",
+    "sections": {
+      "system": "系統與語言",
+      "systemDesc": "管理資料更新、語言與背景執行方式",
+      "alerts": "配額警示",
+      "alertsDesc": "決定何時以及如何提醒配額不足",
+      "appearance": "外觀與資料呈現",
+      "appearanceDesc": "調整 Fluent 2 主題、版面與配額顯示方式",
+      "privacy": "安全性與維護",
+      "privacyDesc": "管理存取保護、版本資訊與應用程式更新"
+    },
     "update": {
       "title": "關於與更新",
       "description": "檢查應用程式更新",
@@ -132,6 +147,10 @@
   },
   "overview": {
     "title": "總覽",
+    "subtitle": "集中查看所有 AI 程式設計服務的剩餘配額",
+    "providerSummary": "{{count}} 個供應商",
+    "accountSummary": "{{count}} 個可見帳戶",
+    "quotaSummary": "{{count}} 項配額",
     "lastUpdated": "最後更新：{{time}}",
     "noAccountsConfigured": "尚未設定帳戶",
     "addAccountsHint": "在提供者頁面新增帳戶以在此處查看使用情況"
@@ -148,10 +167,19 @@
     "loginFailed": "登入失敗",
     "accountNotFound": "找不到帳戶",
     "accountSettings": "帳戶設定",
+    "accountSettingsDesc": "管理名稱、總覽顯示與帳戶存取",
+    "visibleInOverview": "顯示於總覽",
+    "hiddenFromOverview": "未顯示於總覽",
     "editName": "編輯名稱"
   },
   "antigravity": {
-    "title": "Antigravity"
+    "title": "Antigravity",
+    "quotaTypes": {
+      "geminiFiveHour": "Gemini 5 小時配額",
+      "geminiWeekly": "Gemini 每週配額",
+      "claudeGptFiveHour": "Claude/GPT 5 小時配額",
+      "claudeGptWeekly": "Claude/GPT 每週配額"
+    }
   },
   "githubCopilot": {
     "title": "GitHub Copilot",
@@ -167,8 +195,35 @@
       "timeLimit": "工具使用"
     }
   },
+  "codex": {
+    "title": "Codex",
+    "noQuotaData": "此方案沒有可用的配額資料",
+    "quotaTypes": {
+      "rateLimitPrimary": "主要配額",
+      "rateLimitSecondary": "次要配額",
+      "codeReviewPrimary": "程式碼審查主要配額",
+      "codeReviewSecondary": "程式碼審查次要配額",
+      "fiveHour": "5 小時配額",
+      "hourly": "{{count}} 小時配額",
+      "daily": "{{count}} 天配額",
+      "weekly": "每週配額",
+      "monthly": "每月配額",
+      "quota": "配額",
+      "codeReviewWithQuota": "程式碼審查：{{quota}}"
+    }
+  },
+  "opencodeGo": {
+    "title": "Opencode Go",
+    "noQuotaData": "沒有可用的 Opencode Go 使用量資料",
+    "quotaTypes": {
+      "rolling": "5 小時配額",
+      "weekly": "每週配額",
+      "monthly": "每月配額"
+    }
+  },
   "addAccount": {
     "addProvider": "新增供應商",
+    "description": "選擇服務並連結帳戶，配額會自動加入總覽。",
     "displayName": "顯示名稱",
     "displayNamePlaceholder": "自訂名稱（選填，預設為 {{provider}}）",
     "selectProvider": "供應商",
@@ -211,15 +266,6 @@
       "description": "控制顯示哪些資訊",
       "hideUnlimited": "隱藏無限配額",
       "hideUnlimitedDesc": "隱藏無限制配額的卡片"
-    },
-    
-    "layout": {
-      "title": "佈局設定",
-      "description": "調整網格與卡片排列",
-      "gridColumns": "網格欄數",
-      "gridColumnsDesc": "卡片網格的欄數",
-      "cardSize": "卡片尺寸",
-      "cardSizeDesc": "使用量卡片的大小"
     },
     
       "visual": {
@@ -269,6 +315,10 @@
         },
         "cardSize": "卡片尺寸",
         "cardSizeDesc": "使用量卡片的大小",
+        "providerOrder": "供應商順序",
+        "providerOrderDesc": "設定總覽中供應商區段的顯示順序",
+        "moveUp": "向上移動 {{provider}}",
+        "moveDown": "向下移動 {{provider}}",
         "sizeOptions": {
           "compact": "緊湊",
           "default": "預設",
@@ -377,7 +427,10 @@
       "copilotNoSubscription": "找不到有效的 Copilot 訂閱",
       "copilotQuotaExceeded": "Copilot 配額已超出",
       "antigravityProjectError": "專案設定錯誤",
-      "zaiInvalidKey": "無效的 API 金鑰"
+      "zaiInvalidKey": "無效的 API 金鑰",
+      "codexTokenExpired": "Codex 存取權杖已過期",
+      "codexAccountBanned": "Codex 帳戶已被停權",
+      "codexRateLimited": "Codex 速率限制已超出"
     }
   }
 }

@@ -1,6 +1,14 @@
 import { create } from 'zustand'
 import { ErrorCode } from '@shared/types'
+import { useAntigravityStore } from './useAntigravityStore'
+import { useCodexStore } from './useCodexStore'
+import { useCustomizationStore } from './useCustomizationStore'
 import { useErrorStore } from './useErrorStore'
+import { useGithubCopilotStore } from './useGithubCopilotStore'
+import { useOpencodeGoStore } from './useOpencodeGoStore'
+import { useSettingsStore } from './useSettingsStore'
+import { useUpdateStore } from './useUpdateStore'
+import { useZaiCodingStore } from './useZaiCodingStore'
 import i18n from '@/i18n'
 import { toast } from '@/hooks/useToast'
 
@@ -18,7 +26,21 @@ interface AuthState {
   removePassword: (currentPassword: string) => Promise<boolean>
   setPasswordFromSettings: (newPassword: string) => Promise<boolean>
   lock: () => Promise<void>
+  clearAllData: () => Promise<boolean>
   clearError: () => void
+}
+
+function clearRendererData(): void {
+  useAntigravityStore.getState().reset()
+  useGithubCopilotStore.getState().reset()
+  useZaiCodingStore.getState().reset()
+  useCodexStore.getState().reset()
+  useOpencodeGoStore.getState().reset()
+  useSettingsStore.setState(useSettingsStore.getInitialState(), true)
+  useCustomizationStore.setState(useCustomizationStore.getInitialState(), true)
+  useUpdateStore.setState(useUpdateStore.getInitialState(), true)
+  useErrorStore.setState(useErrorStore.getInitialState(), true)
+  localStorage.clear()
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -172,6 +194,38 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error) {
       useErrorStore.getState().showErrorFromException(error)
     }
+  },
+
+  clearAllData: async () => {
+    set({ isUnlocked: false, isLoading: true, error: null })
+    let clearError: unknown
+
+    try {
+      await window.api.auth.clearAllData()
+    } catch (error) {
+      clearError = error
+    }
+
+    try {
+      clearRendererData()
+    } catch (error) {
+      clearError ??= error
+    }
+
+    set((state) => ({
+      isUnlocked: false,
+      isLoading: false,
+      hasPassword: clearError ? state.hasPassword : false,
+      isPasswordSkipped: clearError ? state.isPasswordSkipped : false,
+      error: clearError ? 'Failed to clear all data' : null
+    }))
+
+    if (clearError) {
+      useErrorStore.getState().showError(ErrorCode.STORAGE_WRITE_FAILED, 'Failed to clear all data')
+      return false
+    }
+
+    return true
   },
 
   clearError: () => {

@@ -17,6 +17,14 @@ module.exports = {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))'
         },
+        brand: {
+          DEFAULT: 'hsl(var(--brand-background))',
+          foreground: 'hsl(var(--brand-background-foreground))'
+        },
+        surface: {
+          sunken: 'hsl(var(--surface-sunken))',
+          raised: 'hsl(var(--surface-raised))'
+        },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))'
@@ -42,18 +50,28 @@ module.exports = {
           foreground: 'hsl(var(--card-foreground))'
         },
         success: {
-          DEFAULT: 'hsl(142, 76%, 36%)',
-          foreground: 'hsl(0, 0%, 100%)'
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))'
         },
         warning: {
-          DEFAULT: 'hsl(48, 96%, 53%)',
-          foreground: 'hsl(0, 0%, 0%)'
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))'
         }
+      },
+      fontFamily: {
+        sans: ['Segoe UI Variable', 'Segoe UI', 'system-ui', 'sans-serif'],
+        data: ['Cascadia Code', 'Cascadia Mono', 'Consolas', 'monospace']
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)'
+      },
+      boxShadow: {
+        'fluent-2': '0 1px 2px rgba(0, 0, 0, 0.14), 0 0 2px rgba(0, 0, 0, 0.12)',
+        'fluent-4': '0 2px 4px rgba(0, 0, 0, 0.14), 0 0 2px rgba(0, 0, 0, 0.12)',
+        'fluent-16': '0 8px 16px rgba(0, 0, 0, 0.14), 0 0 4px rgba(0, 0, 0, 0.12)',
+        'fluent-64': '0 32px 64px rgba(0, 0, 0, 0.20), 0 0 8px rgba(0, 0, 0, 0.12)'
       }
     }
   },

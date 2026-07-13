@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Set version from tag
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          npm version $version --no-git-tag-version --allow-same-version
+
+      - run: npm ci
+      - run: npm run build:win
+
+      - name: Create release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          $date = [TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date), 'Taipei Standard Time').ToString('yyyy-MM-dd')
+          gh release create $env:GITHUB_REF_NAME 'release/*.exe' --verify-tag --title $env:GITHUB_REF_NAME --notes "## [$version] - $date"

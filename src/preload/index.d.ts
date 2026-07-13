@@ -1,11 +1,15 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import type {
   AntigravityAccount,
+  CodexAccount,
   GithubCopilotAccount,
+  OpencodeGoAccount,
   ZaiCodingAccount,
   LoginResult,
   AntigravityUsage,
+  CodexAccountUsage,
   GithubCopilotAccountUsage,
+  OpencodeGoAccountUsage,
   ZaiAccountUsage,
   Settings,
   CustomizationState
@@ -18,6 +22,7 @@ interface AuthAPI {
   setPassword: (password: string) => Promise<boolean>
   changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   lock: () => Promise<void>
+  clearAllData: () => Promise<void>
   skipPassword: () => Promise<boolean>
   isPasswordSkipped: () => Promise<boolean>
   unlockWithSkippedPassword: () => Promise<boolean>
@@ -26,10 +31,10 @@ interface AuthAPI {
 }
 
 interface StorageAPI {
-  getAccounts: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount>(
+  getAccounts: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount>(
     provider: string
   ) => Promise<T[]>
-  saveAccount: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount>(
+  saveAccount: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount>(
     provider: string,
     account: T
   ) => Promise<boolean>
@@ -37,7 +42,7 @@ interface StorageAPI {
   updateAccount: (
     provider: string,
     accountId: string,
-    data: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount>
+    data: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount> | Partial<CodexAccount> | Partial<OpencodeGoAccount>
   ) => Promise<boolean>
   getSettings: () => Promise<Settings>
   saveSettings: (settings: Partial<Settings>) => Promise<boolean>
@@ -47,6 +52,7 @@ interface StorageAPI {
 
 interface AntigravityAPI {
   login: () => Promise<LoginResult<AntigravityAccount>>
+  cancelLogin: () => Promise<boolean>
   refreshToken: (accountId: string) => Promise<boolean>
   fetchUsage: (accountId: string) => Promise<AntigravityUsage | null>
   fetchAllUsage: () => Promise<AntigravityUsage[]>
@@ -54,9 +60,26 @@ interface AntigravityAPI {
 
 interface GithubCopilotAPI {
   login: () => Promise<LoginResult<GithubCopilotAccount>>
+  cancelLogin: () => Promise<boolean>
   refreshToken: (accountId: string) => Promise<boolean>
   fetchUsage: (accountId: string) => Promise<GithubCopilotAccountUsage | null>
   fetchAllUsage: () => Promise<GithubCopilotAccountUsage[]>
+}
+
+interface CodexAPI {
+  login: () => Promise<LoginResult<CodexAccount>>
+  cancelLogin: () => Promise<boolean>
+  refreshToken: (accountId: string) => Promise<boolean>
+  fetchUsage: (accountId: string) => Promise<CodexAccountUsage | null>
+  fetchAllUsage: () => Promise<CodexAccountUsage[]>
+}
+
+interface OpencodeGoAPI {
+  login: () => Promise<LoginResult<OpencodeGoAccount>>
+  cancelLogin: () => Promise<boolean>
+  refreshToken: (accountId: string) => Promise<boolean>
+  fetchUsage: (accountId: string) => Promise<OpencodeGoAccountUsage | null>
+  fetchAllUsage: () => Promise<OpencodeGoAccountUsage[]>
 }
 
 interface ZaiCodingAPI {
@@ -85,8 +108,9 @@ interface NotificationAPI {
     antigravity: unknown[]
     copilot: unknown[]
     zai: unknown[]
+    codex: unknown[]
+    opencodeGo?: unknown[]
   }) => Promise<boolean>
-  triggerCheck: () => Promise<boolean>
 }
 
 interface UpdateAPI {
@@ -107,6 +131,8 @@ interface CustomAPI {
   antigravity: AntigravityAPI
   githubCopilot: GithubCopilotAPI
   zaiCoding: ZaiCodingAPI
+  codex: CodexAPI
+  opencodeGo: OpencodeGoAPI
   app: AppAPI
   notification: NotificationAPI
   update: UpdateAPI

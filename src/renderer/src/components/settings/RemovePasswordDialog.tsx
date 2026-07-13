@@ -61,17 +61,17 @@ export function RemovePasswordDialog({ isOpen, onClose }: RemovePasswordDialogPr
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <Card className="w-[450px] animate-in fade-in zoom-in-95 duration-200">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{t('security.removePassword')}</CardTitle>
-          <Button variant="ghost" size="icon" onClick={onClose} disabled={isLoading}>
-            <X className="h-4 w-4" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-[2px]">
+      <Card className="w-full max-w-[450px] animate-in fade-in zoom-in-95 shadow-fluent-64 duration-200" role="dialog" aria-modal="true" aria-labelledby="remove-password-title">
+        <CardHeader className="flex flex-row items-center justify-between border-b">
+          <CardTitle id="remove-password-title">{t('security.removePassword')}</CardTitle>
+          <Button variant="ghost" size="icon" className="shadow-none" onClick={onClose} disabled={isLoading} aria-label={t('common.dismiss')}>
+            <X aria-hidden="true" />
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive">
-            <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+            <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" aria-hidden="true" />
             <p className="text-sm font-medium">
               {t('security.removePasswordWarning')}
             </p>
@@ -89,18 +89,21 @@ export function RemovePasswordDialog({ isOpen, onClose }: RemovePasswordDialogPr
                 disabled={isLoading}
                 className="pr-10"
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-0 top-0 text-muted-foreground shadow-none hover:text-foreground"
+                aria-label={showPassword ? t('common.hidePassword') : t('common.showPassword')}
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
+                {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+              </Button>
             </div>
           </div>
 
           {error && (
-            <p className="text-sm text-destructive">{error}</p>
+            <p className="text-sm text-destructive" role="alert">{error}</p>
           )}
 
           <div className="flex gap-2 justify-end pt-2">
@@ -110,7 +113,7 @@ export function RemovePasswordDialog({ isOpen, onClose }: RemovePasswordDialogPr
             <Button variant="destructive" onClick={handleSubmit} disabled={isLoading}>
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="animate-spin" aria-hidden="true" />
                   {t('common.loading')}
                 </>
               ) : (

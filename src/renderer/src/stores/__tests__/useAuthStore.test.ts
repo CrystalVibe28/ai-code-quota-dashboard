@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useAuthStore } from '../useAuthStore'
+import { useAntigravityStore } from '../useAntigravityStore'
+import { useCodexStore } from '../useCodexStore'
+import { useCustomizationStore } from '../useCustomizationStore'
+import { useGithubCopilotStore } from '../useGithubCopilotStore'
+import { useOpencodeGoStore } from '../useOpencodeGoStore'
+import { useSettingsStore } from '../useSettingsStore'
+import { useZaiCodingStore } from '../useZaiCodingStore'
+import { DEFAULT_SETTINGS } from '@shared/types'
 import { mockWindowApi } from '../../../../test/mocks/window-api'
 
 describe('useAuthStore', () => {
@@ -9,8 +17,10 @@ describe('useAuthStore', () => {
       isUnlocked: false,
       isLoading: true,
       hasPassword: false,
-      isPasswordSkipped: false
+      isPasswordSkipped: false,
+      error: null
     })
+    localStorage.clear()
     vi.clearAllMocks()
   })
 
@@ -224,6 +234,78 @@ describe('useAuthStore', () => {
       expect(result).toBe(false)
       const state = useAuthStore.getState()
       expect(state.error).toBeTruthy()
+    })
+  })
+
+  describe('clearAllData', () => {
+    it('should clear persisted browser data and every provider store', async () => {
+      const sensitiveAccount = { id: 'account', accessToken: 'token', apiKey: 'key', cookieHeader: 'cookie' } as never
+      useAntigravityStore.setState({ accounts: [sensitiveAccount] })
+      useGithubCopilotStore.setState({ accounts: [sensitiveAccount] })
+      useZaiCodingStore.setState({ accounts: [sensitiveAccount] })
+      useCodexStore.setState({ accounts: [sensitiveAccount] })
+      useOpencodeGoStore.setState({ accounts: [sensitiveAccount] })
+      useSettingsStore.setState({ settings: { ...DEFAULT_SETTINGS, language: 'zh-TW' } })
+      useCustomizationStore.setState({ cards: { secret: { visible: false } } })
+      useAuthStore.setState({
+        isUnlocked: true,
+        isLoading: false,
+        hasPassword: true,
+        isPasswordSkipped: true
+      })
+      localStorage.setItem('language', 'zh-TW')
+
+      const result = await useAuthStore.getState().clearAllData()
+
+      expect(result).toBe(true)
+      expect(mockWindowApi.auth.clearAllData).toHaveBeenCalledTimes(1)
+      expect(localStorage.length).toBe(0)
+      expect(useAntigravityStore.getState().accounts).toEqual([])
+      expect(useGithubCopilotStore.getState().accounts).toEqual([])
+      expect(useZaiCodingStore.getState().accounts).toEqual([])
+      expect(useCodexStore.getState().accounts).toEqual([])
+      expect(useOpencodeGoStore.getState().accounts).toEqual([])
+      expect(useSettingsStore.getState().settings).toEqual(DEFAULT_SETTINGS)
+      expect(useCustomizationStore.getState().cards).toEqual({})
+      expect(useAuthStore.getState()).toMatchObject({
+        isUnlocked: false,
+        isLoading: false,
+        hasPassword: false,
+        isPasswordSkipped: false,
+        error: null
+      })
+    })
+
+    it('should still purge renderer secrets when main-process cleanup fails', async () => {
+      const sensitiveAccount = { id: 'account', accessToken: 'token' } as never
+      useAntigravityStore.setState({ accounts: [sensitiveAccount] })
+      useAuthStore.setState({ isUnlocked: true, isLoading: false, hasPassword: true })
+      localStorage.setItem('secret', 'value')
+      mockWindowApi.auth.clearAllData.mockRejectedValueOnce(new Error('cleanup failed'))
+
+      const result = await useAuthStore.getState().clearAllData()
+
+      expect(result).toBe(false)
+      expect(localStorage.length).toBe(0)
+      expect(useAntigravityStore.getState().accounts).toEqual([])
+      expect(useAuthStore.getState()).toMatchObject({ isUnlocked: false, isLoading: false })
+    })
+
+    it('should ignore provider account responses that finish after cleanup', async () => {
+      const sensitiveAccount = { id: 'account', accessToken: 'token' } as never
+      let resolveAccounts: (accounts: never[]) => void = () => {}
+      mockWindowApi.storage.getAccounts.mockImplementationOnce(
+        () => new Promise((resolve) => {
+          resolveAccounts = resolve
+        })
+      )
+
+      const fetchPromise = useAntigravityStore.getState().fetchAccounts()
+      await useAuthStore.getState().clearAllData()
+      resolveAccounts([sensitiveAccount])
+      await fetchPromise
+
+      expect(useAntigravityStore.getState().accounts).toEqual([])
     })
   })
 })

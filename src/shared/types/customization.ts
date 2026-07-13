@@ -91,6 +91,8 @@ export interface EffectiveCardConfig {
   cardSize: CardSize
   progressStyle: ProgressStyle
   valueFormat: ValueFormat
+  decimalPlaces: 0 | 1 | 2
+  timeFormat: TimeFormat
   showResetTime: boolean
   cardRadius: CardRadius
   lowQuotaThreshold: number
@@ -106,7 +108,7 @@ export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   // Layout
   gridColumns: 'auto',
   cardSize: 'default',
-  providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding'],
+  providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo'],
   
   // Visual
   theme: 'system',

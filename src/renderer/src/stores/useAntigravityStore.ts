@@ -15,6 +15,7 @@ export const useAntigravityStore = createOAuthProviderStore<AntigravityAccount, 
   providerName: 'Antigravity',
   fetchUsageApi: () => window.api.antigravity.fetchAllUsage(),
   loginApi: () => window.api.antigravity.login(),
+  cancelLoginApi: () => window.api.antigravity.cancelLogin(),
   handleUsageError: (errorMessage) => {
     // Only show toast for non-auth errors
     if (errorMessage.includes('401') || errorMessage.includes('unauthorized')) {

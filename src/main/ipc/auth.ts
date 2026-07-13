@@ -1,9 +1,43 @@
-import { ipcMain } from 'electron'
+import { ipcMain, session, type Session } from 'electron'
 import { CryptoService } from '../services/crypto'
 import { StorageService } from '../services/storage'
+import { OPENCODE_GO_AUTH_PARTITION } from '../services/providers/opencode-go'
 
 const cryptoService = new CryptoService()
 const storageService = new StorageService()
+
+async function clearSessionData(currentSession: Session): Promise<void> {
+  await Promise.all([
+    currentSession.clearStorageData(),
+    currentSession.clearCache()
+  ])
+}
+
+async function updatePassword(
+  oldPassword: string,
+  newPassword: string,
+  updateAuth: () => Promise<void>
+): Promise<void> {
+  cryptoService.beginPasswordChange()
+
+  try {
+    storageService.reEncrypt(oldPassword, newPassword)
+    await updateAuth()
+    cryptoService.commitPasswordChange()
+  } catch (error) {
+    try {
+      cryptoService.rollbackPasswordChange()
+      storageService.unlock(oldPassword)
+    } catch (rollbackError) {
+      storageService.lock()
+      throw new AggregateError(
+        [error, rollbackError],
+        'Password change and rollback both failed'
+      )
+    }
+    throw error
+  }
+}
 
 export function registerAuthHandlers(): void {
   ipcMain.handle('auth:has-password', async () => {
@@ -28,13 +62,23 @@ export function registerAuthHandlers(): void {
     const isValid = await cryptoService.verifyPassword(oldPassword)
     if (!isValid) return false
 
-    storageService.reEncrypt(oldPassword, newPassword)
-    await cryptoService.changePassword(oldPassword, newPassword)
+    await updatePassword(oldPassword, newPassword, () => (
+      cryptoService.changePassword(oldPassword, newPassword)
+    ))
     return true
   })
 
   ipcMain.handle('auth:lock', async () => {
+    await clearSessionData(session.fromPartition(OPENCODE_GO_AUTH_PARTITION))
     storageService.lock()
+  })
+
+  ipcMain.handle('auth:clear-all-data', async (event) => {
+    await Promise.all([
+      clearSessionData(event.sender.session),
+      clearSessionData(session.fromPartition(OPENCODE_GO_AUTH_PARTITION))
+    ])
+    storageService.clearAllData()
   })
 
   ipcMain.handle('auth:skip-password', async () => {
@@ -59,16 +103,18 @@ export function registerAuthHandlers(): void {
     const isValid = await cryptoService.verifyPassword(currentPassword)
     if (!isValid) return false
 
-    storageService.reEncrypt(currentPassword, cryptoService.getSkippedPasswordKey())
-    await cryptoService.skipPassword()
+    await updatePassword(currentPassword, cryptoService.getSkippedPasswordKey(), () => (
+      cryptoService.skipPassword()
+    ))
     return true
   })
 
   ipcMain.handle('auth:set-password-from-settings', async (_, newPassword: string) => {
     if (!cryptoService.isPasswordSkipped()) return false
 
-    storageService.reEncrypt(cryptoService.getSkippedPasswordKey(), newPassword)
-    await cryptoService.setPassword(newPassword)
+    await updatePassword(cryptoService.getSkippedPasswordKey(), newPassword, () => (
+      cryptoService.setPassword(newPassword)
+    ))
     return true
   })
 }

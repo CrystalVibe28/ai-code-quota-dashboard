@@ -88,3 +88,59 @@ export interface ZaiAccountUsage {
   usage: ZaiUsage | null
   error?: string
 }
+
+/**
+ * Codex rate limit window. The period is determined by limit_window_seconds.
+ */
+export interface CodexRateWindow {
+  used_percent: number
+  limit_window_seconds: number
+  reset_after_seconds: number
+  reset_at: number
+}
+
+export interface CodexRateLimit {
+  allowed: boolean
+  limit_reached: boolean
+  primary_window: CodexRateWindow | null
+  secondary_window: CodexRateWindow | null
+}
+
+export interface CodexUsageData {
+  plan_type: string
+  rate_limit: CodexRateLimit | null
+  code_review_rate_limit: CodexRateLimit | null
+}
+
+export interface CodexAccountUsage {
+  accountId: string
+  name: string
+  email: string
+  usage: CodexUsageData | null
+  error?: string
+}
+
+export interface OpencodeGoLimit {
+  type: string
+  used: number
+  limit: number
+  remaining: number
+  percentage: number
+  resetTime?: string | number
+  unit?: string
+  unlimited?: boolean
+}
+
+export interface OpencodeGoUsage {
+  workspaceId: string
+  workspaceName?: string
+  limits: OpencodeGoLimit[]
+}
+
+export interface OpencodeGoAccountUsage {
+  accountId: string
+  name: string
+  workspaceId: string
+  usage: OpencodeGoUsage | null
+  error?: string
+}

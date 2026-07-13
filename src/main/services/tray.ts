@@ -6,6 +6,8 @@ export interface TrayTooltipData {
   antigravity?: Array<{ name: string; percent: number }>
   githubCopilot?: Array<{ name: string; percent: number }>
   zaiCoding?: Array<{ name: string; percent: number }>
+  codex?: Array<{ name: string; percent: number }>
+  opencodeGo?: Array<{ name: string; percent: number }>
 }
 
 export class TrayService {
@@ -139,6 +141,22 @@ export class TrayService {
     if (data.zaiCoding?.length) {
       lines.push('Zai Coding Plan:')
       data.zaiCoding.forEach(acc => {
+        lines.push(`  ${acc.name}: ${acc.percent}%`)
+      })
+      lines.push('')
+    }
+
+    if (data.codex?.length) {
+      lines.push('OpenAI Codex:')
+      data.codex.forEach(acc => {
+        lines.push(`  ${acc.name}: ${acc.percent}%`)
+      })
+    }
+
+    if (data.opencodeGo?.length) {
+      if (lines[lines.length - 1] !== '') lines.push('')
+      lines.push('Opencode Go:')
+      data.opencodeGo.forEach(acc => {
         lines.push(`  ${acc.name}: ${acc.percent}%`)
       })
     }

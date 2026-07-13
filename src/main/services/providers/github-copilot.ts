@@ -1,6 +1,7 @@
-import { createServer, IncomingMessage, ServerResponse } from 'http'
+import { createServer, IncomingMessage, ServerResponse, type Server } from 'http'
 import { shell } from 'electron'
 import { randomBytes, createHash } from 'crypto'
+import { fetchWithTimeout } from './fetchWithTimeout'
 
 const CLIENT_ID = '01ab8ac9400c4e429b23'
 const CLIENT_SECRET = '2af589bb2ffd03a29cc0df83f767e3f6693f14cd'
@@ -72,7 +73,53 @@ interface CopilotApiResponse {
   quota_reset_date?: string
 }
 
+interface LoginResult {
+  success: boolean
+  account?: any
+  error?: string
+}
+
+interface PendingLogin {
+  resolve: (result: LoginResult) => void
+  server: Server
+  timeoutId: NodeJS.Timeout
+  resolved: boolean
+}
+
 export class GithubCopilotService {
+  private currentLogin: PendingLogin | null = null
+
+  private finishLogin(resolveRef: PendingLogin['resolve'], result: LoginResult): void {
+    const pendingLogin = this.currentLogin
+
+    if (!pendingLogin || pendingLogin.resolve !== resolveRef || pendingLogin.resolved) {
+      return
+    }
+
+    pendingLogin.resolved = true
+    clearTimeout(pendingLogin.timeoutId)
+    this.currentLogin = null
+
+    if (pendingLogin.server.listening) {
+      pendingLogin.server.close(() => {
+        pendingLogin.resolve(result)
+      })
+      return
+    }
+
+    pendingLogin.resolve(result)
+  }
+
+  cancelLogin(): boolean {
+    if (!this.currentLogin) {
+      return false
+    }
+
+    const { resolve } = this.currentLogin
+    this.finishLogin(resolve, { success: false, error: 'Login cancelled' })
+    return true
+  }
+
   private generateCodeVerifier(): string {
     return randomBytes(32).toString('base64url')
   }
@@ -90,7 +137,11 @@ export class GithubCopilotService {
     return Buffer.from(raw).toString('base64url')
   }
 
-  async login(): Promise<{ success: boolean; account?: any; error?: string }> {
+  async login(): Promise<LoginResult> {
+    if (this.currentLogin) {
+      return { success: false, error: 'Login already in progress' }
+    }
+
     return new Promise((resolve) => {
       const codeVerifier = this.generateCodeVerifier()
       const codeChallenge = this.generateCodeChallenge(codeVerifier)
@@ -108,24 +159,21 @@ export class GithubCopilotService {
           if (error) {
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
             res.end('<html><body><h1>Login Failed</h1><p>You can close this window.</p></body></html>')
-            server.close()
-            resolve({ success: false, error })
+            this.finishLogin(resolve, { success: false, error })
             return
           }
 
           if (returnedState !== state) {
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
             res.end('<html><body><h1>Security Error</h1><p>State mismatch. Please try again.</p></body></html>')
-            server.close()
-            resolve({ success: false, error: 'State mismatch' })
+            this.finishLogin(resolve, { success: false, error: 'State mismatch' })
             return
           }
 
           if (!code) {
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
             res.end('<html><body><h1>Error</h1><p>No authorization code received.</p></body></html>')
-            server.close()
-            resolve({ success: false, error: 'No authorization code' })
+            this.finishLogin(resolve, { success: false, error: 'No authorization code' })
             return
           }
 
@@ -150,16 +198,25 @@ export class GithubCopilotService {
 
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
             res.end('<html><body><h1>Login Successful</h1><p>You can close this window.</p></body></html>')
-            server.close()
-            resolve({ success: true, account })
+            this.finishLogin(resolve, { success: true, account })
           } catch (err) {
             res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
             res.end('<html><body><h1>Error</h1><p>Failed to complete login.</p></body></html>')
-            server.close()
-            resolve({ success: false, error: String(err) })
+            this.finishLogin(resolve, { success: false, error: String(err) })
           }
         }
       })
+
+      const timeoutId = setTimeout(() => {
+        this.finishLogin(resolve, { success: false, error: 'Login timeout' })
+      }, 180000)
+
+      this.currentLogin = {
+        resolve,
+        server,
+        timeoutId,
+        resolved: false
+      }
 
       server.listen(LOCAL_PORT, '127.0.0.1', () => {
         const authUrl = new URL(AUTH_URL)
@@ -171,13 +228,17 @@ export class GithubCopilotService {
         authUrl.searchParams.set('code_challenge_method', 'S256')
         authUrl.searchParams.set('prompt', 'select_account')
 
-        shell.openExternal(authUrl.toString())
+        void shell.openExternal(authUrl.toString()).catch((error) => {
+          this.finishLogin(resolve, { success: false, error: String(error) })
+        })
       })
 
-      setTimeout(() => {
-        server.close()
-        resolve({ success: false, error: 'Login timeout' })
-      }, 180000)
+      server.on('error', (error) => {
+        this.finishLogin(resolve, {
+          success: false,
+          error: `Failed to start callback server: ${error.message}`
+        })
+      })
     })
   }
 
@@ -234,7 +295,7 @@ export class GithubCopilotService {
 
   async fetchUsage(accessToken: string): Promise<CopilotUsage | null> {
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetchWithTimeout(API_URL, {
         method: 'GET',
         headers: {
           'Accept': '*/*',

@@ -1,53 +1,66 @@
-import { useCallback, useState, useEffect } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Settings as SettingsIcon, Globe, RotateCcw, Minimize, Plus, X } from 'lucide-react'
-import { debounce } from '@/lib/utils'
+import { Globe, Minimize, Plus, RotateCcw, Settings as SettingsIcon, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { useSettingsStore } from '@/stores/useSettingsStore'
+import { DataSettings } from '@/components/settings/DataSettings'
+import { DisplaySettings } from '@/components/settings/DisplaySettings'
+import { InteractionSettings } from '@/components/settings/InteractionSettings'
+import { LayoutSettings } from '@/components/settings/LayoutSettings'
+import { SecuritySettings } from '@/components/settings/SecuritySettings'
+import { SettingsSelect } from '@/components/settings/SettingsSelect'
+import { UpdateSettings } from '@/components/settings/UpdateSettings'
+import { VisualSettings } from '@/components/settings/VisualSettings'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
+import { useSettingsStore } from '@/stores/useSettingsStore'
 import { SUPPORTED_LANGUAGES } from '@/i18n'
-import { VisualSettings } from '@/components/settings/VisualSettings'
-import { LayoutSettings } from '@/components/settings/LayoutSettings'
-import { DisplaySettings } from '@/components/settings/DisplaySettings'
-import { DataSettings } from '@/components/settings/DataSettings'
-import { InteractionSettings } from '@/components/settings/InteractionSettings'
-import { SecuritySettings } from '@/components/settings/SecuritySettings'
-import { UpdateSettings } from '@/components/settings/UpdateSettings'
-import type { NotificationThreshold } from '@shared/types/settings'
 import { DEFAULT_NOTIFICATION_THRESHOLDS } from '@shared/types/settings'
+import type { NotificationThreshold } from '@shared/types/settings'
+import { debounce } from '@/lib/utils'
+
+interface SettingsSectionProps {
+  id: string
+  title: string
+  description: string
+  children: ReactNode
+}
+
+function SettingsSection({ id, title, description, children }: SettingsSectionProps) {
+  return (
+    <section className="space-y-4" aria-labelledby={id}>
+      <div>
+        <h2 id={id} className="text-xl font-semibold leading-[26px]">{title}</h2>
+        <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
+      </div>
+      {children}
+    </section>
+  )
+}
 
 export function Settings() {
   const { t, i18n } = useTranslation()
   const { settings, updateSettings } = useSettingsStore()
-  const { lock } = useAuthStore()
+  const { clearAllData } = useAuthStore()
   const { resetAll } = useCustomizationStore()
 
   const [localValues, setLocalValues] = useState({
     refreshInterval: settings.refreshInterval
   })
-
-  // Notification thresholds state
   const [thresholds, setThresholds] = useState<NotificationThreshold[]>(
     settings.notificationThresholds || DEFAULT_NOTIFICATION_THRESHOLDS
   )
-
-  // Auto launch state
-  const [isWindows, setIsWindows] = useState(false)
   const [autoLaunch, setAutoLaunch] = useState(false)
 
-const handleSettingChange = useCallback(async (newSettings: Partial<typeof settings>) => {
-    // Reset notification state when thresholds change
+  const handleSettingChange = useCallback(async (newSettings: Partial<typeof settings>) => {
     if (newSettings.notificationThresholds !== undefined) {
       await window.api.notification.resetState()
     }
 
-    const oldRefreshInterval = settings.refreshInterval
-    if (newSettings.refreshInterval !== undefined && newSettings.refreshInterval !== oldRefreshInterval) {
+    if (newSettings.refreshInterval !== undefined && newSettings.refreshInterval !== settings.refreshInterval) {
       await window.api.app.refreshIntervalChanged()
     }
 
@@ -62,27 +75,14 @@ const handleSettingChange = useCallback(async (newSettings: Partial<typeof setti
   }, [debouncedHandleSettingChange])
 
   useEffect(() => {
-    setLocalValues({
-      refreshInterval: settings.refreshInterval
-    })
-    setThresholds(settings.notificationThresholds || [
-      { value: 25, enabled: true },
-      { value: 10, enabled: true },
-      { value: 5, enabled: true }
-    ])
+    setLocalValues({ refreshInterval: settings.refreshInterval })
+    setThresholds(settings.notificationThresholds || DEFAULT_NOTIFICATION_THRESHOLDS)
   }, [settings.refreshInterval, settings.notificationThresholds])
 
-  // Initialize auto launch state
   useEffect(() => {
     const initAutoLaunch = async () => {
       try {
-        const platform = await window.api.app.getPlatform()
-        setIsWindows(platform === 'win32')
-        
-        if (platform === 'win32') {
-          const enabled = await window.api.app.getAutoLaunch()
-          setAutoLaunch(enabled)
-        }
+        setAutoLaunch(await window.api.app.getAutoLaunch())
       } catch {
         // Silently fail
       }
@@ -92,8 +92,7 @@ const handleSettingChange = useCallback(async (newSettings: Partial<typeof setti
 
   const handleAutoLaunchChange = async (checked: boolean) => {
     try {
-      const success = await window.api.app.setAutoLaunch(checked)
-      if (success) {
+      if (await window.api.app.setAutoLaunch(checked)) {
         setAutoLaunch(checked)
       }
     } catch {
@@ -108,7 +107,7 @@ const handleSettingChange = useCallback(async (newSettings: Partial<typeof setti
 
   const handleClearData = async () => {
     if (confirm(t('settings.clearDataConfirm'))) {
-      await lock()
+      await clearAllData()
     }
   }
 
@@ -119,62 +118,126 @@ const handleSettingChange = useCallback(async (newSettings: Partial<typeof setti
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <SettingsIcon className="h-6 w-6 text-primary" />
+    <div className="fluent-page space-y-8">
+      <header className="fluent-page-header">
+        <div className="flex items-center gap-4">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+            <SettingsIcon className="h-6 w-6" aria-hidden="true" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
-            <p className="text-muted-foreground text-sm">{t('settings.subtitle')}</p>
+            <h1 className="fluent-page-title">{t('settings.title')}</h1>
+            <p className="fluent-page-description">{t('settings.subtitle')}</p>
           </div>
         </div>
         <Button variant="outline" onClick={handleResetCustomization}>
-          <RotateCcw className="h-4 w-4 mr-2" />
+          <RotateCcw aria-hidden="true" />
           {t('customization.resetAll')}
         </Button>
-      </div>
+      </header>
 
-      <div className="grid gap-6 max-w-3xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('settings.refreshSettings')}</CardTitle>
-            <CardDescription>{t('settings.refreshSettingsDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="refreshInterval">{t('settings.refreshInterval')}</Label>
-                <p className="text-sm text-muted-foreground">
-                  {t('settings.refreshIntervalDesc')}
-                </p>
+      <SettingsSection
+        id="settings-system"
+        title={t('settings.sections.system')}
+        description={t('settings.sections.systemDesc')}
+      >
+        <div className="grid gap-4 xl:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('settings.refreshSettings')}</CardTitle>
+              <CardDescription>{t('settings.refreshSettingsDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="fluent-setting-row">
+                <div>
+                  <Label htmlFor="refreshInterval">{t('settings.refreshInterval')}</Label>
+                  <p id="refresh-interval-description" className="text-sm leading-5 text-muted-foreground">
+                    {t('settings.refreshIntervalDesc')}
+                  </p>
+                </div>
+                <Input
+                  id="refreshInterval"
+                  type="number"
+                  inputMode="numeric"
+                  min={30}
+                  max={300}
+                  value={localValues.refreshInterval}
+                  onChange={(event) => handleInputChange('refreshInterval', Number(event.target.value))}
+                  className="w-full sm:w-28"
+                  aria-describedby="refresh-interval-description"
+                />
               </div>
-              <Input
-                id="refreshInterval"
-                type="number"
-                min={30}
-                max={300}
-                value={localValues.refreshInterval}
-                onChange={(e) => handleInputChange('refreshInterval', Number(e.target.value))}
-                className="w-24"
-              />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5" aria-hidden="true" />
+                {t('settings.language')}
+              </CardTitle>
+              <CardDescription>{t('settings.languageDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SettingsSelect
+                id="language"
+                value={settings.language}
+                onValueChange={handleLanguageChange}
+                className="sm:w-full"
+                options={SUPPORTED_LANGUAGES.map((language) => ({
+                  value: language.code,
+                  label: language.nativeName
+                }))}
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="xl:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Minimize className="h-5 w-5" aria-hidden="true" />
+                {t('settings.traySettings')}
+              </CardTitle>
+              <CardDescription>{t('settings.traySettingsDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="divide-y">
+              <div className="fluent-setting-row pb-4">
+                <div>
+                  <Label htmlFor="closeToTray">{t('settings.closeToTray')}</Label>
+                  <p className="text-sm leading-5 text-muted-foreground">{t('settings.closeToTrayDesc')}</p>
+                </div>
+                <Switch
+                  id="closeToTray"
+                  checked={settings.closeToTray}
+                  onCheckedChange={(checked) => handleSettingChange({ closeToTray: checked })}
+                />
+              </div>
+              <div className="fluent-setting-row pt-4">
+                <div>
+                  <Label htmlFor="autoLaunch">{t('settings.autoLaunch')}</Label>
+                  <p className="text-sm leading-5 text-muted-foreground">{t('settings.autoLaunchDesc')}</p>
+                </div>
+                <Switch id="autoLaunch" checked={autoLaunch} onCheckedChange={handleAutoLaunchChange} />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
+        id="settings-alerts"
+        title={t('settings.sections.alerts')}
+        description={t('settings.sections.alertsDesc')}
+      >
         <Card>
           <CardHeader>
             <CardTitle>{t('settings.quotaAlerts')}</CardTitle>
             <CardDescription>{t('settings.quotaAlertsDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="fluent-setting-row">
               <div>
                 <Label htmlFor="notifications">{t('settings.notifications')}</Label>
-                <p className="text-sm text-muted-foreground">
-                  {t('settings.notificationsDesc')}
-                </p>
+                <p className="text-sm leading-5 text-muted-foreground">{t('settings.notificationsDesc')}</p>
               </div>
               <Switch
                 id="notifications"
@@ -184,28 +247,27 @@ const handleSettingChange = useCallback(async (newSettings: Partial<typeof setti
             </div>
 
             {settings.notifications && (
-              <div className="space-y-3 pt-2 border-t">
+              <div className="space-y-3 border-t pt-4">
                 <div>
                   <Label>{t('settings.notificationThresholds')}</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {t('settings.notificationThresholdsDesc')}
-                  </p>
+                  <p className="text-sm leading-5 text-muted-foreground">{t('settings.notificationThresholdsDesc')}</p>
                 </div>
-                
+
                 <div className="space-y-2">
                   {thresholds.map((threshold, index) => {
-                    // 預設名稱使用 i18n 翻譯
                     const defaultNames = [
                       t('settings.thresholdWarning'),
                       t('settings.thresholdUrgent'),
                       t('settings.thresholdCritical')
                     ]
                     const defaultName = defaultNames[index] || `${t('settings.customThreshold')} #${index - 2}`
-                    
+
                     return (
-                      <div key={index} className="flex items-center gap-3">
+                      <div key={index} className="flex flex-wrap items-center gap-3 rounded-md border bg-secondary/50 p-3">
                         <Switch
+                          id={`notification-threshold-${index}`}
                           checked={threshold.enabled}
+                          aria-label={`${defaultName} ${t('settings.notifications')}`}
                           onCheckedChange={(checked) => {
                             const newThresholds = [...thresholds]
                             newThresholds[index] = { ...threshold, enabled: checked }
@@ -217,25 +279,28 @@ const handleSettingChange = useCallback(async (newSettings: Partial<typeof setti
                           type="text"
                           value={threshold.name ?? ''}
                           placeholder={defaultName}
-                          onChange={(e) => {
+                          aria-label={t('settings.thresholdNamePlaceholder')}
+                          onChange={(event) => {
                             const newThresholds = [...thresholds]
-                            newThresholds[index] = { ...threshold, name: e.target.value }
+                            newThresholds[index] = { ...threshold, name: event.target.value }
                             setThresholds(newThresholds)
                             handleSettingChange({ notificationThresholds: newThresholds })
                           }}
-                          className="w-24"
+                          className="min-w-32 flex-1 sm:max-w-48"
                           disabled={!threshold.enabled}
                         />
                         <div className="flex items-center gap-1">
                           <span className="text-sm text-muted-foreground">≤</span>
                           <Input
                             type="number"
+                            inputMode="numeric"
                             min={1}
                             max={100}
                             value={threshold.value}
-                            onChange={(e) => {
+                            aria-label={t('settings.thresholdValue')}
+                            onChange={(event) => {
                               const newThresholds = [...thresholds]
-                              newThresholds[index] = { ...threshold, value: Number(e.target.value) }
+                              newThresholds[index] = { ...threshold, value: Number(event.target.value) }
                               setThresholds(newThresholds)
                               handleSettingChange({ notificationThresholds: newThresholds })
                             }}
@@ -248,14 +313,15 @@ const handleSettingChange = useCallback(async (newSettings: Partial<typeof setti
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
+                            className="text-muted-foreground shadow-none hover:text-destructive"
+                            aria-label={t('settings.removeThreshold')}
                             onClick={() => {
-                              const newThresholds = thresholds.filter((_, i) => i !== index)
+                              const newThresholds = thresholds.filter((_, itemIndex) => itemIndex !== index)
                               setThresholds(newThresholds)
                               handleSettingChange({ notificationThresholds: newThresholds })
                             }}
                           >
-                            <X className="h-4 w-4" />
+                            <X aria-hidden="true" />
                           </Button>
                         )}
                       </div>
@@ -263,21 +329,19 @@ const handleSettingChange = useCallback(async (newSettings: Partial<typeof setti
                   })}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 pt-1">
                   {thresholds.length < 5 && (
                     <Button
                       variant="outline"
-                      size="sm"
                       onClick={() => {
-                        const minValue = Math.min(...thresholds.map(t => t.value))
-                        const newValue = Math.max(1, minValue - 5)
-                        const customCount = thresholds.filter(th =>
-                          th.name?.startsWith(t('settings.customThreshold'))
+                        const minValue = Math.min(...thresholds.map(threshold => threshold.value))
+                        const customCount = thresholds.filter(threshold =>
+                          threshold.name?.startsWith(t('settings.customThreshold'))
                         ).length + 1
                         const newThresholds = [
                           ...thresholds,
                           {
-                            value: newValue,
+                            value: Math.max(1, minValue - 5),
                             enabled: true,
                             name: `${t('settings.customThreshold')} #${customCount}`
                           }
@@ -286,19 +350,18 @@ const handleSettingChange = useCallback(async (newSettings: Partial<typeof setti
                         handleSettingChange({ notificationThresholds: newThresholds })
                       }}
                     >
-                      <Plus className="h-4 w-4 mr-1" />
+                      <Plus aria-hidden="true" />
                       {t('settings.addThreshold')}
                     </Button>
                   )}
                   <Button
                     variant="ghost"
-                    size="sm"
                     onClick={() => {
                       setThresholds(DEFAULT_NOTIFICATION_THRESHOLDS)
                       handleSettingChange({ notificationThresholds: DEFAULT_NOTIFICATION_THRESHOLDS })
                     }}
                   >
-                    <RotateCcw className="h-4 w-4 mr-1" />
+                    <RotateCcw aria-hidden="true" />
                     {t('settings.resetThresholds')}
                   </Button>
                 </div>
@@ -306,93 +369,46 @@ const handleSettingChange = useCallback(async (newSettings: Partial<typeof setti
             )}
           </CardContent>
         </Card>
+      </SettingsSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              {t('settings.language')}
-            </CardTitle>
-            <CardDescription>{t('settings.languageDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <select
-              value={settings.language}
-              onChange={(e) => handleLanguageChange(e.target.value)}
-              className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              {SUPPORTED_LANGUAGES.map((lang) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.nativeName}
-                </option>
-              ))}
-            </select>
-          </CardContent>
-        </Card>
+      <SettingsSection
+        id="settings-appearance"
+        title={t('settings.sections.appearance')}
+        description={t('settings.sections.appearanceDesc')}
+      >
+        <div className="grid gap-4 xl:grid-cols-2">
+          <VisualSettings />
+          <LayoutSettings />
+          <div className="xl:col-span-2">
+            <DataSettings />
+          </div>
+          <DisplaySettings />
+          <InteractionSettings />
+        </div>
+      </SettingsSection>
 
-        <SecuritySettings />
+      <SettingsSection
+        id="settings-privacy"
+        title={t('settings.sections.privacy')}
+        description={t('settings.sections.privacyDesc')}
+      >
+        <div className="grid gap-4 xl:grid-cols-2">
+          <SecuritySettings />
+          <UpdateSettings />
+        </div>
+      </SettingsSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Minimize className="h-5 w-5" />
-              {t('settings.traySettings')}
-            </CardTitle>
-            <CardDescription>{t('settings.traySettingsDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="closeToTray">{t('settings.closeToTray')}</Label>
-                <p className="text-sm text-muted-foreground">
-                  {t('settings.closeToTrayDesc')}
-                </p>
-              </div>
-              <Switch
-                id="closeToTray"
-                checked={settings.closeToTray}
-                onCheckedChange={(checked) => handleSettingChange({ closeToTray: checked })}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="autoLaunch" className={!isWindows ? 'text-muted-foreground' : ''}>
-                  {t('settings.autoLaunch')}
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  {isWindows ? t('settings.autoLaunchDesc') : t('settings.autoLaunchUnsupported')}
-                </p>
-              </div>
-              <Switch
-                id="autoLaunch"
-                checked={autoLaunch}
-                onCheckedChange={handleAutoLaunchChange}
-                disabled={!isWindows}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <VisualSettings />
-        <LayoutSettings />
-        <DisplaySettings />
-        <DataSettings />
-        <InteractionSettings />
-        <UpdateSettings />
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('settings.dangerZone')}</CardTitle>
-            <CardDescription>{t('settings.dangerZoneDesc')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="destructive" onClick={handleClearData}>
-              {t('settings.clearAllData')}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="border-destructive/30 shadow-none">
+        <CardHeader>
+          <CardTitle className="text-destructive">{t('settings.dangerZone')}</CardTitle>
+          <CardDescription>{t('settings.dangerZoneDesc')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="destructive" onClick={handleClearData}>
+            {t('settings.clearAllData')}
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -19,7 +19,7 @@ interface UpdateState {
   skipVersion: (version: string) => Promise<void>
   clearSkippedVersion: () => Promise<void>
   openReleasePage: () => Promise<void>
-  initialize: () => void
+  initialize: () => () => void
   setUpdateInfo: (info: UpdateInfo) => void
 }
 
@@ -133,7 +133,6 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
       get().setUpdateInfo(data)
     })
 
-    // Return cleanup function (store cleanup on unmount)
     return cleanup
   },
 

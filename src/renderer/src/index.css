@@ -4,36 +4,125 @@
 
 @layer base {
   :root {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 217 91% 60%;
+    --background: 0 0% 98%;
+    --foreground: 0 0% 14.1%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 14.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 14.1%;
+    --primary: 207.9 85.3% 40%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 64%;
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 217 91% 60%;
+    --brand-background: 207.9 85.3% 40%;
+    --brand-background-foreground: 0 0% 100%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 14.1%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 38%;
+    --accent: 211 74% 95.5%;
+    --accent-foreground: 207.9 85.3% 32%;
+    --destructive: 354.7 85.5% 41.6%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 87.8%;
+    --input: 0 0% 74.9%;
+    --ring: 207.9 85.3% 40%;
+    --surface-sunken: 0 0% 96.1%;
+    --surface-raised: 0 0% 100%;
+    --success: 120 77.1% 27.5%;
+    --success-foreground: 0 0% 100%;
+    --warning: 22 90.3% 28.4%;
+    --warning-foreground: 0 0% 100%;
     --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 0 0% 12.2%;
+    --foreground: 0 0% 96.1%;
+    --card: 0 0% 16.1%;
+    --card-foreground: 0 0% 96.1%;
+    --popover: 0 0% 16.1%;
+    --popover-foreground: 0 0% 96.1%;
+    --primary: 210 89.7% 62%;
+    --primary-foreground: 0 0% 100%;
+    --brand-background: 208.1 81.3% 35.3%;
+    --brand-background-foreground: 0 0% 100%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 96.1%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 67.8%;
+    --accent: 207 35% 24%;
+    --accent-foreground: 210 89.7% 75%;
+    --destructive: 354.5 64.8% 62.4%;
+    --destructive-foreground: 0 0% 12.2%;
+    --border: 0 0% 25.9%;
+    --input: 0 0% 40%;
+    --ring: 210 89.7% 62%;
+    --surface-sunken: 0 0% 8.6%;
+    --surface-raised: 0 0% 20%;
+    --success: 120 36.8% 51%;
+    --success-foreground: 0 0% 12.2%;
+    --warning: 22.3 93.7% 62.4%;
+    --warning-foreground: 0 0% 12.2%;
   }
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+    font-size: 14px;
+    line-height: 20px;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button,
+  [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.22);
+  }
+}
+
+@layer components {
+  .fluent-page {
+    width: 100%;
+    min-width: 0;
+    max-width: 1440px;
+    margin-inline: auto;
+  }
+
+  .fluent-page-header {
+    @apply flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-center sm:justify-between;
+  }
+
+  .fluent-page-title {
+    @apply text-[28px] font-semibold leading-9 tracking-[-0.01em];
+  }
+
+  .fluent-page-description {
+    @apply mt-1 text-sm leading-5 text-muted-foreground;
+  }
+
+  .fluent-setting-row {
+    @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between;
+  }
+
+  .font-data {
+    font-family: "Cascadia Code", "Cascadia Mono", Consolas, monospace;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -43,14 +132,27 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: hsl(var(--background));
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted));
+  background: hsl(var(--muted-foreground) / 0.35);
+  border: 2px solid transparent;
   border-radius: 4px;
+  background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
+  background-color: hsl(var(--muted-foreground) / 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

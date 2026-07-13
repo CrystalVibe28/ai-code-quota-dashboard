@@ -8,29 +8,25 @@ export function useTheme() {
 
   useEffect(() => {
     const root = document.documentElement
-    
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    const isDark = theme === 'dark' || (theme === 'system' && prefersDark)
-    
-    root.classList.remove('light', 'dark')
-    root.classList.add(isDark ? 'dark' : 'light')
-    
-    const accent = ACCENT_COLORS.find(c => c.id === accentColor)
-    if (accent) {
-      root.style.setProperty('--primary', accent.value)
-    }
-  }, [theme, accentColor])
-
-  useEffect(() => {
-    if (global.theme !== 'system') return
-    
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const handler = (e: MediaQueryListEvent) => {
+    const accent = ACCENT_COLORS.find(c => c.id === accentColor)
+
+    const applyTheme = () => {
+      const isDark = theme === 'dark' || (theme === 'system' && mediaQuery.matches)
       document.documentElement.classList.remove('light', 'dark')
-      document.documentElement.classList.add(e.matches ? 'dark' : 'light')
+      document.documentElement.classList.add(isDark ? 'dark' : 'light')
+
+      if (accent) {
+        root.style.setProperty('--primary', isDark ? accent.darkValue : accent.value)
+        root.style.setProperty('--ring', isDark ? accent.darkValue : accent.value)
+        root.style.setProperty('--brand-background', accent.value)
+      }
     }
-    
-    mediaQuery.addEventListener('change', handler)
-    return () => mediaQuery.removeEventListener('change', handler)
-  }, [global.theme])
+
+    applyTheme()
+    if (theme !== 'system') return
+
+    mediaQuery.addEventListener('change', applyTheme)
+    return () => mediaQuery.removeEventListener('change', applyTheme)
+  }, [theme, accentColor])
 }

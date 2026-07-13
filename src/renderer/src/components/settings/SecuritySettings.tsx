@@ -21,7 +21,7 @@ export function SecuritySettings() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
+            <Shield className="h-5 w-5" aria-hidden="true" />
             {t('security.title')}
           </CardTitle>
           <CardDescription>{t('security.description')}</CardDescription>
@@ -37,7 +37,7 @@ export function SecuritySettings() {
               </Button>
             </div>
           ) : (
-            <div className="flex items-center justify-between">
+            <div className="fluent-setting-row">
               <p className="text-sm text-muted-foreground">
                 {t('security.noPasswordWarning')}
               </p>

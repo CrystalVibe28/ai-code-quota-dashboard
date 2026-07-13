@@ -1,9 +1,10 @@
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
+import { SettingsSelect } from '@/components/settings/SettingsSelect'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
 import { ACCENT_COLORS } from '@/constants/customization'
-import { Palette, Sun, Moon, Monitor } from 'lucide-react'
+import { Palette, Sun, Moon, Monitor, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function VisualSettings() {
@@ -28,20 +29,22 @@ export function VisualSettings() {
       <CardContent className="space-y-4">
         <div>
           <Label className="mb-3 block">{t('customization.visual.theme')}</Label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {themeOptions.map(({ value, icon: Icon, label }) => (
               <button
                 key={value}
+                type="button"
                 onClick={() => updateGlobal({ theme: value })}
+                aria-pressed={global.theme === value}
                 className={cn(
-                  'flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors',
+                  'flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-md border px-3 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   global.theme === value
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border hover:bg-accent'
+                    ? 'border-primary bg-accent text-accent-foreground'
+                    : 'border-input bg-card hover:bg-secondary'
                 )}
               >
-                <Icon className="h-4 w-4" />
-                {label}
+                <Icon className="h-4 w-4" aria-hidden="true" />
+                <span>{label}</span>
               </button>
             ))}
           </div>
@@ -53,55 +56,62 @@ export function VisualSettings() {
             {ACCENT_COLORS.map((color) => (
               <button
                 key={color.id}
+                type="button"
                 onClick={() => updateGlobal({ accentColor: color.id })}
+                aria-label={t(color.label)}
+                aria-pressed={global.accentColor === color.id}
                 className={cn(
-                  'w-10 h-10 rounded-full border-2 transition-transform hover:scale-110',
-                  global.accentColor === color.id ? 'border-foreground scale-110' : 'border-transparent'
+                  'grid h-11 w-11 cursor-pointer place-items-center rounded-full border-4 border-card shadow-fluent-2 ring-offset-2 ring-offset-background transition-shadow duration-150 hover:shadow-fluent-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  global.accentColor === color.id && 'ring-2 ring-primary'
                 )}
                 style={{ backgroundColor: `hsl(${color.value})` }}
                 title={t(color.label)}
-              />
+              >
+                {global.accentColor === color.id && (
+                  <Check className="h-4 w-4 text-white drop-shadow" aria-hidden="true" />
+                )}
+              </button>
             ))}
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="fluent-setting-row">
           <div>
             <Label htmlFor="progressStyle">{t('customization.visual.progressStyle')}</Label>
             <p className="text-sm text-muted-foreground">
               {t('customization.visual.progressStyleDesc')}
             </p>
           </div>
-          <select
+          <SettingsSelect
             id="progressStyle"
             value={global.progressStyle}
-            onChange={(e) => updateGlobal({ progressStyle: e.target.value as 'solid' | 'gradient' | 'striped' })}
-            className="w-32 bg-background border border-input rounded-md px-3 py-2 text-sm"
-          >
-            <option value="solid">{t('customization.visual.progressOptions.solid')}</option>
-            <option value="gradient">{t('customization.visual.progressOptions.gradient')}</option>
-            <option value="striped">{t('customization.visual.progressOptions.striped')}</option>
-          </select>
+            onValueChange={(value) => updateGlobal({ progressStyle: value as 'solid' | 'gradient' | 'striped' })}
+            options={[
+              { value: 'solid', label: t('customization.visual.progressOptions.solid') },
+              { value: 'gradient', label: t('customization.visual.progressOptions.gradient') },
+              { value: 'striped', label: t('customization.visual.progressOptions.striped') }
+            ]}
+          />
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="fluent-setting-row">
           <div>
             <Label htmlFor="cardRadius">{t('customization.visual.cardRadius')}</Label>
             <p className="text-sm text-muted-foreground">
               {t('customization.visual.cardRadiusDesc')}
             </p>
           </div>
-          <select
+          <SettingsSelect
             id="cardRadius"
             value={global.cardRadius}
-            onChange={(e) => updateGlobal({ cardRadius: e.target.value as 'none' | 'sm' | 'md' | 'lg' })}
-            className="w-32 bg-background border border-input rounded-md px-3 py-2 text-sm"
-          >
-            <option value="none">{t('customization.visual.radiusOptions.none')}</option>
-            <option value="sm">{t('customization.visual.radiusOptions.sm')}</option>
-            <option value="md">{t('customization.visual.radiusOptions.md')}</option>
-            <option value="lg">{t('customization.visual.radiusOptions.lg')}</option>
-          </select>
+            onValueChange={(value) => updateGlobal({ cardRadius: value as 'none' | 'sm' | 'md' | 'lg' })}
+            options={[
+              { value: 'none', label: t('customization.visual.radiusOptions.none') },
+              { value: 'sm', label: t('customization.visual.radiusOptions.sm') },
+              { value: 'md', label: t('customization.visual.radiusOptions.md') },
+              { value: 'lg', label: t('customization.visual.radiusOptions.lg') }
+            ]}
+          />
         </div>
       </CardContent>
     </Card>

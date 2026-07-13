@@ -83,8 +83,8 @@ export function LockScreen() {
   }
 
   return (
-    <div className="flex items-center justify-center h-screen bg-background">
-      <Card className="w-[400px]">
+    <div className="flex h-screen items-center justify-center bg-surface-sunken p-4">
+      <Card className="w-full max-w-[400px] shadow-fluent-16">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 p-3 rounded-full bg-primary/10">
             <Lock className="h-8 w-8 text-primary" />
@@ -146,13 +146,16 @@ export function LockScreen() {
                   onKeyDown={handleKeyDown}
                   className="pr-10"
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-0 top-0 text-muted-foreground shadow-none hover:text-foreground"
+                  aria-label={showPassword ? t('common.hidePassword') : t('common.showPassword')}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+                  {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
+                </Button>
               </div>
 
               {!hasPassword && (

@@ -1,4 +1,5 @@
-import { render, RenderOptions } from '@testing-library/react'
+import { render } from '@testing-library/react'
+import type { RenderOptions, RenderResult } from '@testing-library/react'
 import { ReactElement, ReactNode } from 'react'
 import { I18nextProvider } from 'react-i18next'
 import i18n from 'i18next'
@@ -39,7 +40,7 @@ function AllProviders({ children }: WrapperProps) {
 function customRender(
   ui: ReactElement,
   options?: Omit<RenderOptions, 'wrapper'>
-) {
+): RenderResult {
   return render(ui, { wrapper: AllProviders, ...options })
 }
 

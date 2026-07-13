@@ -4,7 +4,7 @@
 /**
  * Provider identifiers
  */
-export type ProviderId = 'antigravity' | 'githubCopilot' | 'zaiCoding'
+export type ProviderId = 'antigravity' | 'githubCopilot' | 'zaiCoding' | 'codex' | 'opencodeGo'
 
 /**
  * Base account interface with common fields
@@ -53,9 +53,34 @@ export interface ZaiCodingAccount extends BaseAccount {
 }
 
 /**
+ * OpenAI Codex account
+ */
+export interface CodexAccount extends BaseAccount {
+  email: string
+  planType: string
+  accessToken: string
+  refreshToken: string
+  idToken: string
+  expiresAt: number
+  accountId: string
+  organizationId: string
+}
+
+/**
+ * Opencode Go account
+ */
+export interface OpencodeGoAccount extends BaseAccount {
+  workspaceId: string
+  workspaceName?: string
+  email?: string
+  cookieHeader: string
+  expiresAt: number
+}
+
+/**
  * Union type for all account types
  */
-export type Account = AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount
+export type Account = AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount
 
 /**
  * Partial types for account updates
@@ -63,6 +88,8 @@ export type Account = AntigravityAccount | GithubCopilotAccount | ZaiCodingAccou
 export type AntigravityAccountUpdate = Partial<Omit<AntigravityAccount, 'id'>>
 export type GithubCopilotAccountUpdate = Partial<Omit<GithubCopilotAccount, 'id'>>
 export type ZaiCodingAccountUpdate = Partial<Omit<ZaiCodingAccount, 'id'>>
+export type CodexAccountUpdate = Partial<Omit<CodexAccount, 'id'>>
+export type OpencodeGoAccountUpdate = Partial<Omit<OpencodeGoAccount, 'id'>>
 
 /**
  * Login result types
@@ -75,3 +102,5 @@ export interface LoginResult<T = unknown> {
 
 export type AntigravityLoginResult = LoginResult<AntigravityAccount>
 export type GithubCopilotLoginResult = LoginResult<GithubCopilotAccount>
+export type CodexLoginResult = LoginResult<CodexAccount>
+export type OpencodeGoLoginResult = LoginResult<OpencodeGoAccount>

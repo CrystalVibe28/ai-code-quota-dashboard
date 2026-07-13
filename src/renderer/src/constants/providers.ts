@@ -1,4 +1,4 @@
-import { Sparkles, Github, Zap, type LucideIcon } from 'lucide-react'
+import { Sparkles, Github, Zap, Code, Terminal, type LucideIcon } from 'lucide-react'
 import type { ProviderId } from '@/types/customization'
 
 export interface ProviderDefinition {
@@ -33,6 +33,22 @@ const PROVIDERS_UNSORTED: ProviderDefinition[] = [
     labelKey: 'nav.zaiCoding',
     icon: Zap,
     mode: 'apiKey' as const
+  },
+  {
+    id: 'codex' as const,
+    name: 'Codex',
+    labelKey: 'nav.codex',
+    icon: Code,
+    mode: 'oauth' as const,
+    oauthProvider: 'OpenAI'
+  },
+  {
+    id: 'opencodeGo' as const,
+    name: 'Opencode Go',
+    labelKey: 'nav.opencodeGo',
+    icon: Terminal,
+    mode: 'oauth' as const,
+    oauthProvider: 'Google / GitHub'
   }
 ]
 

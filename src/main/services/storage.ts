@@ -1,11 +1,14 @@
 import { app } from 'electron'
 import { join } from 'path'
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { existsSync, mkdirSync, rmSync } from 'fs'
 import { CryptoService } from './crypto'
+import { atomicWriteFileSync, readFileWithBackupSync } from './atomic-file'
 import type {
   AntigravityAccount,
   GithubCopilotAccount,
   ZaiCodingAccount,
+  CodexAccount,
+  OpencodeGoAccount,
   Settings,
   CustomizationState
 } from '@shared/types'
@@ -16,17 +19,20 @@ interface StorageData {
   antigravity: AntigravityAccount[]
   githubCopilot: GithubCopilotAccount[]
   zaiCoding: ZaiCodingAccount[]
+  codex: CodexAccount[]
+  opencodeGo: OpencodeGoAccount[]
   settings: Settings
   customization?: CustomizationState
 }
 
-// Data version for migrations
-const CURRENT_DATA_VERSION = 2
+const CURRENT_DATA_VERSION = 4
 
 const DEFAULT_DATA: StorageData = {
   antigravity: [],
   githubCopilot: [],
   zaiCoding: [],
+  codex: [],
+  opencodeGo: [],
   settings: DEFAULT_SETTINGS
 }
 
@@ -63,12 +69,23 @@ export class StorageService {
 
   unlock(password: string): void {
     this.password = password
-    this.cachedData = this.loadData()
+    try {
+      this.cachedData = this.loadData()
+    } catch (error) {
+      this.lock()
+      throw error
+    }
   }
 
   lock(): void {
     this.password = null
     this.cachedData = null
+  }
+
+  clearAllData(): void {
+    this.lock()
+    rmSync(this.dataPath, { recursive: true, force: true })
+    this.ensureDataDir()
   }
 
   isUnlocked(): boolean {
@@ -111,7 +128,7 @@ export class StorageService {
   private loadData(): StorageData {
     if (!this.password) throw new Error('Storage is locked')
 
-    if (!existsSync(this.storagePath)) {
+    if (!existsSync(this.storagePath) && !existsSync(`${this.storagePath}.bak`)) {
       // First installation: use system locale for initial language
       const systemLocale = app.getLocale()
       const initialLanguage = this.mapLocaleToLanguage(systemLocale)
@@ -123,22 +140,42 @@ export class StorageService {
     }
 
     try {
-      const encrypted = readFileSync(this.storagePath, 'utf-8')
-      const decrypted = this.cryptoService.decrypt(encrypted, this.password)
-      const data = JSON.parse(decrypted) as StorageData
-
-      // Run migrations if needed
-      const migratedData = this.migrateData(data)
+      let loadedVersion: number | undefined
+      const migratedData = readFileWithBackupSync(this.storagePath, (encrypted) => {
+        const decrypted = this.cryptoService.decrypt(encrypted, this.password!)
+        const data = JSON.parse(decrypted) as StorageData
+        loadedVersion = data._version
+        const migrated = this.migrateData(data)
+        this.validateData(migrated)
+        return migrated
+      })
 
       // Save if migration occurred
-      if (migratedData._version !== data._version) {
+      if (migratedData._version !== loadedVersion) {
         this.saveData(migratedData)
       }
 
       return migratedData
     } catch (error) {
       console.error('[Storage] Failed to load data:', error)
-      return { ...DEFAULT_DATA, _version: CURRENT_DATA_VERSION }
+      throw new Error('Failed to load storage data', { cause: error })
+    }
+  }
+
+  private validateData(data: StorageData): void {
+    if (
+      !data ||
+      !Array.isArray(data.antigravity) ||
+      !Array.isArray(data.githubCopilot) ||
+      !Array.isArray(data.zaiCoding) ||
+      !Array.isArray(data.codex) ||
+      !Array.isArray(data.opencodeGo) ||
+      data._version !== CURRENT_DATA_VERSION ||
+      !data.settings ||
+      typeof data.settings !== 'object' ||
+      Array.isArray(data.settings)
+    ) {
+      throw new Error('Invalid storage data')
     }
   }
 
@@ -173,8 +210,21 @@ export class StorageService {
       data._version = 2
     }
 
-    // Future migrations can be added here:
-    // if (version < 3) { ... }
+    if (version < 3) {
+      console.log('[Storage] Migrating data from v2 to v3: Adding codex provider')
+      if (!data.codex) {
+        data.codex = []
+      }
+      data._version = 3
+    }
+
+    if (version < 4) {
+      console.log('[Storage] Migrating data from v3 to v4: Adding opencodeGo provider')
+      if (!data.opencodeGo) {
+        data.opencodeGo = []
+      }
+      data._version = 4
+    }
 
     return data
   }
@@ -184,7 +234,7 @@ export class StorageService {
 
     const json = JSON.stringify(data, null, 2)
     const encrypted = this.cryptoService.encrypt(json, this.password)
-    writeFileSync(this.storagePath, encrypted)
+    atomicWriteFileSync(this.storagePath, encrypted)
     this.cachedData = data
   }
 
@@ -195,7 +245,7 @@ export class StorageService {
     return this.cachedData
   }
 
-  async getAccounts(provider: string): Promise<AntigravityAccount[] | GithubCopilotAccount[] | ZaiCodingAccount[]> {
+  async getAccounts(provider: string): Promise<AntigravityAccount[] | GithubCopilotAccount[] | ZaiCodingAccount[] | CodexAccount[] | OpencodeGoAccount[]> {
     const data = this.getData()
     switch (provider) {
       case 'antigravity':
@@ -204,12 +254,16 @@ export class StorageService {
         return data.githubCopilot
       case 'zaiCoding':
         return data.zaiCoding
+      case 'codex':
+        return data.codex || []
+      case 'opencodeGo':
+        return data.opencodeGo || []
       default:
         return []
     }
   }
 
-  async saveAccount(provider: string, account: AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount): Promise<boolean> {
+  async saveAccount(provider: string, account: AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount): Promise<boolean> {
     const data = this.getData()
 
     switch (provider) {
@@ -243,6 +297,28 @@ export class StorageService {
         }
         break
       }
+      case 'codex': {
+        if (!data.codex) data.codex = []
+        const acc = account as CodexAccount
+        const existingIdx = data.codex.findIndex(a => a.id === acc.id)
+        if (existingIdx >= 0) {
+          data.codex[existingIdx] = acc
+        } else {
+          data.codex.push(acc)
+        }
+        break
+      }
+      case 'opencodeGo': {
+        if (!data.opencodeGo) data.opencodeGo = []
+        const acc = account as OpencodeGoAccount
+        const existingIdx = data.opencodeGo.findIndex(a => a.id === acc.id)
+        if (existingIdx >= 0) {
+          data.opencodeGo[existingIdx] = acc
+        } else {
+          data.opencodeGo.push(acc)
+        }
+        break
+      }
       default:
         return false
     }
@@ -264,6 +340,16 @@ export class StorageService {
       case 'zaiCoding':
         data.zaiCoding = data.zaiCoding.filter(a => a.id !== accountId)
         break
+      case 'codex':
+        if (data.codex) {
+          data.codex = data.codex.filter(a => a.id !== accountId)
+        }
+        break
+      case 'opencodeGo':
+        if (data.opencodeGo) {
+          data.opencodeGo = data.opencodeGo.filter(a => a.id !== accountId)
+        }
+        break
       default:
         return false
     }
@@ -275,7 +361,7 @@ export class StorageService {
   async updateAccount(
     provider: string,
     accountId: string,
-    updates: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount>
+    updates: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount> | Partial<CodexAccount> | Partial<OpencodeGoAccount>
   ): Promise<boolean> {
     const data = this.getData()
 
@@ -298,6 +384,22 @@ export class StorageService {
         const idx = data.zaiCoding.findIndex(a => a.id === accountId)
         if (idx >= 0) {
           data.zaiCoding[idx] = { ...data.zaiCoding[idx], ...updates as Partial<ZaiCodingAccount> }
+        }
+        break
+      }
+      case 'codex': {
+        if (!data.codex) data.codex = []
+        const idx = data.codex.findIndex(a => a.id === accountId)
+        if (idx >= 0) {
+          data.codex[idx] = { ...data.codex[idx], ...updates as Partial<CodexAccount> }
+        }
+        break
+      }
+      case 'opencodeGo': {
+        if (!data.opencodeGo) data.opencodeGo = []
+        const idx = data.opencodeGo.findIndex(a => a.id === accountId)
+        if (idx >= 0) {
+          data.opencodeGo[idx] = { ...data.opencodeGo[idx], ...updates as Partial<OpencodeGoAccount> }
         }
         break
       }

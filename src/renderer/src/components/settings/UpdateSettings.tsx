@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RefreshCw, ExternalLink, Info } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -23,14 +23,9 @@ export function UpdateSettings() {
     initialize
   } = useUpdateStore()
 
-  const [initialized, setInitialized] = useState(false)
-
   useEffect(() => {
-    if (!initialized) {
-      initialize()
-      setInitialized(true)
-    }
-  }, [initialize, initialized])
+    return initialize()
+  }, [initialize])
 
   return (
     <Card>
@@ -42,11 +37,11 @@ export function UpdateSettings() {
         <CardDescription>{t('settings.update.description')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-3">
+        <div className="space-y-3 rounded-md bg-secondary/50 p-3">
           {/* Current Version */}
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium leading-none">{t('settings.update.currentVersion')}</span>
-            <span className="font-mono text-sm text-muted-foreground">v{currentVersion || '...'}</span>
+            <span className="font-data text-sm text-muted-foreground">v{currentVersion || '...'}</span>
           </div>
 
           {/* Latest Version */}
@@ -58,7 +53,7 @@ export function UpdateSettings() {
                   {t('settings.update.newVersion')}
                 </span>
               )}
-              <span className="font-mono text-sm text-muted-foreground">
+              <span className="font-data text-sm text-muted-foreground">
                 {latestVersion ? `v${latestVersion}` : '...'}
               </span>
             </div>
@@ -66,7 +61,7 @@ export function UpdateSettings() {
         </div>
 
         {/* Footer Actions - Fixed Height Container to prevent layout shift */}
-        <div className="flex items-center justify-between pt-2 h-10">
+        <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-xs text-muted-foreground">
             {lastChecked && t('settings.update.lastChecked', { time: formatFixedTime(lastChecked) })}
           </div>
@@ -84,7 +79,7 @@ export function UpdateSettings() {
               onClick={checkForUpdate}
               disabled={isChecking}
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <RefreshCw className={isChecking ? 'animate-spin' : ''} aria-hidden="true" />
               {isChecking ? t('settings.update.checking') : t('settings.update.checkNow')}
             </Button>
           </div>
