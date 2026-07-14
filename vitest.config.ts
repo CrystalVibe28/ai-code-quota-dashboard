@@ -7,6 +7,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    maxWorkers: 1, // ponytail: serial workers avoid jsdom and crypto test timeouts; raise after parallel isolation
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/__tests__/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['node_modules', 'out', 'release'],

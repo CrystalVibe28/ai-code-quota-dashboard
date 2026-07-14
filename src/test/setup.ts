@@ -2,6 +2,12 @@ import '@testing-library/jest-dom/vitest'
 import { vi, afterEach } from 'vitest'
 import { mockWindowApi } from './mocks/window-api'
 
+Object.defineProperty(globalThis, 'localStorage', {
+  value: jsdom.window.localStorage,
+  writable: true,
+  configurable: true
+})
+
 // Mock window.api for renderer tests
 Object.defineProperty(window, 'api', {
   value: mockWindowApi,

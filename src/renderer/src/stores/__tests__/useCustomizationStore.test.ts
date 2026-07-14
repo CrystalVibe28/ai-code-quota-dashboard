@@ -210,6 +210,35 @@ describe('useCustomizationStore', () => {
     })
   })
 
+  describe('removeAccount', () => {
+    it('should remove the account card, order, and collapsed-state customizations', () => {
+      useCustomizationStore.setState({
+        cards: {
+          'antigravity-account1-model1': { visible: false },
+          'antigravity-account2-model1': { valueFormat: 'both' }
+        },
+        providers: {
+          ...useCustomizationStore.getState().providers,
+          antigravity: {
+            cardOrder: ['antigravity-account1-model1', 'antigravity-account2-model1'],
+            accountCollapsed: { account1: true, account2: true }
+          }
+        }
+      })
+
+      useCustomizationStore.getState().removeAccount('antigravity', 'account1')
+
+      expect(useCustomizationStore.getState().cards).toEqual({
+        'antigravity-account2-model1': { valueFormat: 'both' }
+      })
+      expect(useCustomizationStore.getState().providers.antigravity).toEqual({
+        cardOrder: ['antigravity-account2-model1'],
+        accountCollapsed: { account2: true }
+      })
+      expect(mockWindowApi.storage.saveCustomization).toHaveBeenCalled()
+    })
+  })
+
   describe('loadFromStorage', () => {
     it('should load customization from storage', async () => {
       const storedData = {

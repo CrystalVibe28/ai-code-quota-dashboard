@@ -17,6 +17,7 @@ interface CustomizationActions {
   
   updateCard: (cardId: CardId, config: Partial<CardConfig>) => void
   resetCard: (cardId: CardId) => void
+  removeAccount: (providerId: ProviderId, accountId: string) => void
   
   loadFromStorage: () => Promise<void>
   saveToStorage: () => Promise<void>
@@ -82,6 +83,26 @@ export const useCustomizationStore = create<CustomizationStore>((set, get) => ({
     set((state) => {
       const { [cardId]: _, ...rest } = state.cards
       return { cards: rest }
+    })
+    get().saveToStorage()
+  },
+
+  removeAccount: (providerId, accountId) => {
+    const prefix = `${providerId}-${accountId}-`
+    set((state) => {
+      const provider = state.providers[providerId]
+      const { [accountId]: _, ...accountCollapsed } = provider.accountCollapsed || {}
+      return {
+        cards: Object.fromEntries(Object.entries(state.cards).filter(([cardId]) => !cardId.startsWith(prefix))),
+        providers: {
+          ...state.providers,
+          [providerId]: {
+            ...provider,
+            cardOrder: provider.cardOrder?.filter(cardId => !cardId.startsWith(prefix)),
+            accountCollapsed
+          }
+        }
+      }
     })
     get().saveToStorage()
   },

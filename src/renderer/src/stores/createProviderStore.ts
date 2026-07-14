@@ -2,6 +2,7 @@ import { create, StateCreator } from 'zustand'
 import type { Account, ProviderId, LoginResult } from '@shared/types'
 import { ErrorCode } from '@shared/types'
 import { useErrorStore } from './useErrorStore'
+import { useCustomizationStore } from './useCustomizationStore'
 
 /**
  * Base state interface for all provider stores
@@ -158,6 +159,15 @@ function createBaseActions<TAccount extends Account, TUsage>(
       try {
         const result = await window.api.storage.deleteAccount(providerId, accountId)
         if (result) {
+          generation += 1
+          usageRequest = null
+          const state = get()
+          set({
+            accounts: state.accounts.filter(account => account.id !== accountId),
+            usageData: state.usageData.filter(usage => (usage as { accountId?: string }).accountId !== accountId),
+            isLoading: false
+          })
+          useCustomizationStore.getState().removeAccount(providerId, accountId)
           await get().fetchAccounts()
         } else {
           useErrorStore.getState().showError(ErrorCode.ACCOUNT_DELETE_FAILED, 'Failed to delete account')

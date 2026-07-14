@@ -172,7 +172,12 @@ export class OpencodeGoService {
         this.finishLogin(resolve, { success: false, error: 'Login cancelled' })
       })
 
-      void authWindow.loadURL(AUTH_URL)
+      void Promise.all([
+        this.authSession.clearStorageData(),
+        this.authSession.clearCache()
+      ])
+        .then(() => authWindow.loadURL(AUTH_URL))
+        .catch(error => this.finishLogin(resolve, { success: false, error: String(error) }))
     })
   }
 

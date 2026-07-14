@@ -10,10 +10,12 @@ import {
 } from '../createProviderStore'
 import type { AntigravityAccount, LoginResult } from '@shared/types'
 import { mockWindowApi } from '../../../../test/mocks/window-api'
+import { useCustomizationStore } from '../useCustomizationStore'
 
 type TestAccount = AntigravityAccount
 
 interface TestUsage {
+  accountId?: string
   used: number
   total: number
 }
@@ -135,6 +137,40 @@ describe('createProviderStore with extensions', () => {
       [{ used: 50, total: 100 }],
       [{ used: 50, total: 100 }]
     ])
+  })
+
+  it('should invalidate deleted account usage, customizations, and pending usage requests', async () => {
+    let resolveUsage: (usage: TestUsage[]) => void = () => {}
+    const useStore = createProviderStore<TestAccount, TestUsage>({
+      providerId: 'antigravity',
+      providerName: 'Test Provider',
+      fetchUsageApi: () => new Promise<TestUsage[]>((resolve) => {
+        resolveUsage = resolve
+      })
+    })
+    useStore.setState({
+      accounts: [{ id: 'removed' }, { id: 'kept' }] as TestAccount[],
+      usageData: [
+        { accountId: 'removed', used: 90, total: 100 },
+        { accountId: 'kept', used: 50, total: 100 }
+      ] as TestUsage[]
+    })
+    useCustomizationStore.setState({
+      cards: { 'antigravity-removed-model': { visible: false } },
+      providers: {
+        ...useCustomizationStore.getState().providers,
+        antigravity: { cardOrder: ['antigravity-removed-model'] }
+      }
+    })
+
+    const pendingUsage = useStore.getState().fetchUsage()
+    await useStore.getState().deleteAccount('removed')
+    resolveUsage([{ accountId: 'removed', used: 100, total: 100 }] as TestUsage[])
+    await pendingUsage
+
+    expect(useStore.getState().usageData).toEqual([{ accountId: 'kept', used: 50, total: 100 }])
+    expect(useCustomizationStore.getState().cards).toEqual({})
+    expect(useCustomizationStore.getState().providers.antigravity.cardOrder).toEqual([])
   })
 
   it('should work without extensions (backwards compatibility)', async () => {

@@ -217,6 +217,7 @@ export class NotificationService {
     filters: DisplayFilters
   ): void {
     if (!settings.notifications) {
+      this.state.items.clear()
       return
     }
 
@@ -236,16 +237,21 @@ export class NotificationService {
       .sort((a, b) => b - a)
 
     if (thresholds.length === 0) {
+      this.state.items.clear()
       return
     }
 
     const itemsToNotify: LowQuotaItem[] = []
+    const activeCardIds = new Set<string>()
 
-    this.processAntigravityData(antigravityData, thresholds, itemsToNotify, filters)
-    this.processCopilotData(copilotData, thresholds, itemsToNotify, filters)
-    this.processZaiData(zaiData, thresholds, itemsToNotify, filters)
-    this.processCodexData(codexData, thresholds, itemsToNotify, filters)
-    this.processOpencodeGoData(opencodeGoData, thresholds, itemsToNotify, filters)
+    this.processAntigravityData(antigravityData, thresholds, itemsToNotify, filters, activeCardIds)
+    this.processCopilotData(copilotData, thresholds, itemsToNotify, filters, activeCardIds)
+    this.processZaiData(zaiData, thresholds, itemsToNotify, filters, activeCardIds)
+    this.processCodexData(codexData, thresholds, itemsToNotify, filters, activeCardIds)
+    this.processOpencodeGoData(opencodeGoData, thresholds, itemsToNotify, filters, activeCardIds)
+    this.state.items.forEach((_, cardId) => {
+      if (!activeCardIds.has(cardId)) this.state.items.delete(cardId)
+    })
 
     if (itemsToNotify.length > 0) {
       this.sendNotifications(itemsToNotify, settings.language)
@@ -256,7 +262,8 @@ export class NotificationService {
     data: AntigravityUsageResult[],
     thresholds: number[],
     itemsToNotify: LowQuotaItem[],
-    filters: DisplayFilters
+    filters: DisplayFilters,
+    activeCardIds: Set<string>
   ): void {
     for (const account of data) {
       if (!account.usage) continue
@@ -264,6 +271,7 @@ export class NotificationService {
       for (const model of account.usage) {
         const percentage = Math.round(model.remainingFraction * 100)
         const cardId = `antigravity-${account.accountId}-${model.modelName}`
+        activeCardIds.add(cardId)
 
         // Check if card is hidden
         if (filters.hiddenCardIds.has(cardId)) continue
@@ -287,7 +295,8 @@ export class NotificationService {
     data: CopilotUsageResult[],
     thresholds: number[],
     itemsToNotify: LowQuotaItem[],
-    filters: DisplayFilters
+    filters: DisplayFilters,
+    activeCardIds: Set<string>
   ): void {
     for (const account of data) {
       if (!account.usage) continue
@@ -300,6 +309,7 @@ export class NotificationService {
 
         const percentage = snapshot.percent_remaining
         const cardId = `githubCopilot-${account.accountId}-${quotaType}`
+        activeCardIds.add(cardId)
 
         // Check if card is hidden
         if (filters.hiddenCardIds.has(cardId)) continue
@@ -324,7 +334,8 @@ export class NotificationService {
     data: ZaiUsageResult[],
     thresholds: number[],
     itemsToNotify: LowQuotaItem[],
-    filters: DisplayFilters
+    filters: DisplayFilters,
+    activeCardIds: Set<string>
   ): void {
     for (const account of data) {
       if (!account.usage) continue
@@ -332,6 +343,7 @@ export class NotificationService {
       for (const limit of account.usage.limits) {
         const percentage = 100 - limit.percentage
         const cardId = `zaiCoding-${account.accountId}-${limit.type}`
+        activeCardIds.add(cardId)
 
         // Check if card is hidden
         if (filters.hiddenCardIds.has(cardId)) continue
@@ -359,7 +371,8 @@ export class NotificationService {
     data: CodexUsageResult[],
     thresholds: number[],
     itemsToNotify: LowQuotaItem[],
-    filters: DisplayFilters
+    filters: DisplayFilters,
+    activeCardIds: Set<string>
   ): void {
     for (const account of data) {
       if (!account.usage) continue
@@ -392,6 +405,7 @@ export class NotificationService {
 
         const percentage = 100 - Math.min(entry.window.used_percent, 100)
         const cardId = `codex-${account.accountId}-${entry.cardIdSuffix}`
+        activeCardIds.add(cardId)
 
         // Check if card is hidden
         if (filters.hiddenCardIds.has(cardId)) continue
@@ -415,7 +429,8 @@ export class NotificationService {
     data: OpencodeGoUsageResult[],
     thresholds: number[],
     itemsToNotify: LowQuotaItem[],
-    filters: DisplayFilters
+    filters: DisplayFilters,
+    activeCardIds: Set<string>
   ): void {
     for (const account of data) {
       if (!account.usage) continue
@@ -423,6 +438,7 @@ export class NotificationService {
       for (const limit of account.usage.limits) {
         const percentage = Math.round(limit.remaining)
         const cardId = `opencodeGo-${account.accountId}-${limit.type}`
+        activeCardIds.add(cardId)
 
         if (filters.hiddenCardIds.has(cardId)) continue
 
