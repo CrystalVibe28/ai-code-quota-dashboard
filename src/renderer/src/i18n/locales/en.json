@@ -191,6 +191,8 @@
     "addAccountTitle": "Add Zai Coding Plan Account",
     "apiKeyPlaceholder": "API Key",
     "limits": {
+      "fiveHour": "5-hour quota",
+      "weekly": "Weekly quota",
       "tokensLimit": "AI quota",
       "timeLimit": "Tool usage"
     }

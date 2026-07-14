@@ -17,7 +17,9 @@ import { useCustomization } from '@/contexts/CustomizationContext'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
 import { getQuotaGridClassName } from '@/constants/customization'
 import type { ProviderId } from '@/types/customization'
+import type { ZaiLimit } from '@shared/types'
 import { getAntigravityQuotaType } from '@shared/antigravityQuota'
+import { getZaiQuotaType } from '@shared/zaiQuota'
 import { getCodexWindowLabel } from '@/lib/codexQuota'
 
 export function Overview() {
@@ -39,13 +41,9 @@ export function Overview() {
     return quotaType ? t(`antigravity.quotaTypes.${quotaType}`) : modelName
   }
 
-  const getZaiLimitLabel = (key: string) => {
-    const normalizedKey = key.toLowerCase()
-    const mapping: Record<string, string> = {
-      tokens_limit: t('zaiCoding.limits.tokensLimit'),
-      time_limit: t('zaiCoding.limits.timeLimit')
-    }
-    return mapping[normalizedKey] ?? key.replace(/_/g, ' ')
+  const getZaiLimitLabel = (limit: ZaiLimit) => {
+    const quotaType = getZaiQuotaType(limit)
+    return quotaType ? t(`zaiCoding.limits.${quotaType}`) : limit.type.replace(/_/g, ' ')
   }
   
   const { accounts: antiAccounts, usageData: antiUsage, fetchAccounts: fetchAntiAccounts, fetchUsage: fetchAntiUsage } = useAntigravityStore()
@@ -225,8 +223,8 @@ export function Overview() {
 
       if (!accountUsage.usage) return []
       
-      return accountUsage.usage.limits.map((limit: any) => {
-        const cardId = `zaiCoding-${accountUsage.accountId}-${limit.type}`
+      return accountUsage.usage.limits.map((limit, index) => {
+        const cardId = `zaiCoding-${accountUsage.accountId}-${limit.type}-${limit.unit ?? index}-${limit.number ?? index}`
         const percentage = 100 - limit.percentage
         if (!isCardVisible('zaiCoding', cardId)) return null
         if (!shouldShowCard(percentage, false)) return null
@@ -235,7 +233,7 @@ export function Overview() {
         return (
           <UsageCard
             key={cardId}
-            title={getZaiLimitLabel(limit.type)}
+            title={getZaiLimitLabel(limit)}
             subtitle={account.displayName || accountUsage.name}
             percentage={percentage}
             remaining={limit.remaining}

@@ -64,9 +64,11 @@ export interface ZaiUsageDetail {
  */
 export interface ZaiLimit {
   type: string
-  usage: number
-  currentValue: number
-  remaining: number
+  unit?: number
+  number?: number
+  usage?: number
+  currentValue?: number
+  remaining?: number
   percentage: number
   nextResetTime?: number
   usageDetails?: ZaiUsageDetail[]

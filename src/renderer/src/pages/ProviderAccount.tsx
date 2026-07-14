@@ -17,7 +17,9 @@ import { useCustomizationStore } from '@/stores/useCustomizationStore'
 import { getQuotaGridClassName } from '@/constants/customization'
 import { getProviderById } from '@/constants/providers'
 import type { ProviderId } from '@/types/customization'
+import type { ZaiLimit, ZaiUsage } from '@shared/types'
 import { getAntigravityQuotaType } from '@shared/antigravityQuota'
+import { getZaiQuotaType } from '@shared/zaiQuota'
 import { getCodexWindowLabel } from '@/lib/codexQuota'
 import { cn } from '@/lib/utils'
 
@@ -124,13 +126,9 @@ export function ProviderAccount() {
     return quotaType ? t(`antigravity.quotaTypes.${quotaType}`) : modelName
   }
 
-  const getZaiLimitLabel = (key: string) => {
-    const normalizedKey = key.toLowerCase()
-    const mapping: Record<string, string> = {
-      tokens_limit: t('zaiCoding.limits.tokensLimit'),
-      time_limit: t('zaiCoding.limits.timeLimit')
-    }
-    return mapping[normalizedKey] ?? key.replace(/_/g, ' ')
+  const getZaiLimitLabel = (limit: ZaiLimit) => {
+    const quotaType = getZaiQuotaType(limit)
+    return quotaType ? t(`zaiCoding.limits.${quotaType}`) : limit.type.replace(/_/g, ' ')
   }
 
   const getOpencodeGoLimitLabel = (key: string) => {
@@ -304,14 +302,14 @@ export function ProviderAccount() {
     }
     
     if (providerId === 'zaiCoding') {
-      const usageData = usage.usage as any
-      return usageData.limits.map((limit: any) => {
-        const cardId = `zaiCoding-${accountId}-${limit.type}`
+      const usageData = usage.usage as ZaiUsage
+      return usageData.limits.map((limit, index) => {
+        const cardId = `zaiCoding-${accountId}-${limit.type}-${limit.unit ?? index}-${limit.number ?? index}`
         const config = getCardConfig('zaiCoding', cardId)
         return (
           <UsageCard
             key={cardId}
-            title={getZaiLimitLabel(limit.type)}
+            title={getZaiLimitLabel(limit)}
             percentage={100 - limit.percentage}
             remaining={limit.remaining}
             total={limit.usage}

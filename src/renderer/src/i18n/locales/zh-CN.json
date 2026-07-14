@@ -193,6 +193,8 @@
     "addAccountTitle": "添加 Zai Coding Plan 账户",
     "apiKeyPlaceholder": "API 密钥",
     "limits": {
+      "fiveHour": "5 小时配额",
+      "weekly": "每周配额",
       "tokensLimit": "AI配额",
       "timeLimit": "工具使用"
     }

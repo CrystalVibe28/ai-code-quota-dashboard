@@ -1,6 +1,8 @@
 import { BrowserWindow, Notification } from 'electron'
 import type { NotificationThreshold } from '../../shared/types/settings'
+import type { ZaiAccountUsage } from '@shared/types'
 import { getAntigravityQuotaType } from '@shared/antigravityQuota'
+import { getZaiQuotaType } from '@shared/zaiQuota'
 import { formatCodexQuotaLabel } from '../../shared/codexQuota'
 
 /**
@@ -71,26 +73,6 @@ interface CopilotUsageResult {
   accountId: string
   login: string
   usage: CopilotUsage | null
-  error?: string
-}
-
-interface ZaiLimit {
-  type: string
-  usage: number
-  currentValue: number
-  remaining: number
-  percentage: number
-  nextResetTime?: number
-}
-
-interface ZaiUsage {
-  limits: ZaiLimit[]
-}
-
-interface ZaiUsageResult {
-  accountId: string
-  name: string
-  usage: ZaiUsage | null
   error?: string
 }
 
@@ -210,7 +192,7 @@ export class NotificationService {
   checkAndNotify(
     antigravityData: AntigravityUsageResult[],
     copilotData: CopilotUsageResult[],
-    zaiData: ZaiUsageResult[],
+    zaiData: ZaiAccountUsage[],
     codexData: CodexUsageResult[],
     opencodeGoData: OpencodeGoUsageResult[],
     settings: AppSettings,
@@ -331,7 +313,7 @@ export class NotificationService {
   }
 
   private processZaiData(
-    data: ZaiUsageResult[],
+    data: ZaiAccountUsage[],
     thresholds: number[],
     itemsToNotify: LowQuotaItem[],
     filters: DisplayFilters,
@@ -340,9 +322,9 @@ export class NotificationService {
     for (const account of data) {
       if (!account.usage) continue
 
-      for (const limit of account.usage.limits) {
+      for (const [index, limit] of account.usage.limits.entries()) {
         const percentage = 100 - limit.percentage
-        const cardId = `zaiCoding-${account.accountId}-${limit.type}`
+        const cardId = `zaiCoding-${account.accountId}-${limit.type}-${limit.unit ?? index}-${limit.number ?? index}`
         activeCardIds.add(cardId)
 
         // Check if card is hidden
@@ -350,10 +332,15 @@ export class NotificationService {
 
         const crossedThreshold = this.checkThresholdCrossing(cardId, percentage, thresholds)
         if (crossedThreshold) {
-          const displayType = limit.type
-            .split('_')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join(' ')
+          const quotaType = getZaiQuotaType(limit)
+          const displayType = quotaType === 'fiveHour'
+            ? '5-hour quota'
+            : quotaType === 'weekly'
+              ? 'Weekly quota'
+              : limit.type
+                .split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ')
           itemsToNotify.push({
             provider: 'Zai Coding Plan',
             accountName: account.name,

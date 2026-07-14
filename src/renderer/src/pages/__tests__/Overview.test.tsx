@@ -78,6 +78,39 @@ describe('Overview', () => {
     expect(screen.getByText('codex.noQuotaData')).toBeInTheDocument()
   })
 
+  it('should distinguish Zai 5-hour and weekly quotas by unit', async () => {
+    i18n.addResourceBundle('zh-TW', 'translation', zhTW, true, true)
+    await i18n.changeLanguage('zh-TW')
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const limits = [
+      { type: 'TOKENS_LIMIT', unit: 3, number: 5, percentage: 1 },
+      { type: 'TOKENS_LIMIT', unit: 6, number: 1, percentage: 1 }
+    ]
+
+    useZaiCodingStore.setState({
+      accounts: [{
+        id: 'zai-account',
+        displayName: 'Zai User',
+        showInOverview: true,
+        name: 'Zai User',
+        apiKey: 'api-key',
+        selectedLimits: []
+      }],
+      usageData: [{ accountId: 'zai-account', name: 'Zai User', usage: { limits } }]
+    })
+
+    render(
+      <CustomizationProvider>
+        <Overview />
+      </CustomizationProvider>
+    )
+
+    expect(screen.getByText('5 小時配額')).toBeInTheDocument()
+    expect(screen.getByText('每週配額')).toBeInTheDocument()
+    expect(consoleError.mock.calls.some(call => call.join(' ').includes('same key'))).toBe(false)
+    consoleError.mockRestore()
+  })
+
   it('should localize shared Antigravity quota labels', async () => {
     i18n.addResourceBundle('zh-TW', 'translation', zhTW, true, true)
     await i18n.changeLanguage('zh-TW')

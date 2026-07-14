@@ -28,4 +28,24 @@ describe('NotificationService', () => {
 
     expect(service.getState()).toEqual(new Map())
   })
+
+  it('tracks Zai 5-hour and weekly quotas separately', () => {
+    service.checkAndNotify(
+      [], [], [{
+        accountId: 'zai-account',
+        name: 'Zai User',
+        usage: {
+          limits: [
+            { type: 'TOKENS_LIMIT', unit: 3, number: 5, percentage: 80 },
+            { type: 'TOKENS_LIMIT', unit: 6, number: 1, percentage: 80 }
+          ]
+        }
+      }], [], [], settings, filters
+    )
+
+    expect([...service.getState().keys()]).toEqual([
+      'zaiCoding-zai-account-TOKENS_LIMIT-3-5',
+      'zaiCoding-zai-account-TOKENS_LIMIT-6-1'
+    ])
+  })
 })

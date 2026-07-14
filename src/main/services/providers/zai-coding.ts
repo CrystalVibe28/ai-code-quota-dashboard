@@ -1,25 +1,7 @@
 import { fetchWithTimeout } from './fetchWithTimeout'
+import type { ZaiLimit, ZaiUsage } from '@shared/types'
 
 const API_URL = 'https://api.z.ai/api/monitor/usage/quota/limit'
-
-interface UsageDetail {
-  modelCode: string
-  usage: number
-}
-
-interface Limit {
-  type: string
-  usage: number
-  currentValue: number
-  remaining: number
-  percentage: number
-  nextResetTime?: number
-  usageDetails?: UsageDetail[]
-}
-
-interface ZaiUsage {
-  limits: Limit[]
-}
 
 export class ZaiCodingService {
   async validateApiKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
@@ -85,7 +67,7 @@ export class ZaiCodingService {
         return null
       }
 
-      let data: { success: boolean; data?: { limits?: Limit[] }; msg?: string }
+      let data: { success: boolean; data?: { limits?: ZaiLimit[] }; msg?: string }
       try {
         data = JSON.parse(responseText)
       } catch (parseError) {
