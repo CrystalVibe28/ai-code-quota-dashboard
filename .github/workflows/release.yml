@@ -9,8 +9,22 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    runs-on: windows-latest
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            command: npm run build:win
+            artifact: windows-x64
+            files: release/*.exe
+          - os: ubuntu-latest
+            command: npm run build:linux
+            artifact: linux-x64
+            files: |
+              release/*.AppImage
+              release/*.deb
+              release/*.rpm
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v6
@@ -27,13 +41,28 @@ jobs:
           npm version $version --no-git-tag-version --allow-same-version
 
       - run: npm ci
-      - run: npm run build:win
+      - run: ${{ matrix.command }}
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: release
+          merge-multiple: true
 
       - name: Create release
-        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $version = $env:GITHUB_REF_NAME -replace '^v', ''
-          $date = [TimeZoneInfo]::ConvertTimeBySystemTimeZoneId((Get-Date), 'Taipei Standard Time').ToString('yyyy-MM-dd')
-          gh release create $env:GITHUB_REF_NAME 'release/*.exe' --verify-tag --title $env:GITHUB_REF_NAME --notes "## [$version] - $date"
+          version="${GITHUB_REF_NAME#v}"
+          date="$(TZ=Asia/Taipei date +%F)"
+          gh release create "$GITHUB_REF_NAME" release/* --verify-tag --title "$GITHUB_REF_NAME" --notes "## [$version] - $date"

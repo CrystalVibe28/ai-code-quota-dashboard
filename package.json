@@ -1,9 +1,10 @@
 {
   "name": "ai-code-quota-dashboard",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "AI Usage Dashboard - Multi-provider usage monitoring",
   "main": "./out/main/index.js",
-  "author": "",
+  "author": "CrystalVibe28 <CrystalVibe28@users.noreply.github.com>",
+  "homepage": "https://github.com/CrystalVibe28/ai-code-quota-dashboard",
   "license": "MIT",
   "scripts": {
     "dev": "electron-vite dev",
@@ -14,7 +15,7 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win --publish never",
     "build:mac": "npm run build && electron-builder --mac",
-    "build:linux": "npm run build && electron-builder --linux",
+    "build:linux": "npm run build && electron-builder --linux --publish never",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
@@ -95,6 +96,30 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "deleteAppDataOnUninstall": true
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "rpm",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.png",
+      "category": "Utility"
     }
   }
 }
