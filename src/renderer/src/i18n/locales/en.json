@@ -24,6 +24,7 @@
     "providers": "Providers",
     "addProvider": "Add Provider",
     "antigravity": "Antigravity",
+    "aiStudio": "Google AI Studio",
     "githubCopilot": "GitHub Copilot",
     "zaiCoding": "Zai Coding Plan",
     "codex": "Codex",
@@ -31,8 +32,7 @@
     "settings": "Settings"
   },
   "branding": {
-    "title": "AI Manager",
-    "subtitle": "Usage Dashboard"
+    "title": "AI Manager"
   },
    "auth": {
      "unlock": "Unlock",
@@ -78,7 +78,6 @@
    },
 "settings": {
     "title": "Settings",
-    "subtitle": "Configure application preferences",
     "refreshSettings": "Refresh Settings",
     "refreshSettingsDesc": "Configure how often usage data is refreshed",
     "refreshInterval": "Refresh Interval (seconds)",
@@ -113,13 +112,10 @@
     "autoLaunchDesc": "Automatically start the application when the system starts",
     "sections": {
       "system": "System & language",
-      "systemDesc": "Manage data refresh, language, and background behavior",
+      "connections": "Provider connections",
       "alerts": "Quota alerts",
-      "alertsDesc": "Choose when and how low quota notifications appear",
       "appearance": "Appearance & data",
-      "appearanceDesc": "Adjust the Fluent 2 theme, layout, and quota presentation",
-      "privacy": "Security & maintenance",
-      "privacyDesc": "Manage access protection, version details, and app updates"
+      "privacy": "Security & maintenance"
     },
     "update": {
       "title": "About & Updates",
@@ -130,6 +126,9 @@
       "newVersion": "New!",
       "checkNow": "Check for Updates",
       "download": "Download",
+      "downloading": "Downloading... {{percent}}%",
+      "startUpdate": "Start Update",
+      "installing": "Starting update...",
       "checking": "Checking...",
       "lastChecked": "Last checked: {{time}}",
       "publishedAt": "Published",
@@ -139,21 +138,23 @@
       "minutesAgo": "{{count}} min ago",
       "hoursAgo": "{{count}} hr ago",
       "daysAgo": "{{count}} days ago",
-      "updateAvailable": "Update Available",
-      "updateAvailableDesc": "Version {{version}} is available",
-      "skipVersion": "Skip this version",
-      "viewRelease": "View Release"
+      "updateReady": "Update Ready",
+      "updateReadyDesc": "Version {{version}} has been downloaded. Restart now to update.",
+      "updateFailed": "Update failed: {{error}}",
+      "skipVersion": "Skip this version"
     }
   },
   "overview": {
     "title": "Overview",
-    "subtitle": "See remaining quota across every AI coding service in one place",
-    "providerSummary": "{{count}} providers",
-    "accountSummary": "{{count}} visible accounts",
-    "quotaSummary": "{{count}} quotas",
     "lastUpdated": "Last updated: {{time}}",
     "noAccountsConfigured": "No accounts configured",
-    "addAccountsHint": "Add accounts in the provider pages to see usage here"
+    "addAccountsHint": "Add accounts in the provider pages to see usage here",
+    "columns": {
+      "quota": "Quota / account",
+      "status": "Availability",
+      "remaining": "Remaining",
+      "reset": "Resets"
+    }
   },
   "provider": {
     "accounts": "Accounts",
@@ -167,9 +168,6 @@
     "loginFailed": "Login failed",
     "accountNotFound": "Account not found",
     "accountSettings": "Account Settings",
-    "accountSettingsDesc": "Manage the name, overview visibility, and account access",
-    "visibleInOverview": "Shown in overview",
-    "hiddenFromOverview": "Hidden from overview",
     "editName": "Edit Name"
   },
   "antigravity": {
@@ -223,9 +221,59 @@
       "monthly": "Monthly quota"
     }
   },
+  "aiStudio": {
+    "rpm": "RPM",
+    "tpm": "TPM",
+    "rpd": "RPD",
+    "unlimited": "Unlimited",
+    "usageHint": "Used / limit",
+    "noQuotaData": "No model rate limits were returned for this project and tier",
+    "oauthCredentials": {
+      "title": "Google OAuth client",
+      "description": "Create a Desktop app OAuth client once. It is shared by every AI Studio account and project.",
+      "settingsDescription": "Configure the shared OAuth client used to connect Google AI Studio accounts",
+      "clientId": "OAuth Client ID",
+      "clientIdPlaceholder": "Enter the client ID ending in .apps.googleusercontent.com",
+      "clientSecret": "OAuth Client Secret",
+      "clientSecretPlaceholder": "Enter the client secret",
+      "setupGuide": "Open complete setup guide",
+      "securityNote": "Saved in encrypted app storage. After saving, the values cannot be viewed or edited.",
+      "save": "Save OAuth credentials",
+      "saving": "Saving...",
+      "checking": "Checking OAuth credentials...",
+      "configured": "OAuth credentials configured",
+      "configuredDesc": "The values are hidden and cannot be viewed or edited. Delete them before setting a replacement.",
+      "required": "Enter both the OAuth Client ID and Client Secret.",
+      "saveFailed": "Could not save OAuth credentials. They may already be configured.",
+      "loadFailed": "Could not check OAuth credentials.",
+      "delete": "Delete OAuth credentials",
+      "deleting": "Deleting...",
+      "deleteConfirm": "Delete the Google OAuth credentials? Existing AI Studio accounts may stop refreshing and must sign in again after you configure a replacement.",
+      "deleteFailed": "Could not delete OAuth credentials.",
+      "testUsersHint": "Seeing Error 403: access_denied?",
+      "testUsersDescription": "Add the Google account under Audience > Test users, then try again.",
+      "testUsersGuide": "Open the test-user instructions"
+    },
+    "tierSettings": {
+      "action": "Set Tier",
+      "title": "Set Paid Tier",
+      "description": "This setting is used when Google cannot identify the detailed Tier. A detailed system result always takes priority.",
+      "label": "Paid Tier",
+      "sources": {
+        "system": "System detected",
+        "manual": "Manually set",
+        "default": "Default"
+      }
+    },
+    "tiers": {
+      "free": "Free Tier",
+      "tier1": "Tier 1",
+      "tier2": "Tier 2",
+      "tier3": "Tier 3"
+    }
+  },
   "addAccount": {
     "addProvider": "Add Provider",
-    "description": "Choose a service and connect an account. Its quotas will appear in your overview.",
     "displayName": "Display Name",
     "displayNamePlaceholder": "Custom name (optional, defaults to {{provider}})",
     "selectProvider": "Provider",
@@ -238,6 +286,10 @@
     "pleaseEnterName": "Please enter a name",
     "pleaseEnterApiKey": "Please enter an API key",
     "pleaseLoginFirst": "Please sign in first",
+    "project": "Google Cloud project",
+    "selectProject": "Select a project",
+    "pleaseSelectProject": "Please select a Google Cloud project",
+    "noProjects": "This Google account has no accessible active projects",
     "failedToAddAccount": "Failed to add account",
     "connect": "Connect",
     "connected": "Connected",
@@ -305,7 +357,13 @@
       
       "layout": {
         "title": "Layout",
-        "description": "Adjust the grid and card arrangement",
+        "description": "Choose the overview density and arrange provider content",
+        "overviewLayout": "Overview layout",
+        "overviewLayoutDesc": "Use a dense list for many accounts or keep the original cards",
+        "overviewLayoutOptions": {
+          "compact": "Compact list",
+          "cards": "Card grid"
+        },
         "gridColumns": "Grid Columns",
         "gridColumnsDesc": "Number of columns in the card grid",
         "gridOptions": {
@@ -402,6 +460,10 @@
       "networkDesc": "Could not connect to the authentication server. Check your internet connection.",
       "genericTitle": "Sign in failed",
       "genericDesc": "An error occurred during sign in. Please try again."
+    },
+    "googleApi": {
+      "disabledDesc": "Open Google Cloud settings, enable the API, wait a few minutes, then retry.",
+      "openSettings": "Open API settings"
     },
     "api": {
       "general": "API request failed",

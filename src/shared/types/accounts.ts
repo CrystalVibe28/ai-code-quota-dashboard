@@ -4,7 +4,7 @@
 /**
  * Provider identifiers
  */
-export type ProviderId = 'antigravity' | 'githubCopilot' | 'zaiCoding' | 'codex' | 'opencodeGo'
+export type ProviderId = 'antigravity' | 'githubCopilot' | 'zaiCoding' | 'codex' | 'opencodeGo' | 'aiStudio'
 
 /**
  * Base account interface with common fields
@@ -52,6 +52,43 @@ export interface ZaiCodingAccount extends BaseAccount {
   selectedLimits: string[]
 }
 
+export type AiStudioTier = 'free' | 'tier1' | 'tier2' | 'tier3'
+export type AiStudioPaidTier = Exclude<AiStudioTier, 'free'>
+export type AiStudioTierSource = 'system' | 'manual' | 'default'
+
+export interface AiStudioProject {
+  projectId: string
+  projectNumber: string
+  name: string
+}
+
+export interface AiStudioLoginSession {
+  userId: string
+  email: string
+  name: string
+  picture?: string
+  accessToken: string
+  refreshToken: string
+  expiresAt: number
+  projects: AiStudioProject[]
+}
+
+export interface AiStudioAccount extends BaseAccount {
+  userId: string
+  email: string
+  name: string
+  picture?: string
+  accessToken: string
+  refreshToken: string
+  expiresAt: number
+  projectId: string
+  projectNumber: string
+  projectName: string
+  tier: AiStudioTier
+  manualTier?: AiStudioPaidTier
+  tierSource?: AiStudioTierSource
+}
+
 /**
  * OpenAI Codex account
  */
@@ -80,7 +117,7 @@ export interface OpencodeGoAccount extends BaseAccount {
 /**
  * Union type for all account types
  */
-export type Account = AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount
+export type Account = AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | AiStudioAccount
 
 /**
  * Partial types for account updates
@@ -90,6 +127,7 @@ export type GithubCopilotAccountUpdate = Partial<Omit<GithubCopilotAccount, 'id'
 export type ZaiCodingAccountUpdate = Partial<Omit<ZaiCodingAccount, 'id'>>
 export type CodexAccountUpdate = Partial<Omit<CodexAccount, 'id'>>
 export type OpencodeGoAccountUpdate = Partial<Omit<OpencodeGoAccount, 'id'>>
+export type AiStudioAccountUpdate = Partial<Omit<AiStudioAccount, 'id'>>
 
 /**
  * Login result types

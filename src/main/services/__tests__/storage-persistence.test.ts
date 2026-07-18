@@ -94,4 +94,27 @@ describe('StorageService persistence', () => {
     expect((await recoveredStorage.getSettings()).language).toBe('zh-TW')
     expect(existsSync(join(electronMock.userDataPath, 'data', 'password-change.json'))).toBe(false)
   })
+
+  it('stores AI Studio OAuth credentials once and removes them from recovery data', async () => {
+    const storage = new StorageService()
+    storage.unlock('password')
+
+    expect(await storage.saveAiStudioOAuthCredentials(' client-id ', ' client-secret ')).toBe(true)
+    expect(await storage.saveAiStudioOAuthCredentials('replacement-id', 'replacement-secret')).toBe(false)
+    expect(await storage.getAiStudioOAuthCredentials()).toEqual({
+      clientId: 'client-id',
+      clientSecret: 'client-secret'
+    })
+
+    expect(await storage.deleteAiStudioOAuthCredentials()).toBe(true)
+    expect(await storage.hasAiStudioOAuthCredentials()).toBe(false)
+
+    const storagePath = join(electronMock.userDataPath, 'data', 'credentials.enc')
+    writeFileSync(storagePath, 'corrupt primary')
+    resetStorageService()
+
+    const recoveredStorage = new StorageService()
+    recoveredStorage.unlock('password')
+    expect(await recoveredStorage.hasAiStudioOAuthCredentials()).toBe(false)
+  })
 })

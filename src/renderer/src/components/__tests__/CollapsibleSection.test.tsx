@@ -43,7 +43,7 @@ describe('CollapsibleSection', () => {
         </CollapsibleSection>
       )
 
-      // Children are rendered but hidden via CSS (max-height: 0, opacity: 0)
+      // Children stay mounted while the grid row is collapsed.
       expect(screen.getByText('Child Content')).toBeInTheDocument()
     })
   })
@@ -82,7 +82,7 @@ describe('CollapsibleSection', () => {
       expect(svgIcon).toBeInTheDocument()
     })
 
-    it('should have max-h-0 class when collapsed', () => {
+    it('should collapse the content grid row', () => {
       const { container } = render(
         <CollapsibleSection 
           title="Test" 
@@ -94,11 +94,11 @@ describe('CollapsibleSection', () => {
       )
 
       const contentDiv = container.querySelector('section > div:last-child')
-      expect(contentDiv).toHaveClass('max-h-0')
+      expect(contentDiv).toHaveClass('grid-rows-[0fr]')
       expect(contentDiv).toHaveClass('opacity-0')
     })
 
-    it('should have max-h-[2000px] class when expanded', () => {
+    it('should expand the content grid row without a height cap', () => {
       const { container } = render(
         <CollapsibleSection 
           title="Test" 
@@ -110,7 +110,7 @@ describe('CollapsibleSection', () => {
       )
 
       const contentDiv = container.querySelector('section > div:last-child')
-      expect(contentDiv).toHaveClass('max-h-[2000px]')
+      expect(contentDiv).toHaveClass('grid-rows-[1fr]')
       expect(contentDiv).toHaveClass('opacity-100')
     })
   })

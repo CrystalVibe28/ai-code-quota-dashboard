@@ -5,6 +5,7 @@ import { RefreshCw, AlertTriangle, Info, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { UsageCard } from '@/components/common/UsageCard'
+import { AiStudioLimitCard } from '@/components/common/AiStudioLimitCard'
 import { ErrorCard } from '@/components/common/ErrorCard'
 import { CollapsibleSection } from '@/components/common/CollapsibleSection'
 import type { MainLayoutOutletContext } from '@/components/layout/MainLayout'
@@ -13,14 +14,17 @@ import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
 import { useCodexStore } from '@/stores/useCodexStore'
 import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
+import { useAiStudioStore } from '@/stores/useAiStudioStore'
 import { useCustomization } from '@/contexts/CustomizationContext'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
 import { getQuotaGridClassName } from '@/constants/customization'
+import { getProviderById } from '@/constants/providers'
 import type { ProviderId } from '@/types/customization'
 import type { ZaiLimit } from '@shared/types'
 import { getAntigravityQuotaType } from '@shared/antigravityQuota'
 import { getZaiQuotaType } from '@shared/zaiQuota'
 import { getCodexWindowLabel } from '@/lib/codexQuota'
+import { cn } from '@/lib/utils'
 
 export function Overview() {
   const { t } = useTranslation()
@@ -51,36 +55,38 @@ export function Overview() {
   const { accounts: zaiAccounts, usageData: zaiUsage, fetchAccounts: fetchZaiAccounts, fetchUsage: fetchZaiUsage } = useZaiCodingStore()
   const { accounts: codexAccounts, usageData: codexUsage, fetchAccounts: fetchCodexAccounts, fetchUsage: fetchCodexUsage } = useCodexStore()
   const { accounts: opencodeGoAccounts, usageData: opencodeGoUsage, fetchAccounts: fetchOpencodeGoAccounts, fetchUsage: fetchOpencodeGoUsage } = useOpencodeGoStore()
+  const { accounts: aiStudioAccounts, usageData: aiStudioUsage, fetchAccounts: fetchAiStudioAccounts, fetchUsage: fetchAiStudioUsage } = useAiStudioStore()
   
   const { global, getSortedProviders, getCardConfig, isCardVisible } = useCustomization()
   const { providers, updateProvider } = useCustomizationStore()
+  const isCompactOverview = global.overviewLayout === 'compact'
+  const compactFallbackClassName = isCompactOverview ? 'rounded-none border-0 shadow-none' : undefined
 
   const refreshAll = useCallback(async () => {
     setIsRefreshing(true)
     try {
-      await Promise.all([fetchAntiAccounts(), fetchGhAccounts(), fetchZaiAccounts(), fetchCodexAccounts(), fetchOpencodeGoAccounts()])
+      await Promise.all([fetchAntiAccounts(), fetchGhAccounts(), fetchZaiAccounts(), fetchCodexAccounts(), fetchOpencodeGoAccounts(), fetchAiStudioAccounts()])
       const [antigravity, copilot, zai, codex, opencodeGo] = await Promise.all([
         fetchAntiUsage(),
         fetchGhUsage(),
         fetchZaiUsage(),
         fetchCodexUsage(),
-        fetchOpencodeGoUsage()
+        fetchOpencodeGoUsage(),
+        fetchAiStudioUsage()
       ])
       await window.api.notification.checkAndNotify({ antigravity, copilot, zai, codex, opencodeGo }).catch(() => {})
       setRefreshKey(prev => prev + 1)
     } finally {
       setIsRefreshing(false)
     }
-  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage])
+  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchAiStudioAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage, fetchAiStudioUsage])
 
   const visibleAntiAccounts = antiAccounts.filter(a => a.showInOverview)
   const visibleGhAccounts = ghAccounts.filter(a => a.showInOverview)
   const visibleZaiAccounts = zaiAccounts.filter(a => a.showInOverview)
   const visibleCodexAccounts = codexAccounts.filter(a => a.showInOverview)
   const visibleOpencodeGoAccounts = opencodeGoAccounts.filter(a => a.showInOverview)
-  const visibleAccountCount = visibleAntiAccounts.length + visibleGhAccounts.length + visibleZaiAccounts.length + visibleCodexAccounts.length + visibleOpencodeGoAccounts.length
-  const connectedProviderCount = [visibleAntiAccounts, visibleGhAccounts, visibleZaiAccounts, visibleCodexAccounts, visibleOpencodeGoAccounts]
-    .filter(accounts => accounts.length > 0).length
+  const visibleAiStudioAccounts = aiStudioAccounts.filter(a => a.showInOverview)
 
   const hasLowQuota = (percentage: number) => percentage <= global.lowQuotaThreshold
   
@@ -112,6 +118,8 @@ export function Overview() {
             title={t('nav.antigravity')}
             subtitle={account.displayName || accountUsage.name}
             errorMessage={accountUsage.error}
+            cardSize={isCompactOverview ? 'compact' : undefined}
+            className={compactFallbackClassName}
             onRetry={refreshAll}
           />
         ]
@@ -134,6 +142,7 @@ export function Overview() {
             percentage={percentage}
             resetTime={model.resetTime}
             cardSize={config.cardSize}
+            overviewLayout={global.overviewLayout}
             progressStyle={config.progressStyle}
             valueFormat={config.valueFormat}
             decimalPlaces={config.decimalPlaces}
@@ -161,6 +170,8 @@ export function Overview() {
             title={t('nav.githubCopilot')}
             subtitle={account.displayName || accountUsage.name}
             errorMessage={accountUsage.error}
+            cardSize={isCompactOverview ? 'compact' : undefined}
+            className={compactFallbackClassName}
             onRetry={refreshAll}
           />
         ]
@@ -189,6 +200,7 @@ export function Overview() {
             total={quota.entitlement}
             resetTime={accountUsage.usage?.quotaResetDate}
             cardSize={config.cardSize}
+            overviewLayout={global.overviewLayout}
             progressStyle={config.progressStyle}
             valueFormat={config.valueFormat}
             decimalPlaces={config.decimalPlaces}
@@ -216,6 +228,8 @@ export function Overview() {
             title={t('nav.zaiCoding')}
             subtitle={account.displayName || accountUsage.name}
             errorMessage={accountUsage.error}
+            cardSize={isCompactOverview ? 'compact' : undefined}
+            className={compactFallbackClassName}
             onRetry={refreshAll}
           />
         ]
@@ -240,6 +254,7 @@ export function Overview() {
             total={limit.usage}
             resetTime={limit.nextResetTime}
             cardSize={config.cardSize}
+            overviewLayout={global.overviewLayout}
             progressStyle={config.progressStyle}
             valueFormat={config.valueFormat}
             decimalPlaces={config.decimalPlaces}
@@ -267,6 +282,8 @@ export function Overview() {
             title={t('nav.codex')}
             subtitle={account.displayName || accountUsage.email}
             errorMessage={accountUsage.error}
+            cardSize={isCompactOverview ? 'compact' : undefined}
+            className={compactFallbackClassName}
             onRetry={refreshAll}
           />
         ]
@@ -298,6 +315,7 @@ export function Overview() {
             percentage={percentage}
             resetTime={resetTime}
             cardSize={config.cardSize}
+            overviewLayout={global.overviewLayout}
             progressStyle={config.progressStyle}
             valueFormat={config.valueFormat}
             decimalPlaces={config.decimalPlaces}
@@ -312,7 +330,7 @@ export function Overview() {
 
       if (cards.length === 0) {
         return [
-          <Card key={`codex-${accountUsage.accountId}-no-data`} className="rounded-md">
+          <Card key={`codex-${accountUsage.accountId}-no-data`} className={compactFallbackClassName || 'rounded-md'}>
             <CardContent className="pt-4">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Info className="h-4 w-4 flex-shrink-0" />
@@ -349,6 +367,8 @@ export function Overview() {
             title={t('nav.opencodeGo')}
             subtitle={account.displayName || accountUsage.name}
             errorMessage={accountUsage.error}
+            cardSize={isCompactOverview ? 'compact' : undefined}
+            className={compactFallbackClassName}
             onRetry={refreshAll}
           />
         ]
@@ -373,6 +393,7 @@ export function Overview() {
             total={limit.limit}
             resetTime={limit.resetTime}
             cardSize={config.cardSize}
+            overviewLayout={global.overviewLayout}
             progressStyle={config.progressStyle}
             valueFormat={config.valueFormat}
             decimalPlaces={config.decimalPlaces}
@@ -387,7 +408,7 @@ export function Overview() {
 
       if (cards.length === 0) {
         return [
-          <Card key={`opencodeGo-${accountUsage.accountId}-no-data`} className="rounded-md">
+          <Card key={`opencodeGo-${accountUsage.accountId}-no-data`} className={compactFallbackClassName || 'rounded-md'}>
             <CardContent className="pt-4">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Info className="h-4 w-4 flex-shrink-0" />
@@ -399,6 +420,53 @@ export function Overview() {
       }
 
       return cards
+    })
+  }
+
+  const renderAiStudioCards = () => {
+    return aiStudioUsage.flatMap((accountUsage) => {
+      const account = visibleAiStudioAccounts.find(value => value.id === accountUsage.accountId)
+      if (!account) return []
+
+      if (accountUsage.error && !accountUsage.usage) {
+        return [
+          <ErrorCard
+            key={`aiStudio-${accountUsage.accountId}-error`}
+            title={t('nav.aiStudio')}
+            subtitle={account.displayName}
+            errorMessage={accountUsage.error}
+            cardSize={isCompactOverview ? 'compact' : undefined}
+            className={compactFallbackClassName}
+            onRetry={refreshAll}
+          />
+        ]
+      }
+
+      if (!accountUsage.usage) return []
+      if (accountUsage.usage.limits.length === 0) {
+        return [
+          <Card key={`aiStudio-${accountUsage.accountId}-no-data`} className={compactFallbackClassName || 'rounded-md'}>
+            <CardContent className="pt-4 text-sm text-muted-foreground">{t('aiStudio.noQuotaData')}</CardContent>
+          </Card>
+        ]
+      }
+
+      return accountUsage.usage.limits.map((limit) => {
+        const cardId = `aiStudio-${accountUsage.accountId}-${limit.model}`
+        if (!isCardVisible('aiStudio', cardId)) return null
+        const config = getCardConfig('aiStudio', cardId)
+        return (
+          <AiStudioLimitCard
+            key={cardId}
+            {...limit}
+            subtitle={account.displayName}
+            cardSize={config.cardSize}
+            cardRadius={config.cardRadius}
+            overviewLayout={global.overviewLayout}
+            className={compactFallbackClassName}
+          />
+        )
+      }).filter(Boolean)
     })
   }
 
@@ -427,26 +495,20 @@ export function Overview() {
       title: t('nav.opencodeGo'),
       hasAccounts: visibleOpencodeGoAccounts.length > 0,
       render: renderOpencodeGoCards
+    },
+    aiStudio: {
+      title: t('nav.aiStudio'),
+      hasAccounts: visibleAiStudioAccounts.length > 0,
+      render: renderAiStudioCards
     }
   }
 
   const sortedProviders = getSortedProviders()
 
   return (
-    <div className="fluent-page space-y-7">
+    <div className={cn('fluent-page', isCompactOverview ? 'space-y-5' : 'space-y-7')}>
       <header className="fluent-page-header">
-        <div>
-          <h1 className="fluent-page-title">{t('overview.title')}</h1>
-          <p className="fluent-page-description">{t('overview.subtitle')}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs leading-4 text-muted-foreground">
-            <span className="rounded-full border bg-card px-2.5 py-1 shadow-fluent-2">
-              {t('overview.providerSummary', { count: connectedProviderCount })}
-            </span>
-            <span className="rounded-full border bg-card px-2.5 py-1 shadow-fluent-2">
-              {t('overview.accountSummary', { count: visibleAccountCount })}
-            </span>
-          </div>
-        </div>
+        <h1 className="fluent-page-title">{t('overview.title')}</h1>
         <div className="flex flex-wrap gap-2">
           <Button onClick={refreshAll} disabled={isRefreshing} variant="outline">
             <RefreshCw className={isRefreshing ? 'animate-spin' : ''} aria-hidden="true" />
@@ -459,7 +521,7 @@ export function Overview() {
         </div>
       </header>
 
-      <div className="space-y-7">
+      <div className={isCompactOverview ? 'space-y-3' : 'space-y-7'}>
       {sortedProviders.map((providerId) => {
         const data = providerData[providerId]
         if (!data.hasAccounts) return null
@@ -467,16 +529,40 @@ export function Overview() {
         const isCollapsed = providers[providerId]?.collapsed ?? false
         const cards = data.render()
         if (cards.length === 0) return null
+        const ProviderIcon = getProviderById(providerId)?.icon
         
         return (
           <CollapsibleSection
             key={providerId}
             title={data.title}
-            meta={t('overview.quotaSummary', { count: cards.length })}
+            icon={isCompactOverview && ProviderIcon ? (
+              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-accent text-primary">
+                <ProviderIcon className="h-4 w-4" aria-hidden="true" />
+              </span>
+            ) : undefined}
             isCollapsed={isCollapsed}
             onToggle={() => toggleCollapse(providerId)}
+            className={isCompactOverview
+              ? 'overflow-hidden border bg-card shadow-fluent-2 [&>button]:mb-0 [&>button]:min-h-12 [&>button]:rounded-none [&>button]:px-3'
+              : undefined}
           >
-            <div className={getGridClass(providerId)}>
+            <div className={isCompactOverview ? 'divide-y border-t' : getGridClass(providerId)}>
+              {isCompactOverview && providerId === 'aiStudio' && (
+                <div className="hidden grid-cols-[minmax(10rem,1.35fr)_repeat(3,minmax(5.5rem,1fr))] items-center gap-x-3 bg-secondary/50 px-4 py-1.5 text-[11px] font-semibold leading-4 text-muted-foreground lg:grid">
+                  <span>{t('overview.columns.quota')}</span>
+                  <span className="text-right">{t('aiStudio.rpm')}</span>
+                  <span className="text-right">{t('aiStudio.tpm')}</span>
+                  <span className="text-right">{t('aiStudio.rpd')}</span>
+                </div>
+              )}
+              {isCompactOverview && providerId !== 'aiStudio' && (
+                <div className="hidden grid-cols-[minmax(10rem,1.35fr)_minmax(8rem,1fr)_5.5rem_8rem] items-center gap-x-3 bg-secondary/50 px-4 py-1.5 text-[11px] font-semibold leading-4 text-muted-foreground lg:grid">
+                  <span>{t('overview.columns.quota')}</span>
+                  <span>{t('overview.columns.status')}</span>
+                  <span className="text-right">{t('overview.columns.remaining')}</span>
+                  <span className="text-right">{t('overview.columns.reset')}</span>
+                </div>
+              )}
               {cards}
             </div>
           </CollapsibleSection>
@@ -488,7 +574,8 @@ export function Overview() {
        visibleGhAccounts.length === 0 && 
        visibleZaiAccounts.length === 0 && 
        visibleCodexAccounts.length === 0 &&
-       visibleOpencodeGoAccounts.length === 0 && (
+       visibleOpencodeGoAccounts.length === 0 &&
+       visibleAiStudioAccounts.length === 0 && (
         <Card className="border-dashed shadow-none">
           <CardContent className="flex flex-col items-center py-14 text-center">
             <div className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-secondary">

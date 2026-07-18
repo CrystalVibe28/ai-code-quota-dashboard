@@ -12,6 +12,8 @@ describe('Settings', () => {
     useAuthStore.setState(useAuthStore.getInitialState(), true)
     useSettingsStore.setState(useSettingsStore.getInitialState(), true)
     vi.clearAllMocks()
+    mockWindowApi.aiStudio.hasOAuthCredentials.mockResolvedValue(true)
+    mockWindowApi.aiStudio.deleteOAuthCredentials.mockResolvedValue(true)
   })
 
   it('should save threshold fields only after editing finishes', async () => {
@@ -70,5 +72,21 @@ describe('Settings', () => {
       expect(clearAllData).toHaveBeenCalledTimes(1)
     })
     expect(mockWindowApi.auth.lock).not.toHaveBeenCalled()
+  })
+
+  it('should hide configured OAuth values and require deletion before replacing them', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    render(<Settings />)
+
+    expect(await screen.findByText('OAuth credentials configured')).toBeInTheDocument()
+    expect(screen.queryByLabelText('OAuth Client ID')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('OAuth Client Secret')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete OAuth credentials' }))
+
+    await waitFor(() => {
+      expect(mockWindowApi.aiStudio.deleteOAuthCredentials).toHaveBeenCalledTimes(1)
+      expect(screen.getByLabelText('OAuth Client ID')).toBeInTheDocument()
+    })
   })
 })

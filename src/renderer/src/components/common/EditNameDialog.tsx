@@ -55,7 +55,7 @@ export function EditNameDialog({
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !isLoading) {
+    if (e.key === 'Enter' && !e.nativeEvent.isComposing && !isLoading) {
       handleSave()
     }
   }

@@ -9,9 +9,16 @@ import { mockWindowApi } from '../../../../../test/mocks/window-api'
 describe('LayoutSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    Element.prototype.scrollIntoView = vi.fn()
     i18n.addResourceBundle('en', 'translation', {
       customization: {
         layout: {
+          overviewLayout: 'Overview layout',
+          overviewLayoutDesc: 'Choose the overview layout',
+          overviewLayoutOptions: {
+            compact: 'Compact list',
+            cards: 'Card grid'
+          },
           moveUp: 'Move {{provider}} up',
           moveDown: 'Move {{provider}} down'
         }
@@ -32,6 +39,17 @@ describe('LayoutSettings', () => {
     expect(getQuotaGridClassName(4, 'default')).toContain('lg:grid-cols-4')
     expect(getQuotaGridClassName('auto', 'compact')).toContain('lg:grid-cols-4')
     expect(getQuotaGridClassName('auto', 'large')).toContain('lg:grid-cols-2')
+  })
+
+  it('should switch overview layouts and persist the setting', async () => {
+    render(<LayoutSettings />)
+
+    const layoutSelect = screen.getByRole('combobox', { name: 'Overview layout' })
+    fireEvent.keyDown(layoutSelect, { key: 'ArrowDown' })
+    fireEvent.click(await screen.findByRole('option', { name: 'Card grid' }))
+
+    expect(useCustomizationStore.getState().global.overviewLayout).toBe('cards')
+    expect(mockWindowApi.storage.saveCustomization).toHaveBeenCalled()
   })
 
   it('should reorder provider sections and persist the layout', () => {

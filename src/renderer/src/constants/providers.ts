@@ -1,4 +1,5 @@
 import type { JSXElementConstructor, SVGProps } from 'react'
+import AiStudio from '@lobehub/icons/es/AiStudio/components/Mono'
 import Antigravity from '@lobehub/icons/es/Antigravity/components/Mono'
 import Codex from '@lobehub/icons/es/Codex/components/Mono'
 import GithubCopilot from '@lobehub/icons/es/GithubCopilot/components/Mono'
@@ -33,6 +34,14 @@ const PROVIDERS_UNSORTED: ProviderDefinition[] = [
     icon: GithubCopilot,
     mode: 'oauth' as const,
     oauthProvider: 'GitHub'
+  },
+  {
+    id: 'aiStudio' as const,
+    name: 'Google AI Studio',
+    labelKey: 'nav.aiStudio',
+    icon: AiStudio,
+    mode: 'oauth' as const,
+    oauthProvider: 'Google'
   },
   {
     id: 'zaiCoding' as const,

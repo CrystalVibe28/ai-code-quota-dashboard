@@ -9,6 +9,7 @@ import { useOpencodeGoStore } from './useOpencodeGoStore'
 import { useSettingsStore } from './useSettingsStore'
 import { useUpdateStore } from './useUpdateStore'
 import { useZaiCodingStore } from './useZaiCodingStore'
+import { useAiStudioStore } from './useAiStudioStore'
 import i18n from '@/i18n'
 import { toast } from '@/hooks/useToast'
 
@@ -36,6 +37,7 @@ function clearRendererData(): void {
   useZaiCodingStore.getState().reset()
   useCodexStore.getState().reset()
   useOpencodeGoStore.getState().reset()
+  useAiStudioStore.getState().reset()
   useSettingsStore.setState(useSettingsStore.getInitialState(), true)
   useCustomizationStore.setState(useCustomizationStore.getInitialState(), true)
   useUpdateStore.setState(useUpdateStore.getInitialState(), true)

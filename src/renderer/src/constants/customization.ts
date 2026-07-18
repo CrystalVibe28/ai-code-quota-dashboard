@@ -3,9 +3,10 @@ import type { CardSize, GlobalConfig, GridColumns, ProviderId } from '@/types/cu
 export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   hideUnlimitedQuota: true,
   
+  overviewLayout: 'compact',
   gridColumns: 'auto',
   cardSize: 'default',
-  providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo'],
+  providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'aiStudio'],
   
   theme: 'system',
   accentColor: 'blue',
@@ -26,6 +27,7 @@ export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
 
 export const PROVIDER_LABELS: Record<ProviderId, string> = {
   antigravity: 'nav.antigravity',
+  aiStudio: 'nav.aiStudio',
   githubCopilot: 'nav.githubCopilot',
   zaiCoding: 'nav.zaiCoding',
   codex: 'nav.codex',
@@ -47,6 +49,11 @@ export const GRID_COLUMN_OPTIONS = [
   { value: 3, label: 'customization.layout.gridOptions.3' },
   { value: 4, label: 'customization.layout.gridOptions.4' },
   { value: 'auto', label: 'customization.layout.gridOptions.auto' }
+] as const
+
+export const OVERVIEW_LAYOUT_OPTIONS = [
+  { value: 'compact', label: 'customization.layout.overviewLayoutOptions.compact' },
+  { value: 'cards', label: 'customization.layout.overviewLayoutOptions.cards' }
 ] as const
 
 export const CARD_SIZE_OPTIONS = [

@@ -1,9 +1,15 @@
 import { app } from 'electron'
+import electronUpdater, { type AppUpdater } from 'electron-updater'
 import type { UpdateInfo, UpdateCheckResult, UpdateSettings } from '@shared/types/update'
 
 const GITHUB_OWNER = 'CrystalVibe28'
 const GITHUB_REPO = 'ai-code-quota-dashboard'
 const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`
+
+export function getAutoUpdater(): AppUpdater {
+  const { autoUpdater } = electronUpdater
+  return autoUpdater
+}
 
 interface GitHubRelease {
   tag_name: string
@@ -86,9 +92,62 @@ export class UpdateService {
   }
 
   /**
-   * Check for updates from GitHub Releases
+   * Check for updates and start downloading automatically in packaged builds
    */
   async checkForUpdate(): Promise<UpdateCheckResult> {
+    if (!app.isPackaged) {
+      return this.checkGitHubRelease()
+    }
+
+    try {
+      const result = await getAutoUpdater().checkForUpdates()
+      if (!result) {
+        throw new Error('Auto updater is unavailable')
+      }
+
+      const { updateInfo } = result
+      const releaseNotes = Array.isArray(updateInfo.releaseNotes)
+        ? updateInfo.releaseNotes.map(({ note }) => note).filter(Boolean).join('\n\n') || undefined
+        : updateInfo.releaseNotes || undefined
+      const info: UpdateInfo = {
+        currentVersion: this.getCurrentVersion(),
+        latestVersion: updateInfo.version,
+        hasUpdate: result.isUpdateAvailable,
+        releaseUrl: result.isUpdateAvailable
+          ? `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tag/v${updateInfo.version}`
+          : this.getReleaseUrl(),
+        releaseNotes,
+        publishedAt: updateInfo.releaseDate
+      }
+
+      this.updateSettings.lastChecked = new Date().toISOString()
+      this.lastUpdateInfo = info
+
+      console.log(
+        `[UpdateService] Check complete: current=${info.currentVersion}, latest=${info.latestVersion}, hasUpdate=${info.hasUpdate}`
+      )
+
+      return { success: true, data: info }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error('[UpdateService] Failed to check for updates:', errorMessage)
+      return {
+        success: false,
+        error: errorMessage,
+        data: {
+          currentVersion: this.getCurrentVersion(),
+          latestVersion: this.getCurrentVersion(),
+          hasUpdate: false,
+          releaseUrl: this.getReleaseUrl()
+        }
+      }
+    }
+  }
+
+  /**
+   * Keep update checks usable during development without downloading an installer
+   */
+  private async checkGitHubRelease(): Promise<UpdateCheckResult> {
     try {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout

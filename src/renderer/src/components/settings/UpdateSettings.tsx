@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { RefreshCw, ExternalLink, Info } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -17,15 +16,14 @@ export function UpdateSettings() {
     latestVersion,
     hasUpdate,
     isChecking,
+    downloadState,
+    downloadProgress,
     lastChecked,
+    error,
     checkForUpdate,
     openReleasePage,
-    initialize
+    startUpdate
   } = useUpdateStore()
-
-  useEffect(() => {
-    return initialize()
-  }, [initialize])
 
   return (
     <Card>
@@ -60,6 +58,12 @@ export function UpdateSettings() {
           </div>
         </div>
 
+        {error && (
+          <p className="text-sm text-destructive" role="alert">
+            {t('settings.update.updateFailed', { error })}
+          </p>
+        )}
+
         {/* Footer Actions - Fixed Height Container to prevent layout shift */}
         <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-xs text-muted-foreground">
@@ -67,7 +71,25 @@ export function UpdateSettings() {
           </div>
 
           <div className="flex gap-2">
-            {hasUpdate && (
+            {hasUpdate && downloadState === 'downloaded' && (
+              <Button size="sm" onClick={startUpdate}>
+                <RefreshCw aria-hidden="true" />
+                {t('settings.update.startUpdate')}
+              </Button>
+            )}
+            {hasUpdate && downloadState === 'downloading' && (
+              <Button size="sm" disabled>
+                <RefreshCw className="animate-spin" aria-hidden="true" />
+                {t('settings.update.downloading', { percent: downloadProgress })}
+              </Button>
+            )}
+            {hasUpdate && downloadState === 'installing' && (
+              <Button size="sm" disabled>
+                <RefreshCw className="animate-spin" aria-hidden="true" />
+                {t('settings.update.installing')}
+              </Button>
+            )}
+            {hasUpdate && (downloadState === 'idle' || downloadState === 'error') && (
               <Button size="sm" onClick={openReleasePage}>
                 <ExternalLink className="h-4 w-4 mr-2" />
                 {t('settings.update.download')}
@@ -77,7 +99,7 @@ export function UpdateSettings() {
               variant="outline"
               size="sm"
               onClick={checkForUpdate}
-              disabled={isChecking}
+              disabled={isChecking || (downloadState !== 'idle' && downloadState !== 'error')}
             >
               <RefreshCw className={isChecking ? 'animate-spin' : ''} aria-hidden="true" />
               {isChecking ? t('settings.update.checking') : t('settings.update.checkNow')}

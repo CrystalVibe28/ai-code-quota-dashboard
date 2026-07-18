@@ -18,6 +18,7 @@ import { registerStorageHandlers } from './ipc/storage'
 import { registerAntigravityHandlers } from './ipc/antigravity'
 import { registerGithubCopilotHandlers } from './ipc/github-copilot'
 import { registerZaiCodingHandlers } from './ipc/zai-coding'
+import { registerAiStudioHandlers } from './ipc/ai-studio'
 import { registerCodexHandlers } from './ipc/codex'
 import { registerOpencodeGoHandlers } from './ipc/opencode-go'
 import { registerAppHandlers } from './ipc/app'
@@ -157,11 +158,14 @@ function registerAllIpcHandlers(): void {
   registerAntigravityHandlers()
   registerGithubCopilotHandlers()
   registerZaiCodingHandlers()
+  registerAiStudioHandlers()
   registerCodexHandlers()
   registerOpencodeGoHandlers()
   registerAppHandlers()
   registerNotificationHandlers()
-  registerUpdateHandlers()
+  registerUpdateHandlers((installing) => {
+    isQuitting = installing
+  })
 }
 
 const trayService = TrayService.getInstance()

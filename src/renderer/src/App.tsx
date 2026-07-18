@@ -7,6 +7,7 @@ import { useGithubCopilotStore } from './stores/useGithubCopilotStore'
 import { useZaiCodingStore } from './stores/useZaiCodingStore'
 import { useCodexStore } from './stores/useCodexStore'
 import { useOpencodeGoStore } from './stores/useOpencodeGoStore'
+import { useAiStudioStore } from './stores/useAiStudioStore'
 import { MainLayout } from './components/layout/MainLayout'
 import { LockScreen } from './components/LockScreen'
 import { Overview } from './pages/Overview'
@@ -26,6 +27,7 @@ function App() {
   const { fetchAccounts: fetchZaiAccounts, fetchUsage: fetchZaiUsage } = useZaiCodingStore()
   const { fetchAccounts: fetchCodexAccounts, fetchUsage: fetchCodexUsage } = useCodexStore()
   const { fetchAccounts: fetchOpencodeGoAccounts, fetchUsage: fetchOpencodeGoUsage } = useOpencodeGoStore()
+  const { fetchAccounts: fetchAiStudioAccounts, fetchUsage: fetchAiStudioUsage } = useAiStudioStore()
 
   useTheme()
 
@@ -43,14 +45,16 @@ function App() {
         fetchGhAccounts(),
         fetchZaiAccounts(),
         fetchCodexAccounts(),
-        fetchOpencodeGoAccounts()
+        fetchOpencodeGoAccounts(),
+        fetchAiStudioAccounts()
       ])
       const [antigravity, copilot, zai, codex, opencodeGo] = await Promise.all([
         fetchAntiUsage(),
         fetchGhUsage(),
         fetchZaiUsage(),
         fetchCodexUsage(),
-        fetchOpencodeGoUsage()
+        fetchOpencodeGoUsage(),
+        fetchAiStudioUsage()
       ])
       await window.api.notification.checkAndNotify({ antigravity, copilot, zai, codex, opencodeGo }).catch(() => {})
     })().finally(() => {
@@ -58,7 +62,7 @@ function App() {
     })
 
     return refreshPromiseRef.current
-  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage])
+  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchAiStudioAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage, fetchAiStudioUsage])
 
   useEffect(() => {
     checkAuth()

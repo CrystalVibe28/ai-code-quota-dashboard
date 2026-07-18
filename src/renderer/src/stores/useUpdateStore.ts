@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { UpdateInfo } from '@shared/types/update'
+import type { UpdateDownloadState, UpdateInfo } from '@shared/types/update'
 
 interface UpdateState {
   // State
@@ -10,6 +10,8 @@ interface UpdateState {
   releaseNotes: string | null
   publishedAt: string | null
   isChecking: boolean
+  downloadState: UpdateDownloadState
+  downloadProgress: number
   lastChecked: string | null
   skippedVersion: string | null
   error: string | null
@@ -19,6 +21,7 @@ interface UpdateState {
   skipVersion: (version: string) => Promise<void>
   clearSkippedVersion: () => Promise<void>
   openReleasePage: () => Promise<void>
+  startUpdate: () => Promise<void>
   initialize: () => () => void
   setUpdateInfo: (info: UpdateInfo) => void
 }
@@ -32,6 +35,8 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
   releaseNotes: null,
   publishedAt: null,
   isChecking: false,
+  downloadState: 'idle',
+  downloadProgress: 0,
   lastChecked: null,
   skippedVersion: null,
   error: null,
@@ -41,7 +46,7 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
     try {
       const result = await window.api.update.check()
       if (result.success && result.data) {
-        const data = result.data as UpdateInfo
+        const data = result.data
         set({
           currentVersion: data.currentVersion,
           latestVersion: data.latestVersion,
@@ -97,43 +102,70 @@ export const useUpdateStore = create<UpdateState>((set, get) => ({
     }
   },
 
-  initialize: () => {
-    // Get current version
-    window.api.update.getCurrentVersion().then((version) => {
-      set({ currentVersion: version })
-    })
-
-    // Get skipped version
-    window.api.update.getSkippedVersion().then((version) => {
-      set({ skippedVersion: version || null })
-    })
-
-    // Get last checked time
-    window.api.update.getLastChecked().then((time) => {
-      set({ lastChecked: time || null })
-    })
-
-    // Get last update info from previous check
-    window.api.update.getLastUpdateInfo().then((info) => {
-      if (info) {
-        const data = info as UpdateInfo
-        set({
-          latestVersion: data.latestVersion,
-          hasUpdate: data.hasUpdate,
-          releaseUrl: data.releaseUrl,
-          releaseNotes: data.releaseNotes || null,
-          publishedAt: data.publishedAt || null
-        })
+  startUpdate: async () => {
+    set({ error: null })
+    try {
+      const success = await window.api.update.install()
+      if (!success) {
+        set({ error: 'Update is not ready to install' })
       }
+    } catch (error) {
+      set({ error: String(error) })
+    }
+  },
+
+  initialize: () => {
+    let receivedAvailable = false
+    let receivedStatus = false
+
+    const cleanupAvailable = window.api.update.onUpdateAvailable((info) => {
+      receivedAvailable = true
+      get().setUpdateInfo(info)
     })
 
-    // Listen for update available notifications from main process
-    const cleanup = window.api.update.onUpdateAvailable((info) => {
-      const data = info as UpdateInfo
-      get().setUpdateInfo(data)
+    const cleanupStatus = window.api.update.onStatusChange((status) => {
+      receivedStatus = true
+      set((state) => ({
+        downloadState: status.state,
+        downloadProgress: status.percent,
+        latestVersion: status.version || state.latestVersion,
+        hasUpdate: status.state === 'idle' ? false : status.version ? true : state.hasUpdate,
+        error: status.error || null
+      }))
     })
 
-    return cleanup
+    Promise.all([
+      window.api.update.getCurrentVersion(),
+      window.api.update.getSkippedVersion(),
+      window.api.update.getLastChecked(),
+      window.api.update.getLastUpdateInfo(),
+      window.api.update.getStatus()
+    ]).then(([currentVersion, skippedVersion, lastChecked, info, status]) => {
+      set((state) => ({
+        currentVersion,
+        latestVersion: receivedAvailable || receivedStatus
+          ? state.latestVersion
+          : info?.latestVersion || status.version || null,
+        hasUpdate: receivedAvailable || receivedStatus
+          ? state.hasUpdate
+          : info?.hasUpdate || Boolean(status.version && status.state !== 'idle'),
+        releaseUrl: receivedAvailable ? state.releaseUrl : info?.releaseUrl || null,
+        releaseNotes: receivedAvailable ? state.releaseNotes : info?.releaseNotes || null,
+        publishedAt: receivedAvailable ? state.publishedAt : info?.publishedAt || null,
+        downloadState: receivedStatus ? state.downloadState : status.state,
+        downloadProgress: receivedStatus ? state.downloadProgress : status.percent,
+        lastChecked: lastChecked || null,
+        skippedVersion: skippedVersion || null,
+        error: receivedStatus ? state.error : status.error || null
+      }))
+    }).catch((error) => {
+      set({ error: String(error) })
+    })
+
+    return () => {
+      cleanupAvailable()
+      cleanupStatus()
+    }
   },
 
   setUpdateInfo: (info: UpdateInfo) => {

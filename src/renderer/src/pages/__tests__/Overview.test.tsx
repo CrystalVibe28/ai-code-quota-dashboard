@@ -9,6 +9,7 @@ import { useGithubCopilotStore } from '../../stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '../../stores/useZaiCodingStore'
 import { useCodexStore } from '../../stores/useCodexStore'
 import { useOpencodeGoStore } from '../../stores/useOpencodeGoStore'
+import { useAiStudioStore } from '../../stores/useAiStudioStore'
 import { useCustomizationStore } from '../../stores/useCustomizationStore'
 import { mockWindowApi } from '../../../../test/mocks/window-api'
 import zhTW from '../../i18n/locales/zh-TW.json'
@@ -26,6 +27,7 @@ describe('Overview', () => {
     useGithubCopilotStore.setState({ accounts: [], usageData: [] })
     useZaiCodingStore.setState({ accounts: [], usageData: [] })
     useOpencodeGoStore.setState({ accounts: [], usageData: [] })
+    useAiStudioStore.setState({ accounts: [], usageData: [] })
     useCodexStore.setState({
       accounts: [
         {
@@ -62,7 +64,8 @@ describe('Overview', () => {
         githubCopilot: {},
         zaiCoding: {},
         codex: {},
-        opencodeGo: {}
+        opencodeGo: {},
+        aiStudio: {}
       },
       cards: {}
     })
@@ -76,6 +79,7 @@ describe('Overview', () => {
     )
 
     expect(screen.getByText('codex.noQuotaData')).toBeInTheDocument()
+    expect(screen.getByText('overview.columns.quota')).toBeInTheDocument()
   })
 
   it('should distinguish Zai 5-hour and weekly quotas by unit', async () => {

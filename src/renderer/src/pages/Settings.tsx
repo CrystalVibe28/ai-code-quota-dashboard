@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { AiStudioOAuthSettings } from '@/components/settings/AiStudioOAuthSettings'
 import { DataSettings } from '@/components/settings/DataSettings'
 import { DisplaySettings } from '@/components/settings/DisplaySettings'
 import { InteractionSettings } from '@/components/settings/InteractionSettings'
@@ -25,17 +26,13 @@ import { debounce } from '@/lib/utils'
 interface SettingsSectionProps {
   id: string
   title: string
-  description: string
   children: ReactNode
 }
 
-function SettingsSection({ id, title, description, children }: SettingsSectionProps) {
+function SettingsSection({ id, title, children }: SettingsSectionProps) {
   return (
     <section className="space-y-4" aria-labelledby={id}>
-      <div>
-        <h2 id={id} className="text-xl font-semibold leading-[26px]">{title}</h2>
-        <p className="mt-1 text-sm leading-5 text-muted-foreground">{description}</p>
-      </div>
+      <h2 id={id} className="text-xl font-semibold leading-[26px]">{title}</h2>
       {children}
     </section>
   )
@@ -124,10 +121,7 @@ export function Settings() {
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
             <SettingsIcon className="h-6 w-6" aria-hidden="true" />
           </div>
-          <div>
-            <h1 className="fluent-page-title">{t('settings.title')}</h1>
-            <p className="fluent-page-description">{t('settings.subtitle')}</p>
-          </div>
+          <h1 className="fluent-page-title">{t('settings.title')}</h1>
         </div>
         <Button variant="outline" onClick={handleResetCustomization}>
           <RotateCcw aria-hidden="true" />
@@ -138,7 +132,6 @@ export function Settings() {
       <SettingsSection
         id="settings-system"
         title={t('settings.sections.system')}
-        description={t('settings.sections.systemDesc')}
       >
         <div className="grid gap-4 xl:grid-cols-2">
           <Card>
@@ -224,9 +217,15 @@ export function Settings() {
       </SettingsSection>
 
       <SettingsSection
+        id="settings-connections"
+        title={t('settings.sections.connections')}
+      >
+        <AiStudioOAuthSettings />
+      </SettingsSection>
+
+      <SettingsSection
         id="settings-alerts"
         title={t('settings.sections.alerts')}
-        description={t('settings.sections.alertsDesc')}
       >
         <Card>
           <CardHeader>
@@ -374,7 +373,6 @@ export function Settings() {
       <SettingsSection
         id="settings-appearance"
         title={t('settings.sections.appearance')}
-        description={t('settings.sections.appearanceDesc')}
       >
         <div className="grid gap-4 xl:grid-cols-2">
           <VisualSettings />
@@ -390,7 +388,6 @@ export function Settings() {
       <SettingsSection
         id="settings-privacy"
         title={t('settings.sections.privacy')}
-        description={t('settings.sections.privacyDesc')}
       >
         <div className="grid gap-4 xl:grid-cols-2">
           <SecuritySettings />

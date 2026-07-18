@@ -1,9 +1,56 @@
 import { ipcMain, shell, BrowserWindow } from 'electron'
-import { UpdateService } from '../services/update'
+import type { UpdateDownloadStatus } from '@shared/types/update'
+import { getAutoUpdater, UpdateService } from '../services/update'
 
 const updateService = UpdateService.getInstance()
+const autoUpdater = getAutoUpdater()
+let updateStatus: UpdateDownloadStatus = { state: 'idle', percent: 0 }
 
-export function registerUpdateHandlers(): void {
+function setUpdateStatus(status: UpdateDownloadStatus): void {
+  updateStatus = status
+  BrowserWindow.getAllWindows().forEach((window) => {
+    window.webContents.send('update:status', status)
+  })
+}
+
+export function registerUpdateHandlers(setInstalling: (installing: boolean) => void): void {
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = false
+
+  autoUpdater.on('update-available', (info) => {
+    setUpdateStatus({ state: 'downloading', percent: 0, version: info.version })
+  })
+
+  autoUpdater.on('update-not-available', () => {
+    if (updateStatus.state !== 'downloaded' && updateStatus.state !== 'installing') {
+      setUpdateStatus({ state: 'idle', percent: 0 })
+    }
+  })
+
+  autoUpdater.on('download-progress', ({ percent }) => {
+    setUpdateStatus({
+      state: 'downloading',
+      percent: Math.round(percent),
+      version: updateStatus.version
+    })
+  })
+
+  autoUpdater.on('update-downloaded', (info) => {
+    setUpdateStatus({ state: 'downloaded', percent: 100, version: info.version })
+  })
+
+  autoUpdater.on('error', (error) => {
+    console.error('[Update IPC] Auto update failed:', error)
+    if (updateStatus.state !== 'downloaded' && updateStatus.state !== 'installing') {
+      setUpdateStatus({
+        state: 'error',
+        percent: updateStatus.percent,
+        version: updateStatus.version,
+        error: error.message
+      })
+    }
+  })
+
   // Check for updates
   ipcMain.handle('update:check', async () => {
     try {
@@ -61,6 +108,33 @@ export function registerUpdateHandlers(): void {
     return updateService.getLastUpdateInfo()
   })
 
+  ipcMain.handle('update:get-status', () => updateStatus)
+
+  ipcMain.handle('update:install', () => {
+    if (updateStatus.state !== 'downloaded') return false
+
+    try {
+      setUpdateStatus({
+        state: 'installing',
+        percent: 100,
+        version: updateStatus.version
+      })
+      setInstalling(true)
+      autoUpdater.quitAndInstall(false, true)
+      return true
+    } catch (error) {
+      setInstalling(false)
+      console.error('[Update IPC] Failed to install update:', error)
+      setUpdateStatus({
+        state: 'error',
+        percent: 100,
+        version: updateStatus.version,
+        error: String(error)
+      })
+      return false
+    }
+  })
+
   // Open release page in browser
   ipcMain.handle('update:open-release-page', async (_, url?: string) => {
     try {
@@ -78,7 +152,7 @@ export function registerUpdateHandlers(): void {
  * Send update available notification to renderer
  */
 export function notifyUpdateAvailable(mainWindow: BrowserWindow | null): void {
-  if (!mainWindow) return
+  if (!mainWindow || updateStatus.state === 'downloaded' || updateStatus.state === 'installing') return
 
   const updateService = UpdateService.getInstance()
 

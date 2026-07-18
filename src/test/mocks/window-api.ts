@@ -77,6 +77,16 @@ export const mockWindowApi: Record<string, Record<string, Mock>> = {
     fetchUsage: vi.fn().mockResolvedValue(null),
     fetchAllUsage: vi.fn().mockResolvedValue([])
   },
+  aiStudio: {
+    hasOAuthCredentials: vi.fn().mockResolvedValue(true),
+    saveOAuthCredentials: vi.fn().mockResolvedValue(true),
+    deleteOAuthCredentials: vi.fn().mockResolvedValue(true),
+    login: vi.fn().mockResolvedValue({ success: true }),
+    cancelLogin: vi.fn().mockResolvedValue(true),
+    refreshToken: vi.fn().mockResolvedValue(true),
+    fetchUsage: vi.fn().mockResolvedValue(null),
+    fetchAllUsage: vi.fn().mockResolvedValue([])
+  },
   app: {
     minimize: vi.fn(),
     maximize: vi.fn(),
@@ -87,5 +97,19 @@ export const mockWindowApi: Record<string, Record<string, Mock>> = {
     resetState: vi.fn().mockResolvedValue(undefined),
     restartTimer: vi.fn().mockResolvedValue(true),
     checkAndNotify: vi.fn().mockResolvedValue(true)
+  },
+  update: {
+    check: vi.fn().mockResolvedValue({ success: true }),
+    getCurrentVersion: vi.fn().mockResolvedValue('1.0.0'),
+    getSkippedVersion: vi.fn().mockResolvedValue(undefined),
+    skipVersion: vi.fn().mockResolvedValue(true),
+    clearSkippedVersion: vi.fn().mockResolvedValue(true),
+    getLastChecked: vi.fn().mockResolvedValue(undefined),
+    getLastUpdateInfo: vi.fn().mockResolvedValue(null),
+    getStatus: vi.fn().mockResolvedValue({ state: 'idle', percent: 0 }),
+    install: vi.fn().mockResolvedValue(true),
+    openReleasePage: vi.fn().mockResolvedValue(true),
+    onUpdateAvailable: vi.fn().mockReturnValue(vi.fn()),
+    onStatusChange: vi.fn().mockReturnValue(vi.fn())
   }
 }

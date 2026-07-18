@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { AiStudioOAuthCredentialsForm } from '@/components/common/AiStudioOAuthCredentialsForm'
 import {
   Select,
   SelectContent,
@@ -10,14 +11,18 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import { X, CheckCircle2, Loader2, AlertCircle, XCircle, Clock, ShieldX } from 'lucide-react'
+import { X, CheckCircle2, Loader2, AlertCircle, XCircle, Clock, ShieldX, ExternalLink } from 'lucide-react'
 import { PROVIDERS } from '@/constants/providers'
+import { getAiStudioOAuthDocsUrl } from '@/constants/aiStudio'
 import { useAntigravityStore } from '@/stores/useAntigravityStore'
 import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
 import { useCodexStore } from '@/stores/useCodexStore'
 import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
+import { useAiStudioStore } from '@/stores/useAiStudioStore'
+import { getGoogleApiEnableUrl } from '@/lib/googleApiError'
 import type { ProviderId } from '@/types/customization'
+import type { AiStudioLoginSession } from '@shared/types'
 
 // OAuth error type detection
 type OAuthErrorType = 'cancelled' | 'timeout' | 'access_denied' | 'network' | 'generic'
@@ -48,6 +53,7 @@ interface OAuthErrorDisplayProps {
 
 function OAuthErrorDisplay({ error, errorType, onRetry, isLoading }: OAuthErrorDisplayProps) {
   const { t } = useTranslation()
+  const enableUrl = getGoogleApiEnableUrl(error)
   
   const errorConfig = {
     cancelled: {
@@ -102,6 +108,17 @@ function OAuthErrorDisplay({ error, errorType, onRetry, isLoading }: OAuthErrorD
         <span className="font-medium text-sm">{config.title}</span>
       </div>
       <p className="text-xs opacity-80 pl-6">{config.description}</p>
+      {enableUrl && (
+        <div className="space-y-2 pl-6 text-xs">
+          <p>{t('errors.googleApi.disabledDesc')}</p>
+          <Button asChild variant="outline" size="sm" className="h-7 text-xs">
+            <a href={enableUrl} target="_blank" rel="noreferrer">
+              <ExternalLink aria-hidden="true" />
+              {t('errors.googleApi.openSettings')}
+            </a>
+          </Button>
+        </div>
+      )}
       {config.showRetry && (
         <Button
           variant="ghost"
@@ -123,15 +140,18 @@ interface AddAccountDialogProps {
 }
 
 export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   
   // Form state
   const [displayName, setDisplayName] = useState('')
   const [selectedProviderId, setSelectedProviderId] = useState<ProviderId>(PROVIDERS[0].id)
   const [apiKey, setApiKey] = useState('')
+  const [selectedProjectId, setSelectedProjectId] = useState('')
   const [error, setError] = useState('')
   const [errorType, setErrorType] = useState<OAuthErrorType>('generic')
   const [isLoading, setIsLoading] = useState(false)
+  const [aiStudioCredentialsConfigured, setAiStudioCredentialsConfigured] = useState<boolean | null>(null)
+  const [aiStudioCredentialsLoadFailed, setAiStudioCredentialsLoadFailed] = useState(false)
   
   // OAuth state
   const [oauthStep, setOauthStep] = useState<'initial' | 'success'>('initial')
@@ -165,6 +185,11 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
     updateAccount: updateOpencodeGo,
     fetchAccounts: fetchOpencodeGo
   } = useOpencodeGoStore()
+  const {
+    login: aiStudioLogin,
+    cancelLogin: cancelAiStudioLogin,
+    addAccount: addAiStudioAccount
+  } = useAiStudioStore()
   
   const selectedProvider = PROVIDERS.find(p => p.id === selectedProviderId) || PROVIDERS[0]
 
@@ -193,9 +218,12 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
       setDisplayName(defaultProvider.name)
       setSelectedProviderId(defaultProvider.id)
       setApiKey('')
+      setSelectedProjectId('')
       setError('')
       setErrorType('generic')
       setIsLoading(false)
+      setAiStudioCredentialsConfigured(null)
+      setAiStudioCredentialsLoadFailed(false)
       setOauthStep('initial')
       setConnectedAccount(null)
     }
@@ -213,9 +241,33 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
     setOauthStep('initial')
     setConnectedAccount(null)
     setApiKey('')
+    setSelectedProjectId('')
     setError('')
     setErrorType('generic')
+    setAiStudioCredentialsConfigured(null)
+    setAiStudioCredentialsLoadFailed(false)
   }, [selectedProviderId])
+
+  useEffect(() => {
+    if (!isOpen || selectedProviderId !== 'aiStudio') return
+
+    let active = true
+    setAiStudioCredentialsConfigured(null)
+    setAiStudioCredentialsLoadFailed(false)
+    window.api.aiStudio.hasOAuthCredentials()
+      .then((configured) => {
+        if (active) setAiStudioCredentialsConfigured(configured)
+      })
+      .catch(() => {
+        if (!active) return
+        setAiStudioCredentialsConfigured(false)
+        setAiStudioCredentialsLoadFailed(true)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [isOpen, selectedProviderId])
   
   if (!isOpen) return null
   
@@ -235,6 +287,8 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         await cancelCodexLogin()
       } else if (selectedProviderId === 'opencodeGo') {
         await cancelOpencodeGoLogin()
+      } else if (selectedProviderId === 'aiStudio') {
+        await cancelAiStudioLogin()
       }
     } catch {
       // Ignore cancellation errors while closing the dialog
@@ -272,6 +326,8 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         result = await codexLogin()
       } else if (selectedProviderId === 'opencodeGo') {
         result = await opencodeGoLogin()
+      } else if (selectedProviderId === 'aiStudio') {
+        result = await aiStudioLogin()
       } else {
         result = { success: false, error: 'Unknown provider' }
       }
@@ -283,7 +339,9 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
       if (result.success && result.account) {
         setConnectedAccount(result.account)
         setOauthStep('success')
-        
+        if (selectedProviderId === 'aiStudio') {
+          setSelectedProjectId((result.account as AiStudioLoginSession).projects[0]?.projectId || '')
+        }
         // Update display name from account info if user hasn't customized it
         const accountName = result.account.name || result.account.login || result.account.email || result.account.workspaceName || result.account.workspaceId
         if (displayName === selectedProvider.name && accountName) {
@@ -335,10 +393,30 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
           setError(result.error || t('addAccount.failedToAddAccount'))
         }
       } else {
-        // OAuth mode - account already created, just update display name
+        if (selectedProviderId === 'aiStudio') {
+          const session = connectedAccount as AiStudioLoginSession | null
+          if (!session) {
+            setError(t('addAccount.pleaseLoginFirst'))
+            return
+          }
+          const project = session.projects.find(value => value.projectId === selectedProjectId)
+          if (!project) {
+            setError(t('addAccount.pleaseSelectProject'))
+            return
+          }
+
+          const result = await addAiStudioAccount(session, project, finalDisplayName)
+          if (!result.success) {
+            setError(result.error || t('addAccount.failedToAddAccount'))
+            return
+          }
+          onClose()
+          return
+        }
+
+        // Other OAuth providers create the account during login.
         if (!connectedAccount?.id) {
           setError(t('addAccount.pleaseLoginFirst'))
-          setIsLoading(false)
           return
         }
         
@@ -369,17 +447,23 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
     if (selectedProvider.mode === 'apiKey') {
       return apiKey.trim().length > 0
     }
+    if (selectedProviderId === 'aiStudio') {
+      return oauthStep === 'success' && connectedAccount && selectedProjectId
+    }
     return oauthStep === 'success' && connectedAccount
   }
 
   const SelectedProviderIcon = selectedProvider.icon
+  const aiStudioTestUsersUrl = getAiStudioOAuthDocsUrl(
+    i18n.resolvedLanguage || i18n.language,
+    'test-users'
+  )
 
   return (
     <dialog
       ref={setDialog}
       className="m-auto max-h-[calc(100vh-32px)] w-[calc(100%-32px)] max-w-[520px] overflow-hidden rounded-xl border bg-card p-0 text-card-foreground shadow-fluent-64 backdrop:bg-black/40 backdrop:backdrop-blur-[2px]"
       aria-labelledby="add-provider-title"
-      aria-describedby="add-provider-description"
       onCancel={(event) => {
         event.preventDefault()
         handleClose()
@@ -389,17 +473,12 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
       }}
     >
       <div className="flex max-h-[calc(100vh-32px)] flex-col" onClick={(event) => event.stopPropagation()}>
-        <header className="flex items-start justify-between gap-4 border-b px-5 py-4">
-          <div>
-            <h2 id="add-provider-title" className="text-xl font-semibold leading-[26px]">{t('addAccount.addProvider')}</h2>
-            <p id="add-provider-description" className="mt-1 text-sm leading-5 text-muted-foreground">
-              {t('addAccount.description')}
-            </p>
-          </div>
+        <header className="flex items-center justify-between gap-4 border-b px-5 py-4">
+          <h2 id="add-provider-title" className="text-xl font-semibold leading-[26px]">{t('addAccount.addProvider')}</h2>
           <Button
             variant="ghost"
             size="icon"
-            className="-mr-2 -mt-1 shadow-none"
+            className="-mr-2 shadow-none"
             onClick={handleClose}
             disabled={isLoading && !isOAuthLoginInProgress}
             aria-label={t('common.dismiss')}
@@ -472,8 +551,53 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
                 disabled={isLoading}
               />
             </div>
+          ) : selectedProviderId === 'aiStudio' && aiStudioCredentialsConfigured !== true ? (
+            <div className="space-y-3">
+              {aiStudioCredentialsConfigured === null ? (
+                <p className="flex items-center gap-2 text-sm text-muted-foreground" aria-live="polite">
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  {t('aiStudio.oauthCredentials.checking')}
+                </p>
+              ) : (
+                <>
+                  {aiStudioCredentialsLoadFailed && (
+                    <p className="text-sm text-destructive" role="alert">
+                      {t('aiStudio.oauthCredentials.loadFailed')}
+                    </p>
+                  )}
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-semibold">{t('aiStudio.oauthCredentials.title')}</h3>
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      {t('aiStudio.oauthCredentials.description')}
+                    </p>
+                  </div>
+                  <AiStudioOAuthCredentialsForm
+                    idPrefix="add-account-ai-studio"
+                    onSaved={() => {
+                      setAiStudioCredentialsConfigured(true)
+                      setAiStudioCredentialsLoadFailed(false)
+                    }}
+                  />
+                </>
+              )}
+            </div>
           ) : (
             <div className="space-y-2">
+              {selectedProviderId === 'aiStudio' && oauthStep === 'initial' && (
+                <div className="space-y-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                  <p className="text-sm font-medium">{t('aiStudio.oauthCredentials.testUsersHint')}</p>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    {t('aiStudio.oauthCredentials.testUsersDescription')}
+                  </p>
+                  <Button asChild variant="outline" size="sm">
+                    <a href={aiStudioTestUsersUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink aria-hidden="true" />
+                      {t('aiStudio.oauthCredentials.testUsersGuide')}
+                    </a>
+                  </Button>
+                </div>
+              )}
+
               {oauthStep === 'initial' ? (
                 <Button
                   onClick={handleOAuthLogin}
@@ -498,6 +622,37 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
                       user: connectedAccount?.login || connectedAccount?.email || connectedAccount?.name || 'User'
                     })}
                   </span>
+                </div>
+              )}
+
+              {oauthStep === 'success' && selectedProviderId === 'aiStudio' && (
+                <div className="space-y-4 pt-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="aiStudioProject">{t('addAccount.project')}</Label>
+                    {(connectedAccount as AiStudioLoginSession).projects.length > 0 ? (
+                      <Select
+                        value={selectedProjectId}
+                        onValueChange={setSelectedProjectId}
+                        disabled={isLoading}
+                      >
+                        <SelectTrigger id="aiStudioProject">
+                          <SelectValue placeholder={t('addAccount.selectProject')} />
+                        </SelectTrigger>
+                        <SelectContent container={dialog}>
+                          {(connectedAccount as AiStudioLoginSession).projects.map((project) => (
+                            <SelectItem key={project.projectId} value={project.projectId}>
+                              {project.name} ({project.projectId})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
+                        {t('addAccount.noProjects')}
+                      </p>
+                    )}
+                  </div>
+
                 </div>
               )}
             </div>

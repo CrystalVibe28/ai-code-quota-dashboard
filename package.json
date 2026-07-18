@@ -1,6 +1,6 @@
 {
   "name": "ai-code-quota-dashboard",
-  "version": "1.5.5",
+  "version": "1.6.0",
   "description": "AI Usage Dashboard - Multi-provider usage monitoring",
   "main": "./out/main/index.js",
   "author": "CrystalVibe28 <CrystalVibe28@users.noreply.github.com>",
@@ -31,8 +31,10 @@
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-toast": "^1.2.15",
+    "@radix-ui/react-tooltip": "^1.2.12",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "electron-updater": "^6.8.9",
     "i18next": "^26.3.6",
     "i18next-browser-languagedetector": "^8.2.0",
     "lucide-react": "^1.24.0",
@@ -68,6 +70,7 @@
   "build": {
     "appId": "com.ai-code-quota-dashboard.app",
     "productName": "AI Code Quota Dashboard",
+    "artifactName": "${name}-${version}-${arch}.${ext}",
     "directories": {
       "output": "release"
     },
@@ -75,6 +78,11 @@
       "out/**/*",
       "!node_modules"
     ],
+    "publish": {
+      "provider": "github",
+      "owner": "CrystalVibe28",
+      "repo": "ai-code-quota-dashboard"
+    },
     "extraResources": [
       {
         "from": "resources/icon.png",

@@ -16,7 +16,10 @@ jobs:
           - os: windows-latest
             command: npm run build:win
             artifact: windows-x64
-            files: release/*.exe
+            files: |
+              release/*.exe
+              release/*.exe.blockmap
+              release/latest.yml
           - os: ubuntu-latest
             command: npm run build:linux
             artifact: linux-x64
@@ -24,6 +27,8 @@ jobs:
               release/*.AppImage
               release/*.deb
               release/*.rpm
+              release/*.blockmap
+              release/latest-linux.yml
     runs-on: ${{ matrix.os }}
 
     steps:

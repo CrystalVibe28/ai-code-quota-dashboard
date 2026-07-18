@@ -2,13 +2,14 @@ import { app } from 'electron'
 import { join } from 'path'
 import { existsSync, mkdirSync, rmSync } from 'fs'
 import { CryptoService } from './crypto'
-import { atomicWriteFileSync, readFileWithBackupSync } from './atomic-file'
+import { atomicWriteFileSync, readFileWithBackupSync, replaceFileAtomicallySync } from './atomic-file'
 import type {
   AntigravityAccount,
   GithubCopilotAccount,
   ZaiCodingAccount,
   CodexAccount,
   OpencodeGoAccount,
+  AiStudioAccount,
   Settings,
   CustomizationState
 } from '@shared/types'
@@ -21,11 +22,16 @@ interface StorageData {
   zaiCoding: ZaiCodingAccount[]
   codex: CodexAccount[]
   opencodeGo: OpencodeGoAccount[]
+  aiStudio: AiStudioAccount[]
+  aiStudioOAuth?: {
+    clientId: string
+    clientSecret: string
+  }
   settings: Settings
   customization?: CustomizationState
 }
 
-const CURRENT_DATA_VERSION = 4
+const CURRENT_DATA_VERSION = 5
 
 const DEFAULT_DATA: StorageData = {
   antigravity: [],
@@ -33,6 +39,7 @@ const DEFAULT_DATA: StorageData = {
   zaiCoding: [],
   codex: [],
   opencodeGo: [],
+  aiStudio: [],
   settings: DEFAULT_SETTINGS
 }
 
@@ -170,6 +177,11 @@ export class StorageService {
       !Array.isArray(data.zaiCoding) ||
       !Array.isArray(data.codex) ||
       !Array.isArray(data.opencodeGo) ||
+      !Array.isArray(data.aiStudio) ||
+      (data.aiStudioOAuth !== undefined && (
+        typeof data.aiStudioOAuth.clientId !== 'string' ||
+        typeof data.aiStudioOAuth.clientSecret !== 'string'
+      )) ||
       data._version !== CURRENT_DATA_VERSION ||
       !data.settings ||
       typeof data.settings !== 'object' ||
@@ -226,15 +238,22 @@ export class StorageService {
       data._version = 4
     }
 
+    if (version < 5) {
+      console.log('[Storage] Migrating data from v4 to v5: Adding aiStudio provider')
+      if (!data.aiStudio) data.aiStudio = []
+      data._version = 5
+    }
+
     return data
   }
 
-  private saveData(data: StorageData): void {
+  private saveData(data: StorageData, syncBackup = false): void {
     if (!this.password) throw new Error('Storage is locked')
 
     const json = JSON.stringify(data, null, 2)
     const encrypted = this.cryptoService.encrypt(json, this.password)
     atomicWriteFileSync(this.storagePath, encrypted)
+    if (syncBackup) replaceFileAtomicallySync(`${this.storagePath}.bak`, encrypted)
     this.cachedData = data
   }
 
@@ -245,7 +264,7 @@ export class StorageService {
     return this.cachedData
   }
 
-  async getAccounts(provider: string): Promise<AntigravityAccount[] | GithubCopilotAccount[] | ZaiCodingAccount[] | CodexAccount[] | OpencodeGoAccount[]> {
+  async getAccounts(provider: string): Promise<AntigravityAccount[] | GithubCopilotAccount[] | ZaiCodingAccount[] | CodexAccount[] | OpencodeGoAccount[] | AiStudioAccount[]> {
     const data = this.getData()
     switch (provider) {
       case 'antigravity':
@@ -258,12 +277,14 @@ export class StorageService {
         return data.codex || []
       case 'opencodeGo':
         return data.opencodeGo || []
+      case 'aiStudio':
+        return data.aiStudio || []
       default:
         return []
     }
   }
 
-  async saveAccount(provider: string, account: AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount): Promise<boolean> {
+  async saveAccount(provider: string, account: AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | AiStudioAccount): Promise<boolean> {
     const data = this.getData()
 
     switch (provider) {
@@ -319,6 +340,16 @@ export class StorageService {
         }
         break
       }
+      case 'aiStudio': {
+        const acc = account as AiStudioAccount
+        const existingIdx = data.aiStudio.findIndex(a => a.id === acc.id)
+        if (existingIdx >= 0) {
+          data.aiStudio[existingIdx] = acc
+        } else {
+          data.aiStudio.push(acc)
+        }
+        break
+      }
       default:
         return false
     }
@@ -350,6 +381,9 @@ export class StorageService {
           data.opencodeGo = data.opencodeGo.filter(a => a.id !== accountId)
         }
         break
+      case 'aiStudio':
+        data.aiStudio = data.aiStudio.filter(a => a.id !== accountId)
+        break
       default:
         return false
     }
@@ -361,7 +395,7 @@ export class StorageService {
   async updateAccount(
     provider: string,
     accountId: string,
-    updates: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount> | Partial<CodexAccount> | Partial<OpencodeGoAccount>
+    updates: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount> | Partial<CodexAccount> | Partial<OpencodeGoAccount> | Partial<AiStudioAccount>
   ): Promise<boolean> {
     const data = this.getData()
 
@@ -403,6 +437,13 @@ export class StorageService {
         }
         break
       }
+      case 'aiStudio': {
+        const idx = data.aiStudio.findIndex(a => a.id === accountId)
+        if (idx >= 0) {
+          data.aiStudio[idx] = { ...data.aiStudio[idx], ...updates as Partial<AiStudioAccount> }
+        }
+        break
+      }
       default:
         return false
     }
@@ -420,6 +461,39 @@ export class StorageService {
     const data = this.getData()
     data.settings = { ...data.settings, ...settings }
     this.saveData(data)
+    return true
+  }
+
+  getAiStudioOAuthCredentials(): { clientId: string; clientSecret: string } | null {
+    const credentials = this.getData().aiStudioOAuth
+    return credentials?.clientId && credentials.clientSecret ? { ...credentials } : null
+  }
+
+  hasAiStudioOAuthCredentials(): boolean {
+    return this.getAiStudioOAuthCredentials() !== null
+  }
+
+  saveAiStudioOAuthCredentials(clientId: string, clientSecret: string): boolean {
+    const data = this.getData()
+    if (data.aiStudioOAuth?.clientId && data.aiStudioOAuth.clientSecret) return false
+
+    const credentials = {
+      clientId: clientId.trim(),
+      clientSecret: clientSecret.trim()
+    }
+    if (!credentials.clientId || !credentials.clientSecret) return false
+
+    data.aiStudioOAuth = credentials
+    this.saveData(data)
+    return true
+  }
+
+  deleteAiStudioOAuthCredentials(): boolean {
+    const data = this.getData()
+    if (!data.aiStudioOAuth) return true
+
+    delete data.aiStudioOAuth
+    this.saveData(data, true)
     return true
   }
 

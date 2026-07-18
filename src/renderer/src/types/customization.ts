@@ -6,6 +6,7 @@ export type {
   CardId,
   GridColumns,
   CardSize,
+  OverviewLayout,
   Theme,
   ProgressStyle,
   CardRadius,

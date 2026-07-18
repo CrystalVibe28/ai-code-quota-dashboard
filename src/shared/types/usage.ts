@@ -91,6 +91,32 @@ export interface ZaiAccountUsage {
   error?: string
 }
 
+export interface AiStudioModelLimit {
+  model: string
+  displayName?: string
+  rpm: number | null
+  tpm: number | null
+  rpd: number | null
+  rpmUsed: number
+  tpmUsed: number
+  rpdUsed: number
+}
+
+export interface AiStudioUsage {
+  projectId: string
+  projectNumber: string
+  tier: import('./accounts').AiStudioTier
+  tierSource: import('./accounts').AiStudioTierSource
+  limits: AiStudioModelLimit[]
+}
+
+export interface AiStudioAccountUsage {
+  accountId: string
+  name: string
+  usage: AiStudioUsage | null
+  error?: string
+}
+
 /**
  * Codex rate limit window. The period is determined by limit_window_seconds.
  */

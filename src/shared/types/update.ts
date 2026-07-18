@@ -25,6 +25,15 @@ export interface UpdateCheckResult {
   error?: string
 }
 
+export type UpdateDownloadState = 'idle' | 'downloading' | 'downloaded' | 'installing' | 'error'
+
+export interface UpdateDownloadStatus {
+  state: UpdateDownloadState
+  percent: number
+  version?: string
+  error?: string
+}
+
 /**
  * Update settings stored in user preferences
  */

@@ -6,9 +6,10 @@ import type { GlobalConfig, ProviderConfig, CardConfig } from '@/types/customiza
 describe('useCustomizationStore', () => {
   const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
     hideUnlimitedQuota: true,
+    overviewLayout: 'compact',
     gridColumns: 'auto',
     cardSize: 'default',
-    providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo'],
+    providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'aiStudio'],
     theme: 'system',
     accentColor: 'blue',
     progressStyle: 'solid',
@@ -32,7 +33,8 @@ describe('useCustomizationStore', () => {
         githubCopilot: {},
         zaiCoding: {},
         codex: {},
-        opencodeGo: {}
+        opencodeGo: {},
+        aiStudio: {}
       },
       cards: {}
     })
@@ -52,7 +54,8 @@ describe('useCustomizationStore', () => {
         githubCopilot: {},
         zaiCoding: {},
         codex: {},
-        opencodeGo: {}
+        opencodeGo: {},
+        aiStudio: {}
       })
     })
 
@@ -248,7 +251,8 @@ describe('useCustomizationStore', () => {
           githubCopilot: {},
           zaiCoding: {},
           codex: {},
-          opencodeGo: {}
+          opencodeGo: {},
+          aiStudio: {}
         },
         cards: { 'card1': { visible: false } }
       }
@@ -327,7 +331,8 @@ describe('useCustomizationStore', () => {
         githubCopilot: {},
         zaiCoding: {},
         codex: {},
-        opencodeGo: {}
+        opencodeGo: {},
+        aiStudio: {}
       })
       expect(state.cards).toEqual({})
     })

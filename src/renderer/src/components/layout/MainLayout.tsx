@@ -8,8 +8,7 @@ import {
   Lock,
   Package,
   ChevronDown,
-  Plus,
-  Gauge
+  Plus
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -19,9 +18,11 @@ import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
 import { useCodexStore } from '@/stores/useCodexStore'
 import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
+import { useAiStudioStore } from '@/stores/useAiStudioStore'
 import { getProviderById } from '@/constants/providers'
 import { AddAccountDialog } from '@/components/common/AddAccountDialog'
 import type { ProviderId } from '@/types/customization'
+import appIcon from '../../../../../resources/icon.png'
 
 const SIDEBAR_EXPANDED_KEY = 'sidebar-providers-expanded'
 
@@ -46,6 +47,7 @@ export function MainLayout() {
   const { accounts: zaiAccounts } = useZaiCodingStore()
   const { accounts: codexAccounts } = useCodexStore()
   const { accounts: opencodeGoAccounts } = useOpencodeGoStore()
+  const { accounts: aiStudioAccounts } = useAiStudioStore()
   
   // Dialog state
   const [showAddDialog, setShowAddDialog] = useState(false)
@@ -86,6 +88,11 @@ export function MainLayout() {
       id: a.id,
       displayName: a.displayName || a.workspaceName || a.workspaceId,
       providerId: 'opencodeGo' as const
+    })),
+    ...aiStudioAccounts.map(a => ({
+      id: a.id,
+      displayName: a.displayName || a.projectName,
+      providerId: 'aiStudio' as const
     }))
   ]
   
@@ -103,12 +110,9 @@ export function MainLayout() {
 
       <aside className="flex w-[72px] shrink-0 flex-col border-r bg-surface-sunken md:w-[264px]">
         <div className="flex h-16 items-center gap-3 border-b px-4 md:px-5">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand text-brand-foreground shadow-fluent-2">
-            <Gauge className="h-5 w-5" aria-hidden="true" />
-          </div>
+          <img src={appIcon} alt="" className="h-9 w-9 shrink-0 rounded-md shadow-fluent-2" />
           <div className="hidden min-w-0 md:block">
             <h1 className="truncate text-base font-semibold leading-[22px] text-foreground">{t('branding.title')}</h1>
-            <p className="truncate text-xs leading-4 text-muted-foreground">{t('branding.subtitle')}</p>
           </div>
         </div>
         

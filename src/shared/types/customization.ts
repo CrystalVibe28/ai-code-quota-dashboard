@@ -9,6 +9,7 @@ export type CardId = string // format: `${providerId}-${accountId}-${modelName}`
 
 export type GridColumns = 1 | 2 | 3 | 4 | 'auto'
 export type CardSize = 'compact' | 'default' | 'large'
+export type OverviewLayout = 'compact' | 'cards'
 export type Theme = 'light' | 'dark' | 'system'
 export type ProgressStyle = 'solid' | 'gradient' | 'striped'
 export type CardRadius = 'none' | 'sm' | 'md' | 'lg'
@@ -26,6 +27,7 @@ export interface GlobalConfig {
   hideUnlimitedQuota: boolean
   
   // Layout
+  overviewLayout: OverviewLayout
   gridColumns: GridColumns
   cardSize: CardSize
   providerOrder: ProviderId[]
@@ -106,9 +108,10 @@ export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   hideUnlimitedQuota: false,
   
   // Layout
+  overviewLayout: 'compact',
   gridColumns: 'auto',
   cardSize: 'default',
-  providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo'],
+  providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'aiStudio'],
   
   // Visual
   theme: 'system',

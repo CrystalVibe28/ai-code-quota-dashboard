@@ -31,6 +31,7 @@ const initialState: CustomizationState = {
   global: DEFAULT_GLOBAL_CONFIG,
   providers: {
     antigravity: {},
+    aiStudio: {},
     githubCopilot: {},
     zaiCoding: {},
     codex: {},
@@ -121,6 +122,7 @@ export const useCustomizationStore = create<CustomizationStore>((set, get) => ({
           global,
           providers: { 
             antigravity: {}, 
+            aiStudio: {},
             githubCopilot: {}, 
             zaiCoding: {},
             codex: {},

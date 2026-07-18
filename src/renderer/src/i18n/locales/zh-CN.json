@@ -24,6 +24,7 @@
     "providers": "供应商",
     "addProvider": "添加供应商",
     "antigravity": "Antigravity",
+    "aiStudio": "Google AI Studio",
     "githubCopilot": "GitHub Copilot",
     "zaiCoding": "Zai Coding Plan",
     "codex": "Codex",
@@ -31,8 +32,7 @@
     "settings": "设置"
   },
   "branding": {
-    "title": "AI 管理器",
-    "subtitle": "用量仪表板"
+    "title": "AI 管理器"
   },
    "auth": {
      "unlock": "解锁",
@@ -78,7 +78,6 @@
    },
 "settings": {
     "title": "设置",
-    "subtitle": "配置应用程序首选项",
     "refreshSettings": "刷新设置",
     "refreshSettingsDesc": "配置用量数据的刷新频率",
     "refreshInterval": "刷新间隔（秒）",
@@ -113,13 +112,10 @@
     "autoLaunchDesc": "系统启动时自动运行此应用程序",
     "sections": {
       "system": "系统与语言",
-      "systemDesc": "管理数据刷新、语言与后台运行方式",
+      "connections": "供应商连接",
       "alerts": "配额警报",
-      "alertsDesc": "决定何时以及如何提醒配额不足",
       "appearance": "外观与数据显示",
-      "appearanceDesc": "调整 Fluent 2 主题、布局与配额显示方式",
-      "privacy": "安全性与维护",
-      "privacyDesc": "管理访问保护、版本信息与应用程序更新"
+      "privacy": "安全性与维护"
     },
     "update": {
       "title": "关于与更新",
@@ -130,6 +126,9 @@
       "newVersion": "新版本！",
       "checkNow": "检查更新",
       "download": "下载",
+      "downloading": "下载中... {{percent}}%",
+      "startUpdate": "开始更新",
+      "installing": "正在启动更新...",
       "checking": "检查中...",
       "lastChecked": "上次检查：{{time}}",
       "publishedAt": "发布日期",
@@ -139,23 +138,25 @@
       "minutesAgo": "{{count}} 分钟前",
       "hoursAgo": "{{count}} 小时前",
       "daysAgo": "{{count}} 天前",
-      "updateAvailable": "有新版本可用",
-      "updateAvailableDesc": "版本 {{version}} 已发布",
-      "skipVersion": "跳过此版本",
-      "viewRelease": "查看更新"
+      "updateReady": "更新已准备完成",
+      "updateReadyDesc": "版本 {{version}} 已下载完成，立即重新启动以更新。",
+      "updateFailed": "更新失败：{{error}}",
+      "skipVersion": "跳过此版本"
     },
     "notificationReminderInterval": "提醒间隔（分钟）",
     "notificationReminderIntervalDesc": "低配额项目的提醒频率"
   },
   "overview": {
     "title": "概览",
-    "subtitle": "集中查看所有 AI 编程服务的剩余配额",
-    "providerSummary": "{{count}} 个供应商",
-    "accountSummary": "{{count}} 个可见账户",
-    "quotaSummary": "{{count}} 项配额",
     "lastUpdated": "最后更新：{{time}}",
     "noAccountsConfigured": "尚未配置账户",
-    "addAccountsHint": "在提供者页面添加账户以在此处查看用量"
+    "addAccountsHint": "在供应商页面添加账户，即可在此查看用量",
+    "columns": {
+      "quota": "配额／账户",
+      "status": "可用状态",
+      "remaining": "剩余",
+      "reset": "重置时间"
+    }
   },
   "provider": {
     "accounts": "账户",
@@ -169,9 +170,6 @@
     "loginFailed": "登录失败",
     "accountNotFound": "找不到账户",
     "accountSettings": "账户设置",
-    "accountSettingsDesc": "管理名称、概览显示与账户访问",
-    "visibleInOverview": "显示于概览",
-    "hiddenFromOverview": "未显示于概览",
     "editName": "编辑名称"
   },
   "antigravity": {
@@ -225,9 +223,59 @@
       "monthly": "每月配额"
     }
   },
+  "aiStudio": {
+    "rpm": "每分钟请求数（RPM）",
+    "tpm": "每分钟 Token 数（TPM）",
+    "rpd": "每日请求数（RPD）",
+    "unlimited": "无限制",
+    "usageHint": "已使用 / 限制",
+    "noQuotaData": "此项目与 Tier 未返回模型速率限制",
+    "oauthCredentials": {
+      "title": "Google OAuth 客户端",
+      "description": "只需创建一次桌面应用 OAuth 客户端，所有 AI Studio 账号与项目都共用此设置。",
+      "settingsDescription": "设置连接 Google AI Studio 账号时共用的 OAuth 客户端",
+      "clientId": "OAuth 客户端 ID",
+      "clientIdPlaceholder": "输入以 .apps.googleusercontent.com 结尾的客户端 ID",
+      "clientSecret": "OAuth 客户端密钥",
+      "clientSecretPlaceholder": "输入客户端密钥",
+      "setupGuide": "打开完整设置指南",
+      "securityNote": "数据会保存在应用的加密存储中；保存后无法查看或编辑。",
+      "save": "保存 OAuth 凭据",
+      "saving": "保存中...",
+      "checking": "正在检查 OAuth 凭据...",
+      "configured": "OAuth 凭据已设置",
+      "configuredDesc": "凭据值已隐藏，无法查看或编辑；如需更换，请先删除。",
+      "required": "请同时输入 OAuth 客户端 ID 和客户端密钥。",
+      "saveFailed": "无法保存 OAuth 凭据，凭据可能已设置。",
+      "loadFailed": "无法检查 OAuth 凭据。",
+      "delete": "删除 OAuth 凭据",
+      "deleting": "删除中...",
+      "deleteConfirm": "确定要删除 Google OAuth 凭据吗？现有 AI Studio 账号可能会停止刷新；设置替代凭据后，可能需要重新登录。",
+      "deleteFailed": "无法删除 OAuth 凭据。",
+      "testUsersHint": "遇到“错误 403：access_denied”？",
+      "testUsersDescription": "请在 Audience > Test users 中添加该 Google 账号，然后重试。",
+      "testUsersGuide": "打开测试用户设置说明"
+    },
+    "tierSettings": {
+      "action": "设置 Tier",
+      "title": "设置 Paid Tier",
+      "description": "Google 无法识别详细 Tier 时会使用此设置；取得详细 Tier 后，一律以系统结果为准。",
+      "label": "Paid Tier",
+      "sources": {
+        "system": "系统取得",
+        "manual": "手动设置",
+        "default": "默认值"
+      }
+    },
+    "tiers": {
+      "free": "Free Tier",
+      "tier1": "Tier 1",
+      "tier2": "Tier 2",
+      "tier3": "Tier 3"
+    }
+  },
   "addAccount": {
     "addProvider": "添加供应商",
-    "description": "选择服务并连接账户，配额会自动加入概览。",
     "displayName": "显示名称",
     "displayNamePlaceholder": "自定义名称（可选，默认为 {{provider}}）",
     "selectProvider": "供应商",
@@ -240,6 +288,10 @@
     "pleaseEnterName": "请输入名称",
     "pleaseEnterApiKey": "请输入 API 密钥",
     "pleaseLoginFirst": "请先登录",
+    "project": "Google Cloud 项目",
+    "selectProject": "选择项目",
+    "pleaseSelectProject": "请选择 Google Cloud 项目",
+    "noProjects": "这个 Google 账户没有可访问的有效项目",
     "failedToAddAccount": "添加账户失败",
     "connect": "连接",
     "connected": "已连接",
@@ -307,7 +359,13 @@
       
       "layout": {
         "title": "布局设置",
-        "description": "调整网格与卡片排列",
+        "description": "选择概览信息密度并调整供应商内容顺序",
+        "overviewLayout": "概览布局",
+        "overviewLayoutDesc": "多账户可使用紧凑列表，也可保留原有卡片网格",
+        "overviewLayoutOptions": {
+          "compact": "紧凑列表",
+          "cards": "卡片网格"
+        },
         "gridColumns": "网格列数",
         "gridColumnsDesc": "卡片网格的列数",
         "gridOptions": {
@@ -374,6 +432,10 @@
       }
   },
   "errors": {
+    "googleApi": {
+      "disabledDesc": "请打开 Google Cloud 设置页启用 API，等待几分钟后再重试。",
+      "openSettings": "打开 API 设置"
+    },
     "provider": {
       "codexTokenExpired": "Codex 访问令牌已过期",
       "codexAccountBanned": "Codex 账户已被封禁",

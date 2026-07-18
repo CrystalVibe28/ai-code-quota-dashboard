@@ -190,6 +190,18 @@ describe('UsageCard', () => {
     })
   })
 
+  describe('overview layout', () => {
+    it('should render the compact quota row', () => {
+      const { container } = render(
+        <UsageCard title="Test" subtitle="Account" percentage={50} overviewLayout="compact" />
+      )
+
+      expect(container.firstChild).toHaveClass('rounded-none', 'border-0', 'shadow-none')
+      expect(screen.getByRole('progressbar')).toHaveClass('row-start-2')
+      expect(screen.getByText('Account')).toBeInTheDocument()
+    })
+  })
+
   describe('card radius', () => {
     it('should apply none radius', () => {
       const { container } = render(

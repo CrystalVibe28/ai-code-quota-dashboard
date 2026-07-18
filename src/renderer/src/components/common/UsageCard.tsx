@@ -4,8 +4,9 @@ import { cn, getProgressColor, getQuotaColor, formatResetTime } from '@/lib/util
 import { Progress } from '@/components/ui/progress'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { OverflowTooltip } from '@/components/common/OverflowTooltip'
 import { Clock, Eye, EyeOff } from 'lucide-react'
-import type { CardSize, ProgressStyle, ValueFormat, TimeFormat, CardRadius } from '@/types/customization'
+import type { CardSize, ProgressStyle, ValueFormat, TimeFormat, CardRadius, OverviewLayout } from '@/types/customization'
 
 interface UsageCardProps {
   title: string
@@ -22,6 +23,7 @@ interface UsageCardProps {
   timeFormat?: TimeFormat
   showResetTime?: boolean
   cardRadius?: CardRadius
+  overviewLayout?: OverviewLayout
   onClick?: () => void
   showVisibilityToggle?: boolean
   isVisibleInOverview?: boolean
@@ -64,6 +66,7 @@ export const UsageCard = memo(function UsageCard({
   timeFormat = 'relative',
   showResetTime = true,
   cardRadius = 'md',
+  overviewLayout = 'cards',
   onClick,
   showVisibilityToggle = false,
   isVisibleInOverview = true,
@@ -90,6 +93,10 @@ export const UsageCard = memo(function UsageCard({
     }
   }, [valueFormat, remaining, total])
 
+  const resetText = showResetTime && resetTime
+    ? formatResetTime(resetTime, t, timeFormat, i18n.resolvedLanguage || i18n.language)
+    : ''
+
   // 使用 useCallback 快取事件處理函數，避免子元件不必要的重新渲染
   const handleVisibilityClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -101,6 +108,66 @@ export const UsageCard = memo(function UsageCard({
     e.preventDefault()
     onClick()
   }, [onClick])
+
+  if (overviewLayout === 'compact') {
+    return (
+      <Card
+        className={cn(
+          'rounded-none border-0 shadow-none transition-colors duration-150',
+          onClick && 'cursor-pointer hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+          className
+        )}
+        onClick={onClick}
+        onKeyDown={handleCardKeyDown}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+      >
+        <CardContent className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1.5 px-3 py-2.5 lg:min-h-12 lg:grid-cols-[minmax(10rem,1.35fr)_minmax(8rem,1fr)_5.5rem_8rem] lg:px-4 lg:py-2">
+          <div className="col-start-1 row-start-1 min-w-0">
+            <h4>
+              <OverflowTooltip className="truncate text-sm font-semibold leading-5">
+                {title}
+              </OverflowTooltip>
+            </h4>
+            {subtitle && (
+              <p>
+                <OverflowTooltip className="truncate text-xs leading-4 text-muted-foreground">
+                  {subtitle}
+                </OverflowTooltip>
+              </p>
+            )}
+          </div>
+
+          <Progress
+            value={percentageValue}
+            className="col-span-2 col-start-1 row-start-2 h-1 lg:col-span-1 lg:col-start-2 lg:row-start-1"
+            indicatorClassName={cn(getProgressColor(percentageValue), progressStyleClasses[progressStyle])}
+            aria-label={`${title}: ${percentageText}%`}
+          />
+
+          <div className="col-start-2 row-start-1 flex min-w-[5.5rem] flex-col items-end font-data leading-4 lg:col-start-3">
+            {showPercent && (
+              <span className={cn('text-sm font-semibold tracking-[-0.03em]', getQuotaColor(percentageValue))}>
+                {percentageText}%
+              </span>
+            )}
+            {showAbsolute && remaining !== undefined && total !== undefined && (
+              <span className="max-w-28 truncate text-[11px] text-muted-foreground">
+                {remaining.toLocaleString()} / {total.toLocaleString()}
+              </span>
+            )}
+          </div>
+
+          {resetText && (
+            <span className="col-span-2 col-start-1 row-start-3 flex min-w-0 items-center gap-1 whitespace-nowrap text-xs leading-4 text-muted-foreground lg:col-span-1 lg:col-start-4 lg:row-start-1 lg:justify-end">
+              <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
+              {resetText}
+            </span>
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
   
   return (
     <Card 
@@ -116,16 +183,22 @@ export const UsageCard = memo(function UsageCard({
       tabIndex={onClick ? 0 : undefined}
     >
       <CardContent className={cn('min-w-0', sizeClasses[cardSize])}>
-        <div className="mb-4 flex items-start justify-between gap-4">
+        <div className="mb-4 flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h4 className={cn('truncate font-semibold leading-5', cardSize === 'compact' ? 'text-xs' : 'text-sm')}>
-              {title}
+            <h4>
+              <OverflowTooltip className={cn('truncate font-semibold leading-5', cardSize === 'compact' ? 'text-xs' : 'text-sm')}>
+                {title}
+              </OverflowTooltip>
             </h4>
             {subtitle && (
-              <p className="truncate text-xs leading-4 text-muted-foreground">{subtitle}</p>
+              <p>
+                <OverflowTooltip className="truncate text-xs leading-4 text-muted-foreground">
+                  {subtitle}
+                </OverflowTooltip>
+              </p>
             )}
           </div>
-          <div className="flex flex-shrink-0 items-start gap-1">
+          <div className="flex flex-shrink-0 items-center gap-1">
             {showVisibilityToggle && (
               <Button
                 type="button"
@@ -133,7 +206,7 @@ export const UsageCard = memo(function UsageCard({
                 size="icon"
                 onClick={handleVisibilityClick}
                 className={cn(
-                  '-mr-2 -mt-2 shadow-none',
+                  '-mr-2 shadow-none',
                   isVisibleInOverview ? 'text-primary' : 'text-muted-foreground'
                 )}
                 title={isVisibleInOverview ? t('provider.hideFromOverview') : t('provider.showInOverview')}
@@ -168,10 +241,10 @@ export const UsageCard = memo(function UsageCard({
             <span></span>
           )}
           
-          {showResetTime && resetTime && (
+          {resetText && (
             <span className="flex min-w-0 items-center gap-1 whitespace-nowrap text-right">
               <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
-              {formatResetTime(resetTime, t, timeFormat, i18n.resolvedLanguage || i18n.language)}
+              {resetText}
             </span>
           )}
         </div>

@@ -3,6 +3,7 @@ import type { RenderOptions, RenderResult } from '@testing-library/react'
 import { ReactElement, ReactNode } from 'react'
 import { I18nextProvider } from 'react-i18next'
 import i18n from 'i18next'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 // Initialize a minimal i18n instance for testing
 i18n.init({
@@ -32,7 +33,7 @@ interface WrapperProps {
 function AllProviders({ children }: WrapperProps) {
   return (
     <I18nextProvider i18n={i18n}>
-      {children}
+      <TooltipProvider delayDuration={0}>{children}</TooltipProvider>
     </I18nextProvider>
   )
 }

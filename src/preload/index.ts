@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import type { UpdateCheckResult, UpdateDownloadStatus, UpdateInfo } from '@shared/types/update'
 
 const api = {
   auth: {
@@ -75,6 +76,25 @@ const api = {
       ipcRenderer.invoke('zai-coding:fetch-all-usage')
   },
 
+  aiStudio: {
+    hasOAuthCredentials: (): Promise<boolean> =>
+      ipcRenderer.invoke('ai-studio:has-oauth-credentials'),
+    saveOAuthCredentials: (clientId: string, clientSecret: string): Promise<boolean> =>
+      ipcRenderer.invoke('ai-studio:save-oauth-credentials', clientId, clientSecret),
+    deleteOAuthCredentials: (): Promise<boolean> =>
+      ipcRenderer.invoke('ai-studio:delete-oauth-credentials'),
+    login: (): Promise<{ success: boolean; account?: unknown; error?: string }> =>
+      ipcRenderer.invoke('ai-studio:login'),
+    cancelLogin: (): Promise<boolean> =>
+      ipcRenderer.invoke('ai-studio:cancel-login'),
+    refreshToken: (accountId: string): Promise<boolean> =>
+      ipcRenderer.invoke('ai-studio:refresh-token', accountId),
+    fetchUsage: (accountId: string): Promise<unknown> =>
+      ipcRenderer.invoke('ai-studio:fetch-usage', accountId),
+    fetchAllUsage: (): Promise<unknown[]> =>
+      ipcRenderer.invoke('ai-studio:fetch-all-usage')
+  },
+
   codex: {
     login: (): Promise<{ success: boolean; account?: unknown; error?: string }> =>
       ipcRenderer.invoke('codex:login'),
@@ -140,7 +160,7 @@ const api = {
   },
 
   update: {
-    check: (): Promise<{ success: boolean; data?: unknown; error?: string }> =>
+    check: (): Promise<UpdateCheckResult> =>
       ipcRenderer.invoke('update:check'),
     getCurrentVersion: (): Promise<string> =>
       ipcRenderer.invoke('update:get-current-version'),
@@ -152,14 +172,23 @@ const api = {
       ipcRenderer.invoke('update:clear-skipped-version'),
     getLastChecked: (): Promise<string | undefined> =>
       ipcRenderer.invoke('update:get-last-checked'),
-    getLastUpdateInfo: (): Promise<unknown> =>
+    getLastUpdateInfo: (): Promise<UpdateInfo | null> =>
       ipcRenderer.invoke('update:get-last-update-info'),
+    getStatus: (): Promise<UpdateDownloadStatus> =>
+      ipcRenderer.invoke('update:get-status'),
+    install: (): Promise<boolean> =>
+      ipcRenderer.invoke('update:install'),
     openReleasePage: (url?: string): Promise<boolean> =>
       ipcRenderer.invoke('update:open-release-page', url),
-    onUpdateAvailable: (callback: (info: unknown) => void): (() => void) => {
-      const handler = (_: unknown, info: unknown): void => callback(info)
+    onUpdateAvailable: (callback: (info: UpdateInfo) => void): (() => void) => {
+      const handler = (_: unknown, info: UpdateInfo): void => callback(info)
       ipcRenderer.on('update:available', handler)
       return () => ipcRenderer.removeListener('update:available', handler)
+    },
+    onStatusChange: (callback: (status: UpdateDownloadStatus) => void): (() => void) => {
+      const handler = (_: unknown, status: UpdateDownloadStatus): void => callback(status)
+      ipcRenderer.on('update:status', handler)
+      return () => ipcRenderer.removeListener('update:status', handler)
     }
   }
 }

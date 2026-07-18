@@ -5,6 +5,9 @@ import type {
   GithubCopilotAccount,
   OpencodeGoAccount,
   ZaiCodingAccount,
+  AiStudioAccount,
+  AiStudioLoginSession,
+  AiStudioAccountUsage,
   LoginResult,
   AntigravityUsage,
   CodexAccountUsage,
@@ -14,7 +17,7 @@ import type {
   Settings,
   CustomizationState
 } from '@shared/types'
-import type { UpdateInfo, UpdateCheckResult } from '@shared/types/update'
+import type { UpdateInfo, UpdateCheckResult, UpdateDownloadStatus } from '@shared/types/update'
 
 interface AuthAPI {
   hasPassword: () => Promise<boolean>
@@ -31,10 +34,10 @@ interface AuthAPI {
 }
 
 interface StorageAPI {
-  getAccounts: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount>(
+  getAccounts: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | AiStudioAccount>(
     provider: string
   ) => Promise<T[]>
-  saveAccount: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount>(
+  saveAccount: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | AiStudioAccount>(
     provider: string,
     account: T
   ) => Promise<boolean>
@@ -42,7 +45,7 @@ interface StorageAPI {
   updateAccount: (
     provider: string,
     accountId: string,
-    data: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount> | Partial<CodexAccount> | Partial<OpencodeGoAccount>
+    data: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount> | Partial<CodexAccount> | Partial<OpencodeGoAccount> | Partial<AiStudioAccount>
   ) => Promise<boolean>
   getSettings: () => Promise<Settings>
   saveSettings: (settings: Partial<Settings>) => Promise<boolean>
@@ -121,8 +124,22 @@ interface UpdateAPI {
   clearSkippedVersion: () => Promise<boolean>
   getLastChecked: () => Promise<string | undefined>
   getLastUpdateInfo: () => Promise<UpdateInfo | null>
+  getStatus: () => Promise<UpdateDownloadStatus>
+  install: () => Promise<boolean>
   openReleasePage: (url?: string) => Promise<boolean>
   onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void
+  onStatusChange: (callback: (status: UpdateDownloadStatus) => void) => () => void
+}
+
+interface AiStudioAPI {
+  hasOAuthCredentials: () => Promise<boolean>
+  saveOAuthCredentials: (clientId: string, clientSecret: string) => Promise<boolean>
+  deleteOAuthCredentials: () => Promise<boolean>
+  login: () => Promise<{ success: boolean; account?: AiStudioLoginSession; error?: string }>
+  cancelLogin: () => Promise<boolean>
+  refreshToken: (accountId: string) => Promise<boolean>
+  fetchUsage: (accountId: string) => Promise<AiStudioAccountUsage['usage']>
+  fetchAllUsage: () => Promise<AiStudioAccountUsage[]>
 }
 
 interface CustomAPI {
@@ -131,6 +148,7 @@ interface CustomAPI {
   antigravity: AntigravityAPI
   githubCopilot: GithubCopilotAPI
   zaiCoding: ZaiCodingAPI
+  aiStudio: AiStudioAPI
   codex: CodexAPI
   opencodeGo: OpencodeGoAPI
   app: AppAPI

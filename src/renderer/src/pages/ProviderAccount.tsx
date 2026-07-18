@@ -1,10 +1,13 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { RefreshCw, Trash2, Edit2, Eye, EyeOff, Info } from 'lucide-react'
+import { RefreshCw, Trash2, Edit2, Eye, EyeOff, Info, Settings2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { UsageCard } from '@/components/common/UsageCard'
+import { AiStudioLimitCard } from '@/components/common/AiStudioLimitCard'
+import { AiStudioTierBadge } from '@/components/common/AiStudioTierBadge'
+import { AiStudioTierDialog } from '@/components/common/AiStudioTierDialog'
 import { ErrorCard } from '@/components/common/ErrorCard'
 import { EditNameDialog } from '@/components/common/EditNameDialog'
 import { useAntigravityStore } from '@/stores/useAntigravityStore'
@@ -12,16 +15,16 @@ import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
 import { useCodexStore } from '@/stores/useCodexStore'
 import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
+import { useAiStudioStore } from '@/stores/useAiStudioStore'
 import { useCustomization } from '@/contexts/CustomizationContext'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
 import { getQuotaGridClassName } from '@/constants/customization'
 import { getProviderById } from '@/constants/providers'
 import type { ProviderId } from '@/types/customization'
-import type { ZaiLimit, ZaiUsage } from '@shared/types'
+import type { AiStudioAccount, AiStudioPaidTier, AiStudioUsage, ZaiLimit, ZaiUsage } from '@shared/types'
 import { getAntigravityQuotaType } from '@shared/antigravityQuota'
 import { getZaiQuotaType } from '@shared/zaiQuota'
 import { getCodexWindowLabel } from '@/lib/codexQuota'
-import { cn } from '@/lib/utils'
 
 export function ProviderAccount() {
   const { t } = useTranslation()
@@ -29,6 +32,7 @@ export function ProviderAccount() {
   const { providerId, accountId } = useParams<{ providerId: string; accountId: string }>()
   
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [showTierDialog, setShowTierDialog] = useState(false)
   
   // Stores
   const { 
@@ -80,6 +84,16 @@ export function ProviderAccount() {
     deleteAccount: deleteOpencodeGoAccount,
     updateAccount: updateOpencodeGoAccount
   } = useOpencodeGoStore()
+
+  const {
+    accounts: aiStudioAccounts,
+    usageData: aiStudioUsage,
+    isLoading: aiStudioLoading,
+    fetchAccounts: fetchAiStudioAccounts,
+    fetchUsage: fetchAiStudioUsage,
+    deleteAccount: deleteAiStudioAccount,
+    updateAccount: updateAiStudioAccount
+  } = useAiStudioStore()
   
   const { global, getCardConfig, isCardVisible } = useCustomization()
   const { providers, updateCard } = useCustomizationStore()
@@ -109,9 +123,22 @@ export function ProviderAccount() {
       const acc = opencodeGoAccounts.find(a => a.id === accountId)
       const usageItem = opencodeGoUsage.find(u => u.accountId === accountId)
       return { account: acc, usage: usageItem, isLoading: opencodeGoLoading }
+    } else if (providerId === 'aiStudio') {
+      const acc = aiStudioAccounts.find(a => a.id === accountId)
+      const usageItem = aiStudioUsage.find(u => u.accountId === accountId)
+      return { account: acc, usage: usageItem, isLoading: aiStudioLoading }
     }
     return { account: undefined, usage: undefined, isLoading: false }
-  }, [providerId, accountId, antiAccounts, antiUsage, antiLoading, ghAccounts, ghUsage, ghLoading, zaiAccounts, zaiUsage, zaiLoading, codexAccounts, codexUsage, codexLoading, opencodeGoAccounts, opencodeGoUsage, opencodeGoLoading])
+  }, [providerId, accountId, antiAccounts, antiUsage, antiLoading, ghAccounts, ghUsage, ghLoading, zaiAccounts, zaiUsage, zaiLoading, codexAccounts, codexUsage, codexLoading, opencodeGoAccounts, opencodeGoUsage, opencodeGoLoading, aiStudioAccounts, aiStudioUsage, aiStudioLoading])
+
+  const aiStudioAccount = providerId === 'aiStudio' ? account as AiStudioAccount | undefined : undefined
+  const currentAiStudioUsage = providerId === 'aiStudio' && usage?.usage ? usage.usage as AiStudioUsage : null
+  const aiStudioTier = currentAiStudioUsage?.tier ?? aiStudioAccount?.tier
+  const aiStudioTierSource = currentAiStudioUsage?.tierSource ?? aiStudioAccount?.tierSource
+
+  useEffect(() => {
+    if (aiStudioTier === 'free') setShowTierDialog(false)
+  }, [aiStudioTier])
   
   const copilotLabelMap: Record<string, string> = {
     chat: 'Chat messages',
@@ -161,7 +188,9 @@ export function ProviderAccount() {
   
   const Icon = provider.icon
   const displayName = (account as any).displayName || (account as any).name || (account as any).email || (account as any).login || (account as any).workspaceName || (account as any).workspaceId || 'Unknown'
-  const accountDetail = (account as any).email || (account as any).login || (account as any).workspaceName || (account as any).workspaceId
+  const accountDetail = providerId === 'aiStudio'
+    ? `${(account as any).projectName} (${(account as any).projectId})`
+    : (account as any).email || (account as any).login || (account as any).workspaceName || (account as any).workspaceId
   const showInOverview = (account as any).showInOverview ?? true
   
   const handleRefresh = async () => {
@@ -180,6 +209,9 @@ export function ProviderAccount() {
     } else if (providerId === 'opencodeGo') {
       await fetchOpencodeGoAccounts()
       await fetchOpencodeGoUsage()
+    } else if (providerId === 'aiStudio') {
+      await fetchAiStudioUsage()
+      await fetchAiStudioAccounts()
     }
   }
   
@@ -197,6 +229,8 @@ export function ProviderAccount() {
       success = await deleteCodexAccount(accountId!)
     } else if (providerId === 'opencodeGo') {
       success = await deleteOpencodeGoAccount(accountId!)
+    } else if (providerId === 'aiStudio') {
+      success = await deleteAiStudioAccount(accountId!)
     }
     
     if (success) {
@@ -216,6 +250,8 @@ export function ProviderAccount() {
       await updateCodexAccount(accountId!, { showInOverview: newValue })
     } else if (providerId === 'opencodeGo') {
       await updateOpencodeGoAccount(accountId!, { showInOverview: newValue })
+    } else if (providerId === 'aiStudio') {
+      await updateAiStudioAccount(accountId!, { showInOverview: newValue })
     }
   }
   
@@ -231,11 +267,27 @@ export function ProviderAccount() {
       success = await updateCodexAccount(accountId!, { displayName: newName })
     } else if (providerId === 'opencodeGo') {
       success = await updateOpencodeGoAccount(accountId!, { displayName: newName })
+    } else if (providerId === 'aiStudio') {
+      success = await updateAiStudioAccount(accountId!, { displayName: newName })
     }
     return success ? { success: true } : { success: false, error: t('editName.failedToSave') }
   }
+
+  const handleSaveTier = async (tier: AiStudioPaidTier) => {
+    const success = await updateAiStudioAccount(accountId!, {
+      tier,
+      manualTier: tier,
+      tierSource: 'manual'
+    })
+    if (!success) return false
+
+    await fetchAiStudioUsage()
+    await fetchAiStudioAccounts()
+    return true
+  }
   
   const getGridClass = () => {
+    if (providerId === 'aiStudio') return 'grid grid-cols-1 gap-4 lg:grid-cols-2'
     const cols = providers[providerId as ProviderId]?.gridColumns ?? global.gridColumns
     const cardSize = providers[providerId as ProviderId]?.cardSize ?? global.cardSize
     return getQuotaGridClassName(cols, cardSize)
@@ -323,6 +375,33 @@ export function ProviderAccount() {
             cardRadius={config.cardRadius}
             showVisibilityToggle
             isVisibleInOverview={isCardVisible('zaiCoding', cardId)}
+            onVisibilityToggle={(visible) => updateCard(cardId, { visible })}
+          />
+        )
+      })
+    }
+
+    if (providerId === 'aiStudio') {
+      const usageData = usage.usage as AiStudioUsage
+      if (usageData.limits.length === 0) {
+        return [
+          <Card key={`aiStudio-${accountId}-no-data`} className="rounded-md">
+            <CardContent className="pt-4 text-sm text-muted-foreground">{t('aiStudio.noQuotaData')}</CardContent>
+          </Card>
+        ]
+      }
+
+      return usageData.limits.map((limit) => {
+        const cardId = `aiStudio-${accountId}-${limit.model}`
+        const config = getCardConfig('aiStudio', cardId)
+        return (
+          <AiStudioLimitCard
+            key={cardId}
+            {...limit}
+            cardSize={config.cardSize}
+            cardRadius={config.cardRadius}
+            showVisibilityToggle
+            isVisibleInOverview={isCardVisible('aiStudio', cardId)}
             onVisibilityToggle={(visible) => updateCard(cardId, { visible })}
           />
         )
@@ -457,15 +536,12 @@ export function ProviderAccount() {
                   <span className="truncate">{accountDetail}</span>
                 </>
               )}
-              <span
-                className={cn(
-                  'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs leading-4',
-                  showInOverview ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
-                )}
-              >
-                {showInOverview ? <Eye className="h-3 w-3" aria-hidden="true" /> : <EyeOff className="h-3 w-3" aria-hidden="true" />}
-                {showInOverview ? t('provider.visibleInOverview') : t('provider.hiddenFromOverview')}
-              </span>
+              {aiStudioTier && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <AiStudioTierBadge tier={aiStudioTier} source={aiStudioTierSource} />
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -476,11 +552,14 @@ export function ProviderAccount() {
       </header>
       
       <Card className="shadow-none">
-        <CardContent className="flex flex-col gap-2 p-2 sm:flex-row sm:items-center">
-          <div className="px-2 py-1 sm:mr-auto">
-            <p className="text-sm font-semibold leading-5">{t('provider.accountSettings')}</p>
-            <p className="text-xs leading-4 text-muted-foreground">{t('provider.accountSettingsDesc')}</p>
-          </div>
+        <CardContent className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center">
+          <h2 className="px-1 text-sm font-semibold leading-5 sm:mr-auto">{t('provider.accountSettings')}</h2>
+          {aiStudioTier && aiStudioTier !== 'free' && (
+            <Button variant="outline" onClick={() => setShowTierDialog(true)}>
+              <Settings2 aria-hidden="true" />
+              {t('aiStudio.tierSettings.action')}
+            </Button>
+          )}
           <Button 
             variant="outline" 
             onClick={() => setShowEditDialog(true)}
@@ -490,7 +569,7 @@ export function ProviderAccount() {
           </Button>
           
           <Button 
-            variant="outline" 
+            variant={showInOverview ? 'outline' : 'default'}
             onClick={handleToggleOverview}
           >
             {showInOverview ? (
@@ -542,6 +621,14 @@ export function ProviderAccount() {
         currentName={displayName}
         onSave={handleSaveName}
       />
+      {aiStudioTier && aiStudioTier !== 'free' && (
+        <AiStudioTierDialog
+          isOpen={showTierDialog}
+          currentTier={aiStudioTier}
+          onClose={() => setShowTierDialog(false)}
+          onSave={handleSaveTier}
+        />
+      )}
     </div>
   )
 }

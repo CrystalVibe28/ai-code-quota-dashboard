@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin({ exclude: ['@electron-toolkit/utils'] })],
+    plugins: [externalizeDepsPlugin({ exclude: ['@electron-toolkit/utils', 'electron-updater'] })],
     build: {
       rollupOptions: {
         input: {

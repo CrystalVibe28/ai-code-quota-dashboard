@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label'
 import { SettingsSelect } from '@/components/settings/SettingsSelect'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
-import { GRID_COLUMN_OPTIONS, CARD_SIZE_OPTIONS } from '@/constants/customization'
+import { GRID_COLUMN_OPTIONS, CARD_SIZE_OPTIONS, OVERVIEW_LAYOUT_OPTIONS } from '@/constants/customization'
 import { getProviderById } from '@/constants/providers'
 
 export function LayoutSettings() {
@@ -34,6 +34,24 @@ export function LayoutSettings() {
       </CardHeader>
       <CardContent className="divide-y">
         <div className="fluent-setting-row pb-4">
+          <div>
+            <Label htmlFor="overviewLayout">{t('customization.layout.overviewLayout')}</Label>
+            <p className="text-sm text-muted-foreground">
+              {t('customization.layout.overviewLayoutDesc')}
+            </p>
+          </div>
+          <SettingsSelect
+            id="overviewLayout"
+            value={global.overviewLayout}
+            onValueChange={(value) => updateGlobal({ overviewLayout: value as 'compact' | 'cards' })}
+            options={OVERVIEW_LAYOUT_OPTIONS.map((option) => ({
+              value: option.value,
+              label: t(option.label)
+            }))}
+          />
+        </div>
+
+        <div className="fluent-setting-row py-4">
           <div>
             <Label htmlFor="gridColumns">{t('customization.layout.gridColumns')}</Label>
             <p className="text-sm text-muted-foreground">

@@ -1,3 +1,5 @@
+/// <reference types="vitest/jsdom" />
+
 import '@testing-library/jest-dom/vitest'
 import { vi, afterEach } from 'vitest'
 import { mockWindowApi } from './mocks/window-api'
