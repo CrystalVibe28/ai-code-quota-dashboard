@@ -6,6 +6,7 @@ import { useCustomizationStore } from './useCustomizationStore'
 import { useErrorStore } from './useErrorStore'
 import { useGithubCopilotStore } from './useGithubCopilotStore'
 import { useOpencodeGoStore } from './useOpencodeGoStore'
+import { useOllamaCloudStore } from './useOllamaCloudStore'
 import { useSettingsStore } from './useSettingsStore'
 import { useUpdateStore } from './useUpdateStore'
 import { useZaiCodingStore } from './useZaiCodingStore'
@@ -18,6 +19,7 @@ interface AuthState {
   isLoading: boolean
   hasPassword: boolean
   isPasswordSkipped: boolean
+  isUpdateRequired: boolean
   error: string | null
   checkAuth: () => Promise<void>
   unlock: (password: string) => Promise<boolean>
@@ -37,6 +39,7 @@ function clearRendererData(): void {
   useZaiCodingStore.getState().reset()
   useCodexStore.getState().reset()
   useOpencodeGoStore.getState().reset()
+  useOllamaCloudStore.getState().reset()
   useAiStudioStore.getState().reset()
   useSettingsStore.setState(useSettingsStore.getInitialState(), true)
   useCustomizationStore.setState(useCustomizationStore.getInitialState(), true)
@@ -50,6 +53,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
   hasPassword: false,
   isPasswordSkipped: false,
+  isUpdateRequired: false,
   error: null,
 
   checkAuth: async () => {
@@ -58,13 +62,20 @@ export const useAuthStore = create<AuthState>((set) => ({
       const isPasswordSkipped = await window.api.auth.isPasswordSkipped()
       // Auto-unlock when password was skipped
       if (isPasswordSkipped) {
-        await window.api.auth.unlockWithSkippedPassword()
-        set({ hasPassword, isPasswordSkipped, isUnlocked: true, isLoading: false, error: null })
+        const result = await window.api.auth.unlockWithSkippedPassword()
+        set({
+          hasPassword,
+          isPasswordSkipped,
+          isUnlocked: result.success,
+          isUpdateRequired: !result.success && result.reason === 'data-version-too-new',
+          isLoading: false,
+          error: null
+        })
       } else {
-        set({ hasPassword, isPasswordSkipped, isLoading: false, error: null })
+        set({ hasPassword, isPasswordSkipped, isUpdateRequired: false, isLoading: false, error: null })
       }
     } catch (error) {
-      set({ hasPassword: false, isPasswordSkipped: false, isLoading: false })
+      set({ hasPassword: false, isPasswordSkipped: false, isUpdateRequired: false, isLoading: false })
       useErrorStore.getState().showError(
         ErrorCode.STORAGE_READ_FAILED,
         'Failed to check authentication status',
@@ -77,12 +88,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ error: null })
     try {
       const result = await window.api.auth.verifyPassword(password)
-      if (result) {
-        set({ isUnlocked: true })
+      if (result.success) {
+        set({ isUnlocked: true, isUpdateRequired: false })
+      } else if (result.reason === 'data-version-too-new') {
+        set({ isUpdateRequired: true })
       } else {
         set({ error: 'errors.auth.invalidPassword' })
       }
-      return result
+      return result.success
     } catch (error) {
       const errorMessage = 'Failed to verify password'
       set({ error: errorMessage })
@@ -96,7 +109,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const result = await window.api.auth.setPassword(password)
       if (result) {
-        set({ hasPassword: true, isUnlocked: true, isPasswordSkipped: false })
+        set({ hasPassword: true, isUnlocked: true, isPasswordSkipped: false, isUpdateRequired: false })
       } else {
         set({ error: 'Failed to set password' })
       }
@@ -114,7 +127,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const result = await window.api.auth.skipPassword()
       if (result) {
-        set({ hasPassword: true, isUnlocked: true, isPasswordSkipped: true })
+        set({ hasPassword: true, isUnlocked: true, isPasswordSkipped: true, isUpdateRequired: false })
       } else {
         set({ error: 'Failed to skip password' })
       }
@@ -192,7 +205,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   lock: async () => {
     try {
       await window.api.auth.lock()
-      set({ isUnlocked: false, error: null })
+      set({ isUnlocked: false, isUpdateRequired: false, error: null })
     } catch (error) {
       useErrorStore.getState().showErrorFromException(error)
     }
@@ -219,6 +232,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       isLoading: false,
       hasPassword: clearError ? state.hasPassword : false,
       isPasswordSkipped: clearError ? state.isPasswordSkipped : false,
+      isUpdateRequired: clearError ? state.isUpdateRequired : false,
       error: clearError ? 'Failed to clear all data' : null
     }))
 

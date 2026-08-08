@@ -2,11 +2,47 @@ import { ipcMain } from 'electron'
 import { CodexService } from '../services/providers/codex'
 import { StorageService } from '../services/storage'
 import { TrayService } from '../services/tray'
+import { UsageDataService } from '../services/usage-data'
 import type { CodexAccount, CodexAccountUsage } from '@shared/types'
 import { withAutoRefreshCodex } from './utils/withAutoRefreshCodex'
 
 const codexService = new CodexService()
 const storageService = new StorageService()
+
+export async function fetchAllCodexUsage(): Promise<CodexAccountUsage[]> {
+  try {
+    const accounts = await storageService.getAccounts('codex') as CodexAccount[]
+    const results = await Promise.all(
+      accounts.map(async (account): Promise<CodexAccountUsage> => {
+        try {
+          const usage = await withAutoRefreshCodex(account, async (currentAccount) => {
+            return await codexService.fetchUsage(currentAccount)
+          })
+
+          if (usage === null) {
+            return { accountId: account.id, name: account.displayName, email: account.email, usage: null, error: 'Token refresh failed' }
+          }
+
+          return { accountId: account.id, name: account.displayName, email: account.email, usage }
+        } catch (error) {
+          console.error('[Codex] fetch-all-usage error for', account.email, ':', error)
+          return { accountId: account.id, name: account.displayName, email: account.email, usage: null, error: String(error) }
+        }
+      })
+    )
+
+    UsageDataService.getInstance().recordProvider('codex', results)
+    const trayData = results
+      .filter(r => r.usage !== null)
+      .map(r => ({ name: r.name, percent: 0 }))
+    TrayService.getInstance().triggerUpdate({ codex: trayData })
+
+    return results
+  } catch (error) {
+    console.error('[Codex] fetch-all-usage error:', error)
+    return []
+  }
+}
 
 export function registerCodexHandlers(): void {
   ipcMain.handle('codex:login', async () => {
@@ -66,38 +102,5 @@ export function registerCodexHandlers(): void {
     }
   })
 
-  ipcMain.handle('codex:fetch-all-usage', async (): Promise<CodexAccountUsage[]> => {
-    try {
-      const accounts = await storageService.getAccounts('codex') as CodexAccount[]
-      const results = await Promise.all(
-        accounts.map(async (account): Promise<CodexAccountUsage> => {
-          try {
-            const usage = await withAutoRefreshCodex(account, async (currentAccount) => {
-              return await codexService.fetchUsage(currentAccount)
-            })
-
-            if (usage === null) {
-              return { accountId: account.id, name: account.displayName, email: account.email, usage: null, error: 'Token refresh failed' }
-            }
-
-            return { accountId: account.id, name: account.displayName, email: account.email, usage }
-          } catch (error) {
-            console.error('[Codex] fetch-all-usage error for', account.email, ':', error)
-            return { accountId: account.id, name: account.displayName, email: account.email, usage: null, error: String(error) }
-          }
-        })
-      )
-
-      const trayService = TrayService.getInstance()
-      const trayData = results
-        .filter(r => r.usage !== null)
-        .map(r => ({ name: r.name, percent: 0 }))
-      trayService.triggerUpdate({ codex: trayData })
-
-      return results
-    } catch (error) {
-      console.error('[Codex] fetch-all-usage error:', error)
-      return []
-    }
-  })
+  ipcMain.handle('codex:fetch-all-usage', fetchAllCodexUsage)
 }

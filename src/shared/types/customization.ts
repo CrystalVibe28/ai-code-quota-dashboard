@@ -58,6 +58,7 @@ export interface GlobalConfig {
 export interface ProviderConfig {
   collapsed?: boolean
   accountCollapsed?: Record<string, boolean>
+  accountCardVisibility?: Record<string, boolean>
   gridColumns?: GridColumns
   cardSize?: CardSize
   cardOrder?: CardId[]
@@ -111,7 +112,7 @@ export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   overviewLayout: 'compact',
   gridColumns: 'auto',
   cardSize: 'default',
-  providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'aiStudio'],
+  providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'ollamaCloud', 'aiStudio'],
   
   // Visual
   theme: 'system',

@@ -13,9 +13,9 @@ interface CustomizationContextValue {
   
   getProviderConfig: (providerId: ProviderId) => GlobalConfig & ProviderConfig
   
-  getCardConfig: (providerId: ProviderId, cardId: CardId) => EffectiveCardConfig
+  getCardConfig: (providerId: ProviderId, cardId: CardId, accountId?: string, fallbackVisible?: boolean) => EffectiveCardConfig
   
-  isCardVisible: (providerId: ProviderId, cardId: CardId) => boolean
+  isCardVisible: (providerId: ProviderId, cardId: CardId, accountId?: string, fallbackVisible?: boolean) => boolean
   
   getSortedProviders: () => ProviderId[]
   
@@ -39,12 +39,12 @@ export function CustomizationProvider({ children }: { children: ReactNode }) {
       return { ...global, ...providerConfig }
     },
     
-    getCardConfig: (providerId, cardId) => {
+    getCardConfig: (providerId, cardId, accountId, fallbackVisible = true) => {
       const providerConfig = providers[providerId] || {}
       const cardConfig = cards[cardId] || {}
       
       return {
-        visible: cardConfig.visible ?? true,
+        visible: cardConfig.visible ?? (accountId ? providerConfig.accountCardVisibility?.[accountId] : undefined) ?? fallbackVisible,
         gridColumns: providerConfig.gridColumns ?? global.gridColumns,
         cardSize: providerConfig.cardSize ?? global.cardSize,
         progressStyle: providerConfig.progressStyle ?? global.progressStyle,
@@ -57,9 +57,9 @@ export function CustomizationProvider({ children }: { children: ReactNode }) {
       }
     },
     
-    isCardVisible: (_providerId, cardId) => {
+    isCardVisible: (providerId, cardId, accountId, fallbackVisible = true) => {
       const cardConfig = cards[cardId]
-      return cardConfig?.visible ?? true
+      return cardConfig?.visible ?? (accountId ? providers[providerId]?.accountCardVisibility?.[accountId] : undefined) ?? fallbackVisible
     },
     
     getSortedProviders: () => {

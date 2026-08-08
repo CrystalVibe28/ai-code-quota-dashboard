@@ -29,6 +29,7 @@
     "zaiCoding": "Zai Coding Plan",
     "codex": "Codex",
     "opencodeGo": "Opencode Go",
+    "ollamaCloud": "Ollama Cloud",
     "settings": "設定"
   },
   "branding": {
@@ -110,9 +111,14 @@
     "closeToTrayDesc": "關閉視窗時最小化到系統工具列而非完全關閉應用程式",
     "autoLaunch": "開機自動啟動",
     "autoLaunchDesc": "系統啟動時自動執行此應用程式",
+    "autoLaunchError": "無法更新開機自動啟動設定",
+    "apiServerSettings": "本機 API 伺服器",
+    "apiServerSettingsDesc": "設定本機 API 的網路存取範圍",
+    "allowRemoteApiAccess": "允許其他裝置連線",
+    "allowRemoteApiAccessDesc": "開啟時監聽所有網路介面（0.0.0.0）；應用程式解鎖時，API 請求不需另行驗證。關閉時僅允許本機連線（127.0.0.1）。",
     "sections": {
       "system": "系統與語言",
-      "connections": "供應商連線",
+      "connections": "連線與 API",
       "alerts": "配額警示",
       "appearance": "外觀與資料呈現",
       "privacy": "安全性與維護"
@@ -120,6 +126,9 @@
     "update": {
       "title": "關於與更新",
       "description": "檢查應用程式更新",
+      "requiredTitle": "需要更新應用程式",
+      "requiredDescription": "目前的應用程式比已儲存的資料舊，請先更新再繼續使用。",
+      "dataSafe": "已儲存的帳戶與設定皆未變更。",
       "currentVersion": "目前版本",
       "latestVersion": "最新版本",
       "upToDate": "已是最新版本！",
@@ -156,6 +165,29 @@
       "reset": "重設時間"
     }
   },
+  "trayPopover": {
+    "title": "配額速覽",
+    "lastUpdated": "更新於 {{time}}",
+    "neverUpdated": "尚未更新",
+    "localCache": "本機快取資料",
+    "providers": "供應商",
+    "account": "帳號",
+    "resets": "{{time}}後重設",
+    "openDashboard": "開啟完整儀表板",
+    "lockedTitle": "儀表板已鎖定",
+    "lockedDescription": "請開啟完整儀表板，以解鎖本機儲存的資料。",
+    "noAccountsTitle": "沒有快取帳號",
+    "noAccountsDescription": "請開啟完整儀表板加入帳號並更新配額。",
+    "noQuotaTitle": "沒有配額資料",
+    "noQuotaDescription": "下次排程或手動更新後，快取配額會顯示於此。",
+    "unavailableTitle": "無法取得用量",
+    "unavailableDescription": "請開啟完整儀表板查看帳號詳情。",
+    "copilot": {
+      "chat": "聊天訊息",
+      "completions": "程式碼補全",
+      "premiumInteractions": "進階要求"
+    }
+  },
   "provider": {
     "accounts": "帳戶",
     "usage": "使用量",
@@ -165,10 +197,21 @@
     "removeAccount": "移除帳戶",
     "showInOverview": "在總覽中顯示",
     "hideFromOverview": "從總覽中隱藏",
+    "showAll": "全部顯示",
+    "hideAll": "全部隱藏",
     "loginFailed": "登入失敗",
     "accountNotFound": "找不到帳戶",
     "accountSettings": "帳戶設定",
     "editName": "編輯名稱"
+  },
+  "history": {
+    "title": "配額歷史",
+    "weeklyTitle": "每週配額歷史",
+    "monthlyTitle": "每月配額歷史",
+    "description": "剩餘配額，每小時最多記錄一次",
+    "empty": "下次重新整理後會開始顯示歷史",
+    "chartLabel": "{{title}}折線圖",
+    "pointLabel": "{{series}}：{{time}} 剩餘 {{value}}%"
   },
   "antigravity": {
     "title": "Antigravity",
@@ -221,6 +264,13 @@
       "monthly": "每月配額"
     }
   },
+  "ollamaCloud": {
+    "noQuotaData": "沒有可用的 Ollama Cloud 使用量資料",
+    "quotaTypes": {
+      "session": "5 小時配額",
+      "weekly": "每週配額"
+    }
+  },
   "aiStudio": {
     "rpm": "每分鐘請求數（RPM）",
     "tpm": "每分鐘 Token 數（TPM）",
@@ -228,6 +278,14 @@
     "unlimited": "無限制",
     "usageHint": "已使用 / 限制",
     "noQuotaData": "此專案與 Tier 未回傳模型速率限制",
+    "reauthorization": {
+      "action": "重新授權",
+      "expired": "Google 授權已失效。請重新授權以恢復配額更新。",
+      "success": "Google 授權已更新",
+      "accountNotFound": "此 AI Studio 帳號已不存在。",
+      "accountMismatch": "登入的 Google 帳號不同。請改用 {{email}} 登入；資料未變更。",
+      "projectUnavailable": "{{project}} 已不存在，或此帳號已無權存取；資料未變更。"
+    },
     "oauthCredentials": {
       "title": "Google OAuth 用戶端",
       "description": "只需建立一次桌面應用程式 OAuth 用戶端，所有 AI Studio 帳號與專案皆共用此設定。",

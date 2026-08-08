@@ -11,3 +11,7 @@ export function getGoogleApiEnableUrl(error: string): string | null {
     return null
   }
 }
+
+export function isGoogleOAuthReauthorizationRequired(error: string): boolean {
+  return /invalid_grant|invalid_rapt/i.test(error)
+}

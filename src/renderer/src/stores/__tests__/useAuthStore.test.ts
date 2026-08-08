@@ -18,6 +18,7 @@ describe('useAuthStore', () => {
       isLoading: true,
       hasPassword: false,
       isPasswordSkipped: false,
+      isUpdateRequired: false,
       error: null
     })
     localStorage.clear()
@@ -31,6 +32,7 @@ describe('useAuthStore', () => {
       expect(state.isLoading).toBe(true)
       expect(state.hasPassword).toBe(false)
       expect(state.isPasswordSkipped).toBe(false)
+      expect(state.isUpdateRequired).toBe(false)
     })
   })
 
@@ -50,7 +52,7 @@ describe('useAuthStore', () => {
     it('should handle skipped password state and auto-unlock', async () => {
       mockWindowApi.auth.hasPassword.mockResolvedValue(true)
       mockWindowApi.auth.isPasswordSkipped.mockResolvedValue(true)
-      mockWindowApi.auth.unlockWithSkippedPassword.mockResolvedValue(true)
+      mockWindowApi.auth.unlockWithSkippedPassword.mockResolvedValue({ success: true })
 
       await useAuthStore.getState().checkAuth()
 
@@ -60,6 +62,23 @@ describe('useAuthStore', () => {
       expect(state.isUnlocked).toBe(true)
       expect(state.isLoading).toBe(false)
       expect(mockWindowApi.auth.unlockWithSkippedPassword).toHaveBeenCalled()
+    })
+
+    it('should require an update when skipped-password data is from a newer version', async () => {
+      mockWindowApi.auth.hasPassword.mockResolvedValue(true)
+      mockWindowApi.auth.isPasswordSkipped.mockResolvedValue(true)
+      mockWindowApi.auth.unlockWithSkippedPassword.mockResolvedValue({
+        success: false,
+        reason: 'data-version-too-new'
+      })
+
+      await useAuthStore.getState().checkAuth()
+
+      expect(useAuthStore.getState()).toMatchObject({
+        isUnlocked: false,
+        isLoading: false,
+        isUpdateRequired: true
+      })
     })
 
     it('should handle API error gracefully', async () => {
@@ -76,7 +95,7 @@ describe('useAuthStore', () => {
 
   describe('unlock', () => {
     it('should set isUnlocked to true on successful verification', async () => {
-      mockWindowApi.auth.verifyPassword.mockResolvedValue(true)
+      mockWindowApi.auth.verifyPassword.mockResolvedValue({ success: true })
 
       const result = await useAuthStore.getState().unlock('correct-password')
 
@@ -86,7 +105,10 @@ describe('useAuthStore', () => {
     })
 
     it('should not unlock on failed verification', async () => {
-      mockWindowApi.auth.verifyPassword.mockResolvedValue(false)
+      mockWindowApi.auth.verifyPassword.mockResolvedValue({
+        success: false,
+        reason: 'invalid-password'
+      })
 
       const result = await useAuthStore.getState().unlock('wrong-password')
 
@@ -272,6 +294,7 @@ describe('useAuthStore', () => {
         isLoading: false,
         hasPassword: false,
         isPasswordSkipped: false,
+        isUpdateRequired: false,
         error: null
       })
     })

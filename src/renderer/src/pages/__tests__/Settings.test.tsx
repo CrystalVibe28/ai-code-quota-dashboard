@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '../../../../test/test-utils'
 import { Settings } from '../Settings'
 import { useAuthStore } from '../../stores/useAuthStore'
+import { useErrorStore } from '../../stores/useErrorStore'
 import { useSettingsStore } from '../../stores/useSettingsStore'
 import { mockWindowApi } from '../../../../test/mocks/window-api'
 
@@ -10,6 +11,7 @@ vi.mock('@/components/settings/UpdateSettings', () => ({ UpdateSettings: () => n
 describe('Settings', () => {
   beforeEach(() => {
     useAuthStore.setState(useAuthStore.getInitialState(), true)
+    useErrorStore.setState(useErrorStore.getInitialState(), true)
     useSettingsStore.setState(useSettingsStore.getInitialState(), true)
     vi.clearAllMocks()
     mockWindowApi.aiStudio.hasOAuthCredentials.mockResolvedValue(true)
@@ -58,6 +60,74 @@ describe('Settings', () => {
         { value: 5, enabled: true }
       ]
     })
+  })
+
+  it('should persist a refresh interval before restarting the timer', async () => {
+    render(<Settings />)
+
+    fireEvent.change(screen.getByLabelText('Refresh Interval (seconds)'), {
+      target: { value: '120' }
+    })
+
+    await waitFor(() => {
+      expect(mockWindowApi.app.refreshIntervalChanged).toHaveBeenCalledTimes(1)
+    })
+    expect(mockWindowApi.storage.saveSettings).toHaveBeenCalledWith({ refreshInterval: 120 })
+    expect(mockWindowApi.storage.saveSettings.mock.invocationCallOrder[0])
+      .toBeLessThan(mockWindowApi.app.refreshIntervalChanged.mock.invocationCallOrder[0])
+  })
+
+  it('should keep remote API access off by default and persist the toggle', async () => {
+    render(<Settings />)
+
+    const remoteAccess = screen.getByRole('switch', { name: 'Allow access from other devices' })
+    expect(remoteAccess).not.toBeChecked()
+    fireEvent.click(remoteAccess)
+
+    await waitFor(() => {
+      expect(mockWindowApi.storage.saveSettings).toHaveBeenCalledWith({ allowRemoteApiAccess: true })
+    })
+  })
+
+  it('should load and persist the launch-at-login setting without concurrent changes', async () => {
+    let resolveAutoLaunch!: (enabled: boolean) => void
+    mockWindowApi.app.getAutoLaunch.mockReturnValueOnce(new Promise(resolve => {
+      resolveAutoLaunch = resolve
+    }))
+
+    render(<Settings />)
+
+    const autoLaunch = screen.getByRole('switch', { name: 'Launch at Login' })
+    expect(autoLaunch).toBeDisabled()
+
+    resolveAutoLaunch(true)
+    await waitFor(() => {
+      expect(autoLaunch).toBeChecked()
+      expect(autoLaunch).toBeEnabled()
+    })
+
+    fireEvent.click(autoLaunch)
+    await waitFor(() => {
+      expect(mockWindowApi.app.setAutoLaunch).toHaveBeenCalledWith(false)
+      expect(autoLaunch).not.toBeChecked()
+      expect(autoLaunch).toBeEnabled()
+    })
+  })
+
+  it('should keep the launch-at-login state and report a failed update', async () => {
+    mockWindowApi.app.setAutoLaunch.mockResolvedValueOnce(false)
+    render(<Settings />)
+
+    const autoLaunch = screen.getByRole('switch', { name: 'Launch at Login' })
+    await waitFor(() => expect(autoLaunch).toBeEnabled())
+    fireEvent.click(autoLaunch)
+
+    await waitFor(() => {
+      expect(mockWindowApi.app.setAutoLaunch).toHaveBeenCalledWith(true)
+      expect(useErrorStore.getState().lastError?.message)
+        .toBe('Could not update the launch-at-login setting')
+    })
+    expect(autoLaunch).not.toBeChecked()
   })
 
   it('should run the destructive clear-data action after confirmation', async () => {

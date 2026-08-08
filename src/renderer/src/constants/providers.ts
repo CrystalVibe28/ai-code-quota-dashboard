@@ -4,6 +4,7 @@ import Antigravity from '@lobehub/icons/es/Antigravity/components/Mono'
 import Codex from '@lobehub/icons/es/Codex/components/Mono'
 import GithubCopilot from '@lobehub/icons/es/GithubCopilot/components/Mono'
 import OpenCode from '@lobehub/icons/es/OpenCode/components/Mono'
+import Ollama from '@lobehub/icons/es/Ollama/components/Mono'
 import ZAI from '@lobehub/icons/es/ZAI/components/Mono'
 import type { ProviderId } from '@/types/customization'
 
@@ -65,6 +66,14 @@ const PROVIDERS_UNSORTED: ProviderDefinition[] = [
     icon: OpenCode,
     mode: 'oauth' as const,
     oauthProvider: 'Google / GitHub'
+  },
+  {
+    id: 'ollamaCloud' as const,
+    name: 'Ollama Cloud',
+    labelKey: 'nav.ollamaCloud',
+    icon: Ollama,
+    mode: 'oauth' as const,
+    oauthProvider: 'Ollama'
   }
 ]
 

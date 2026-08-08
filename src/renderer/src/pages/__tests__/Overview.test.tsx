@@ -1,6 +1,6 @@
 import { afterEach, describe, it, expect, beforeEach, vi } from 'vitest'
 import i18n from 'i18next'
-import { render, screen } from '../../../../test/test-utils'
+import { fireEvent, render, screen, waitFor } from '../../../../test/test-utils'
 import { Overview } from '../Overview'
 import { CustomizationProvider } from '../../contexts/CustomizationContext'
 import { DEFAULT_GLOBAL_CONFIG } from '../../constants/customization'
@@ -27,7 +27,7 @@ describe('Overview', () => {
     useGithubCopilotStore.setState({ accounts: [], usageData: [] })
     useZaiCodingStore.setState({ accounts: [], usageData: [] })
     useOpencodeGoStore.setState({ accounts: [], usageData: [] })
-    useAiStudioStore.setState({ accounts: [], usageData: [] })
+    useAiStudioStore.setState({ accounts: [], usageData: [], isLoading: false, error: null })
     useCodexStore.setState({
       accounts: [
         {
@@ -65,6 +65,7 @@ describe('Overview', () => {
         zaiCoding: {},
         codex: {},
         opencodeGo: {},
+        ollamaCloud: {},
         aiStudio: {}
       },
       cards: {}
@@ -233,5 +234,67 @@ describe('Overview', () => {
     expect(screen.getByText('500 / 1,000')).toBeInTheDocument()
     expect(screen.queryByText('50.00%')).not.toBeInTheDocument()
     expect(screen.getByText(expectedResetTime)).toBeInTheDocument()
+  })
+
+  it('offers reauthorization instead of retrying an expired Google grant', async () => {
+    const account = {
+      id: 'google-user:project',
+      displayName: 'AI Studio User',
+      showInOverview: true,
+      userId: 'google-user',
+      email: 'user@example.com',
+      name: 'User',
+      accessToken: 'old-access-token',
+      refreshToken: 'old-refresh-token',
+      expiresAt: 1,
+      projectId: 'project',
+      projectNumber: '1',
+      projectName: 'Project',
+      tier: 'free' as const
+    }
+    useAiStudioStore.setState({
+      accounts: [account],
+      usageData: [{
+        accountId: account.id,
+        name: account.displayName,
+        usage: null,
+        error: 'Error: Token refresh failed: 400 (invalid_grant)'
+      }]
+    })
+    mockWindowApi.aiStudio.login.mockResolvedValue({
+      success: true,
+      account: {
+        userId: account.userId,
+        email: account.email,
+        name: account.name,
+        accessToken: 'new-access-token',
+        refreshToken: 'new-refresh-token',
+        expiresAt: 123456,
+        projects: [{
+          projectId: account.projectId,
+          projectNumber: account.projectNumber,
+          name: account.projectName
+        }]
+      }
+    })
+    mockWindowApi.storage.getAccounts.mockResolvedValue([account])
+
+    render(
+      <CustomizationProvider>
+        <Overview />
+      </CustomizationProvider>
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'aiStudio.reauthorization.action' }))
+
+    await waitFor(() => {
+      expect(mockWindowApi.aiStudio.login).toHaveBeenCalledOnce()
+      expect(mockWindowApi.storage.updateAccount).toHaveBeenCalledWith(
+        'aiStudio',
+        account.id,
+        expect.objectContaining({ refreshToken: 'new-refresh-token' })
+      )
+    })
+    expect(screen.queryByRole('button', { name: 'common.retry' })).not.toBeInTheDocument()
   })
 })

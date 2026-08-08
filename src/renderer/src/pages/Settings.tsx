@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Globe, Minimize, Plus, RotateCcw, Settings as SettingsIcon, X } from 'lucide-react'
+import { Globe, Minimize, Plus, RotateCcw, Server, Settings as SettingsIcon, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -17,9 +17,11 @@ import { UpdateSettings } from '@/components/settings/UpdateSettings'
 import { VisualSettings } from '@/components/settings/VisualSettings'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
+import { useErrorStore } from '@/stores/useErrorStore'
 import { useSettingsStore } from '@/stores/useSettingsStore'
 import { SUPPORTED_LANGUAGES } from '@/i18n'
 import { DEFAULT_NOTIFICATION_THRESHOLDS } from '@shared/types/settings'
+import { ErrorCode, MAX_REFRESH_INTERVAL, MIN_REFRESH_INTERVAL } from '@shared/types'
 import type { NotificationThreshold } from '@shared/types/settings'
 import { debounce } from '@/lib/utils'
 
@@ -51,17 +53,19 @@ export function Settings() {
     settings.notificationThresholds || DEFAULT_NOTIFICATION_THRESHOLDS
   )
   const [autoLaunch, setAutoLaunch] = useState(false)
+  const [isAutoLaunchLoading, setIsAutoLaunchLoading] = useState(true)
 
   const handleSettingChange = useCallback(async (newSettings: Partial<typeof settings>) => {
     if (newSettings.notificationThresholds !== undefined) {
       await window.api.notification.resetState()
     }
 
-    if (newSettings.refreshInterval !== undefined && newSettings.refreshInterval !== settings.refreshInterval) {
+    const refreshIntervalChanged =
+      newSettings.refreshInterval !== undefined &&
+      newSettings.refreshInterval !== settings.refreshInterval
+    if (await updateSettings(newSettings) && refreshIntervalChanged) {
       await window.api.app.refreshIntervalChanged()
     }
-
-    updateSettings(newSettings)
   }, [settings, updateSettings])
 
   const debouncedHandleSettingChange = useCallback(debounce(handleSettingChange, 300), [handleSettingChange])
@@ -81,19 +85,26 @@ export function Settings() {
       try {
         setAutoLaunch(await window.api.app.getAutoLaunch())
       } catch {
-        // Silently fail
+        useErrorStore.getState().showError(ErrorCode.UNKNOWN, t('settings.autoLaunchError'))
+      } finally {
+        setIsAutoLaunchLoading(false)
       }
     }
-    initAutoLaunch()
+    void initAutoLaunch()
   }, [])
 
   const handleAutoLaunchChange = async (checked: boolean) => {
+    setIsAutoLaunchLoading(true)
     try {
       if (await window.api.app.setAutoLaunch(checked)) {
         setAutoLaunch(checked)
+      } else {
+        useErrorStore.getState().showError(ErrorCode.UNKNOWN, t('settings.autoLaunchError'))
       }
     } catch {
-      // Silently fail
+      useErrorStore.getState().showError(ErrorCode.UNKNOWN, t('settings.autoLaunchError'))
+    } finally {
+      setIsAutoLaunchLoading(false)
     }
   }
 
@@ -151,8 +162,8 @@ export function Settings() {
                   id="refreshInterval"
                   type="number"
                   inputMode="numeric"
-                  min={30}
-                  max={300}
+                  min={MIN_REFRESH_INTERVAL}
+                  max={MAX_REFRESH_INTERVAL}
                   value={localValues.refreshInterval}
                   onChange={(event) => handleInputChange('refreshInterval', Number(event.target.value))}
                   className="w-full sm:w-28"
@@ -207,9 +218,17 @@ export function Settings() {
               <div className="fluent-setting-row pt-4">
                 <div>
                   <Label htmlFor="autoLaunch">{t('settings.autoLaunch')}</Label>
-                  <p className="text-sm leading-5 text-muted-foreground">{t('settings.autoLaunchDesc')}</p>
+                  <p id="auto-launch-description" className="text-sm leading-5 text-muted-foreground">
+                    {t('settings.autoLaunchDesc')}
+                  </p>
                 </div>
-                <Switch id="autoLaunch" checked={autoLaunch} onCheckedChange={handleAutoLaunchChange} />
+                <Switch
+                  id="autoLaunch"
+                  checked={autoLaunch}
+                  disabled={isAutoLaunchLoading}
+                  aria-describedby="auto-launch-description"
+                  onCheckedChange={handleAutoLaunchChange}
+                />
               </div>
             </CardContent>
           </Card>
@@ -220,7 +239,34 @@ export function Settings() {
         id="settings-connections"
         title={t('settings.sections.connections')}
       >
-        <AiStudioOAuthSettings />
+        <div className="grid gap-4 xl:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Server className="h-5 w-5" aria-hidden="true" />
+                {t('settings.apiServerSettings')}
+              </CardTitle>
+              <CardDescription>{t('settings.apiServerSettingsDesc')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="fluent-setting-row">
+                <div>
+                  <Label htmlFor="allowRemoteApiAccess">{t('settings.allowRemoteApiAccess')}</Label>
+                  <p id="remote-api-access-description" className="text-sm leading-5 text-muted-foreground">
+                    {t('settings.allowRemoteApiAccessDesc')}
+                  </p>
+                </div>
+                <Switch
+                  id="allowRemoteApiAccess"
+                  checked={settings.allowRemoteApiAccess}
+                  aria-describedby="remote-api-access-description"
+                  onCheckedChange={(checked) => handleSettingChange({ allowRemoteApiAccess: checked })}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          <AiStudioOAuthSettings />
+        </div>
       </SettingsSection>
 
       <SettingsSection

@@ -19,6 +19,12 @@ interface TokenResponse {
   expires_in: number
 }
 
+interface TokenErrorResponse {
+  error?: string
+  error_description?: string
+  error_subtype?: string
+}
+
 interface UserInfo {
   id: string
   email: string
@@ -181,32 +187,32 @@ export class GoogleOAuthService {
     })
   }
 
-  async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string; expiresAt: number } | null> {
-    if (!this.clientId) return null
+  async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string; expiresAt: number }> {
+    if (!this.clientId) throw new Error('Google OAuth client is not configured')
 
-    try {
-      const body = new URLSearchParams({
-        client_id: this.clientId,
-        refresh_token: refreshToken,
-        grant_type: 'refresh_token'
-      })
-      if (this.clientSecret) body.set('client_secret', this.clientSecret)
+    const body = new URLSearchParams({
+      client_id: this.clientId,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token'
+    })
+    if (this.clientSecret) body.set('client_secret', this.clientSecret)
 
-      const response = await fetchWithTimeout(TOKEN_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body.toString()
-      })
-      if (!response.ok) return null
+    const response = await fetchWithTimeout(TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    })
+    if (!response.ok) {
+      const error = await response.json().catch(() => null) as TokenErrorResponse | null
+      const detail = [error?.error, error?.error_subtype, error?.error_description].filter(Boolean).join(': ')
+      throw new Error(`Token refresh failed: ${response.status}${detail ? ` (${detail})` : ''}`)
+    }
 
-      const data = await response.json() as TokenResponse
-      return {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token || refreshToken,
-        expiresAt: Date.now() + data.expires_in * 1000
-      }
-    } catch {
-      return null
+    const data = await response.json() as TokenResponse
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token || refreshToken,
+      expiresAt: Date.now() + data.expires_in * 1000
     }
   }
 
@@ -226,7 +232,7 @@ export class GoogleOAuthService {
       body: body.toString()
     })
     if (!response.ok) {
-      const error = await response.json().catch(() => null) as { error?: string; error_description?: string } | null
+      const error = await response.json().catch(() => null) as TokenErrorResponse | null
       const detail = [error?.error, error?.error_description].filter(Boolean).join(': ')
       throw new Error(`Token exchange failed: ${response.status}${detail ? ` (${detail})` : ''}`)
     }

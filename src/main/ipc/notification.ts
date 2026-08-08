@@ -18,7 +18,7 @@ export function registerNotificationHandlers(): void {
 
   ipcMain.handle('notification:restart-timer', async () => {
     try {
-      restartBackgroundRefresh()
+      await restartBackgroundRefresh()
       return true
     } catch (error) {
       console.error('[Notification IPC] Failed to restart timer:', error)
@@ -51,11 +51,8 @@ export function registerNotificationHandlers(): void {
         settings,
         {
           hideUnlimitedQuota: customization?.global?.hideUnlimitedQuota ?? false,
-          hiddenCardIds: new Set(
-            Object.entries(customization?.cards ?? {})
-              .filter(([, config]) => (config as any).visible === false)
-              .map(([cardId]) => cardId)
-          )
+          cards: customization?.cards ?? {},
+          providers: customization?.providers ?? {}
         }
       )
       return true

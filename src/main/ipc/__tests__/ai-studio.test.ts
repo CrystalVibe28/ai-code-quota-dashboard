@@ -53,6 +53,8 @@ describe('AI Studio OAuth credential IPC', () => {
     mocks.handlers.clear()
     mocks.constructors.length = 0
     mocks.getCredentials.mockReturnValue(null)
+    mocks.getAccounts.mockResolvedValue([])
+    mocks.refreshToken.mockResolvedValue(null)
     registerAiStudioHandlers()
   })
 
@@ -79,5 +81,16 @@ describe('AI Studio OAuth credential IPC', () => {
     mocks.getCredentials.mockReturnValue({ clientId: 'runtime-id', clientSecret: 'runtime-secret' })
     await expect(login?.({})).resolves.toMatchObject({ success: true })
     expect(mocks.constructors).toEqual([['runtime-id', 'runtime-secret']])
+  })
+
+  it('keeps manual token refresh failures on the boolean IPC contract', async () => {
+    mocks.getCredentials.mockReturnValue({ clientId: 'runtime-id', clientSecret: 'runtime-secret' })
+    mocks.getAccounts.mockResolvedValue([{ id: 'account-1', refreshToken: 'refresh-token' }])
+    mocks.refreshToken.mockRejectedValue(new Error('Token refresh failed: 400 (invalid_grant)'))
+
+    const refresh = mocks.handlers.get('ai-studio:refresh-token')
+
+    await expect(refresh?.({}, 'account-1')).resolves.toBe(false)
+    expect(mocks.updateAccount).not.toHaveBeenCalled()
   })
 })

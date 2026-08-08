@@ -34,6 +34,49 @@ describe('AddAccountDialog', () => {
     })
   })
 
+  it('should preserve a custom name during login and reset it only when the provider changes', async () => {
+    mockWindowApi.antigravity.login.mockResolvedValue({
+      success: true,
+      account: {
+        id: 'account-1',
+        displayName: 'Signed-in user',
+        email: 'user@example.com'
+      }
+    })
+    mockWindowApi.githubCopilot.login.mockResolvedValue({
+      success: true,
+      account: {
+        id: 'account-2',
+        displayName: 'GitHub user',
+        login: 'octocat'
+      }
+    })
+
+    render(<AddAccountDialog isOpen={true} onClose={vi.fn()} />)
+
+    const displayName = screen.getByLabelText('addAccount.displayName')
+    expect(displayName).toHaveValue('Antigravity')
+
+    fireEvent.change(displayName, { target: { value: 'My account' } })
+    fireEvent.click(screen.getByRole('button', { name: 'addAccount.signInWith' }))
+
+    expect(await screen.findByText('addAccount.connectedAs')).toBeInTheDocument()
+    expect(displayName).toHaveValue('My account')
+
+    const providerSelect = screen.getByRole('combobox', { name: 'addAccount.selectProvider' })
+    fireEvent.keyDown(providerSelect, { key: 'ArrowDown' })
+    fireEvent.click(await screen.findByRole('option', { name: /GitHub Copilot/ }))
+
+    await waitFor(() => {
+      expect(displayName).toHaveValue('GitHub Copilot')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'addAccount.signInWith' }))
+
+    expect(await screen.findByText('addAccount.connectedAs')).toBeInTheDocument()
+    expect(displayName).toHaveValue('GitHub Copilot')
+  })
+
   it('should cancel an in-progress OAuth login when closing the dialog', async () => {
     let resolveLogin: ((result: { success: boolean; error?: string }) => void) | undefined
 

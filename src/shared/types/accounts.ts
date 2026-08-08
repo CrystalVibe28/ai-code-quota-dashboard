@@ -4,7 +4,7 @@
 /**
  * Provider identifiers
  */
-export type ProviderId = 'antigravity' | 'githubCopilot' | 'zaiCoding' | 'codex' | 'opencodeGo' | 'aiStudio'
+export type ProviderId = 'antigravity' | 'githubCopilot' | 'zaiCoding' | 'codex' | 'opencodeGo' | 'ollamaCloud' | 'aiStudio'
 
 /**
  * Base account interface with common fields
@@ -115,9 +115,18 @@ export interface OpencodeGoAccount extends BaseAccount {
 }
 
 /**
+ * Ollama Cloud account
+ */
+export interface OllamaCloudAccount extends BaseAccount {
+  email: string
+  cookieHeader: string
+  expiresAt: number
+}
+
+/**
  * Union type for all account types
  */
-export type Account = AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | AiStudioAccount
+export type Account = AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | OllamaCloudAccount | AiStudioAccount
 
 /**
  * Partial types for account updates
@@ -127,6 +136,7 @@ export type GithubCopilotAccountUpdate = Partial<Omit<GithubCopilotAccount, 'id'
 export type ZaiCodingAccountUpdate = Partial<Omit<ZaiCodingAccount, 'id'>>
 export type CodexAccountUpdate = Partial<Omit<CodexAccount, 'id'>>
 export type OpencodeGoAccountUpdate = Partial<Omit<OpencodeGoAccount, 'id'>>
+export type OllamaCloudAccountUpdate = Partial<Omit<OllamaCloudAccount, 'id'>>
 export type AiStudioAccountUpdate = Partial<Omit<AiStudioAccount, 'id'>>
 
 /**
@@ -142,3 +152,4 @@ export type AntigravityLoginResult = LoginResult<AntigravityAccount>
 export type GithubCopilotLoginResult = LoginResult<GithubCopilotAccount>
 export type CodexLoginResult = LoginResult<CodexAccount>
 export type OpencodeGoLoginResult = LoginResult<OpencodeGoAccount>
+export type OllamaCloudLoginResult = LoginResult<OllamaCloudAccount>

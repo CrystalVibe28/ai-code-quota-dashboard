@@ -1,26 +1,23 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, powerMonitor } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { existsSync, rmSync, readdirSync } from 'fs'
-import { join as pathJoin } from 'path'
 import { TrayService } from './services/tray'
 import { StorageService } from './services/storage'
 import { CryptoService } from './services/crypto'
 import { NotificationService } from './services/notification'
-import { AntigravityService } from './services/providers/antigravity'
-import { GithubCopilotService } from './services/providers/github-copilot'
-import { ZaiCodingService } from './services/providers/zai-coding'
-import { CodexService } from './services/providers/codex'
-import { OpencodeGoService } from './services/providers/opencode-go'
+import { getLocalApiHost, LocalApiService, USAGE_API_PATH } from './services/local-api'
+import type { UsageSnapshot } from '@shared/types'
 
-import { registerAuthHandlers } from './ipc/auth'
+import { registerAuthHandlers, unlockWithSkippedPassword } from './ipc/auth'
 import { registerStorageHandlers } from './ipc/storage'
-import { registerAntigravityHandlers } from './ipc/antigravity'
-import { registerGithubCopilotHandlers } from './ipc/github-copilot'
-import { registerZaiCodingHandlers } from './ipc/zai-coding'
-import { registerAiStudioHandlers } from './ipc/ai-studio'
-import { registerCodexHandlers } from './ipc/codex'
-import { registerOpencodeGoHandlers } from './ipc/opencode-go'
+import { fetchAllAntigravityUsage, registerAntigravityHandlers } from './ipc/antigravity'
+import { fetchAllGithubCopilotUsage, registerGithubCopilotHandlers } from './ipc/github-copilot'
+import { fetchAllZaiCodingUsage, registerZaiCodingHandlers } from './ipc/zai-coding'
+import { fetchAllAiStudioUsage, registerAiStudioHandlers } from './ipc/ai-studio'
+import { fetchAllCodexUsage, registerCodexHandlers } from './ipc/codex'
+import { fetchAllOpencodeGoUsage, registerOpencodeGoHandlers } from './ipc/opencode-go'
+import { fetchAllOllamaCloudUsage, registerOllamaCloudHandlers } from './ipc/ollama-cloud'
 import { registerAppHandlers } from './ipc/app'
 import { registerNotificationHandlers } from './ipc/notification'
 import { registerUpdateHandlers, notifyUpdateAvailable } from './ipc/update'
@@ -37,8 +34,10 @@ function getIconPath(): string {
   }
 }
 
-function createWindow(): void {
-  mainWindow = new BrowserWindow({
+function createWindow(): BrowserWindow {
+  if (mainWindow && !mainWindow.isDestroyed()) return mainWindow
+
+  const window = new BrowserWindow({
     width: 1200,
     height: 800,
     minWidth: 900,
@@ -57,110 +56,86 @@ function createWindow(): void {
     }
   })
 
-  mainWindow.on('ready-to-show', () => {
-    const isAutoLaunch = process.argv.includes('--hidden')
-    const hasPassword = cryptoService.hasPassword()
-    const isPasswordSkipped = cryptoService.isPasswordSkipped()
-
-    // Auto-unlock storage if password was skipped
-    if (hasPassword && isPasswordSkipped) {
-      const storageService = new StorageService()
-      storageService.unlock(cryptoService.getSkippedPasswordKey())
-    }
-
-    // Decide whether to show the window:
-    // Hide ONLY when: auto-launched AND no real password (skipped or no password file)
-    const hasRealPassword = hasPassword && !isPasswordSkipped
-    const shouldHide = isAutoLaunch && !hasRealPassword
-
-    if (shouldHide) {
-      // Auto-start without real password → minimize to tray, background refresh only
-      console.log('[Startup] Auto-launched without password - hiding to tray')
-      startBackgroundRefresh()
-    } else {
-      // All other cases → show foreground window
-      console.log('[Startup] Showing main window', { isAutoLaunch, hasPassword, isPasswordSkipped })
-      mainWindow?.show()
-      startBackgroundRefresh()
-    }
-  })
-
-  mainWindow.webContents.setWindowOpenHandler((details) => {
+  mainWindow = window
+  window.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    void window.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    void window.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  trayService.setMainWindow(mainWindow)
-  notificationService.setMainWindow(mainWindow)
+  trayService.setMainWindow(window)
+  notificationService.setMainWindow(window)
 
-  mainWindow.on('close', async (event) => {
-    if (isQuitting) {
-      return // Allow quit
-    }
+  window.on('close', (event) => {
+    if (isQuitting) return
 
     try {
       const storageService = new StorageService()
-      const settings = await storageService.getSettings()
+      const settings = storageService.getSettings()
 
       if (settings.closeToTray) {
         event.preventDefault()
-        mainWindow?.hide()
+        window.hide()
       }
     } catch (error) {
       console.error('[Window] Failed to check closeToTray setting:', error)
     }
   })
 
-  mainWindow.on('show', () => {
-    console.log('[Window State] Window shown - stopping background refresh')
-    if (refreshTimer) {
-      clearInterval(refreshTimer)
-      refreshTimer = null
+  window.on('closed', () => {
+    if (mainWindow === window) {
+      mainWindow = null
+      trayService.setMainWindow(null)
+      notificationService.setMainWindow(null)
     }
-    // Wait for an in-flight background refresh before the renderer starts one.
-    void (backgroundRefreshPromise ?? Promise.resolve()).finally(() => {
-      mainWindow?.webContents.send('app:refresh-all')
-    })
+    if (!isQuitting && process.platform !== 'darwin') app.quit()
   })
 
-  mainWindow.on('hide', () => {
-    console.log('[Window State] Window hidden - starting background refresh')
-    startBackgroundRefresh()
-  })
+  return window
+}
 
-  mainWindow.on('minimize', () => {
-    console.log('[Window State] Window minimized - starting background refresh')
-    startBackgroundRefresh()
-  })
+function showMainWindow(): BrowserWindow {
+  const window = createWindow()
+  const show = (): void => {
+    if (window.isDestroyed()) return
+    if (window.isMinimized()) window.restore()
+    window.show()
+    window.focus()
+  }
 
-  mainWindow.on('restore', () => {
-    console.log('[Window State] Window restored - stopping background refresh')
-    if (refreshTimer) {
-      clearInterval(refreshTimer)
-      refreshTimer = null
-    }
-    // Wait for an in-flight background refresh before the renderer starts one.
-    void (backgroundRefreshPromise ?? Promise.resolve()).finally(() => {
-      mainWindow?.webContents.send('app:refresh-all')
-    })
-  })
+  if (window.webContents.isLoading()) {
+    window.once('ready-to-show', show)
+  } else {
+    show()
+  }
+  return window
+}
+
+function showOverview(): void {
+  const window = showMainWindow()
+  const send = (): void => window.webContents.send('app:navigate-to-overview')
+  if (window.webContents.isLoading()) {
+    window.webContents.once('did-finish-load', send)
+  } else {
+    send()
+  }
 }
 
 function registerAllIpcHandlers(): void {
-  registerAuthHandlers()
-  registerStorageHandlers()
+  registerAuthHandlers(restartLocalApi)
+  registerStorageHandlers(restartLocalApi)
   registerAntigravityHandlers()
   registerGithubCopilotHandlers()
   registerZaiCodingHandlers()
   registerAiStudioHandlers()
   registerCodexHandlers()
   registerOpencodeGoHandlers()
+  registerOllamaCloudHandlers()
   registerAppHandlers()
   registerNotificationHandlers()
   registerUpdateHandlers((installing) => {
@@ -170,6 +145,27 @@ function registerAllIpcHandlers(): void {
 
 const trayService = TrayService.getInstance()
 const notificationService = NotificationService.getInstance()
+let localApiService = new LocalApiService()
+
+function getConfiguredLocalApiHost(): string {
+  try {
+    return getLocalApiHost(new StorageService().getSettings().allowRemoteApiAccess === true)
+  } catch {
+    return getLocalApiHost(false)
+  }
+}
+
+export async function restartLocalApi(): Promise<void> {
+  try {
+    const host = getConfiguredLocalApiHost()
+    await localApiService.stop()
+    localApiService = new LocalApiService({ host })
+    const port = await localApiService.start()
+    console.log(`[Local API] Listening on http://${host}:${port}${USAGE_API_PATH}`)
+  } catch (error) {
+    console.error('[Local API] Failed to restart:', error)
+  }
+}
 
 let refreshTimer: NodeJS.Timeout | null = null
 let backgroundRefreshPromise: Promise<void> | null = null
@@ -180,14 +176,8 @@ const gotTheLock = app.requestSingleInstanceLock()
 if (!gotTheLock) {
   app.quit()
 } else {
-  app.on('second-instance', () => {
-    // Someone tried to run a second instance, show and focus our window
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.show()
-      mainWindow.focus()
-      mainWindow.webContents.send('app:navigate-to-overview')
-    }
+  app.on('second-instance', (_, commandLine) => {
+    if (!commandLine.includes('--hidden')) showOverview()
   })
 }
 
@@ -253,186 +243,48 @@ async function performBackgroundRefreshInner(): Promise<void> {
 
     const refreshSettings = await refreshStorageService.getSettings()
     const customization = await refreshStorageService.getCustomization()
-
-    const antigravityService = new AntigravityService()
-    const githubCopilotService = new GithubCopilotService()
-    const zaiCodingService = new ZaiCodingService()
-    const codexService = new CodexService()
-    const opencodeGoService = new OpencodeGoService()
-
-    const [antigravityResults, copilotResults, zaiResults, codexResults, opencodeGoResults] = await Promise.all([
-      (async () => {
-        try {
-          const accounts = await refreshStorageService.getAccounts('antigravity')
-          return Promise.all(
-            accounts.map(async (account: any) => {
-              try {
-                let currentAccount = account
-                if (Date.now() > account.expiresAt - 300000) {
-                  const newTokens = await antigravityService.refreshToken(account.refreshToken)
-                  if (newTokens) {
-                    await refreshStorageService.updateAccount('antigravity', account.id, {
-                      accessToken: newTokens.accessToken,
-                      refreshToken: newTokens.refreshToken,
-                      expiresAt: newTokens.expiresAt
-                    })
-                    currentAccount = { ...account, ...newTokens }
-                  } else {
-                    return { accountId: account.id, email: account.email, usage: null, error: 'Token refresh failed' }
-                  }
-                }
-                const usage = await antigravityService.fetchUsage(currentAccount)
-                return { accountId: account.id, email: account.email, usage }
-              } catch (error) {
-                return { accountId: account.id, email: account.email, usage: null, error: String(error) }
-              }
-            })
-          )
-        } catch (error) {
-          console.error('[Background Refresh] Antigravity fetch failed:', error)
-          return []
-        }
-      })(),
-      (async () => {
-        try {
-          const accounts = await refreshStorageService.getAccounts('githubCopilot')
-          return Promise.all(
-            accounts.map(async (account: any) => {
-              const usage = await githubCopilotService.fetchUsage(account.accessToken)
-              return { accountId: account.id, name: account.name, login: account.login, usage }
-            })
-          )
-        } catch (error) {
-          console.error('[Background Refresh] GitHub Copilot fetch failed:', error)
-          return []
-        }
-      })(),
-      (async () => {
-        try {
-          const accounts = await refreshStorageService.getAccounts('zaiCoding')
-          return Promise.all(
-            accounts.map(async (account: any) => {
-              const usage = await zaiCodingService.fetchUsage(account.apiKey)
-              return { accountId: account.id, name: account.name, usage }
-            })
-          )
-        } catch (error) {
-          console.error('[Background Refresh] Zai Coding Plan fetch failed:', error)
-          return []
-        }
-      })(),
-      (async () => {
-        try {
-          const accounts = await refreshStorageService.getAccounts('codex')
-          return Promise.all(
-            accounts.map(async (account: any) => {
-              try {
-                let currentAccount = account
-                if (Date.now() > account.expiresAt - 300000) {
-                  const newTokens = await codexService.refreshToken(account.refreshToken)
-                  if (newTokens) {
-                    await refreshStorageService.updateAccount('codex', account.id, {
-                      accessToken: newTokens.accessToken,
-                      refreshToken: newTokens.refreshToken,
-                      idToken: newTokens.idToken,
-                      expiresAt: newTokens.expiresAt,
-                      accountId: newTokens.accountId,
-                      organizationId: newTokens.organizationId,
-                      planType: newTokens.planType
-                    })
-                    currentAccount = { ...account, ...newTokens }
-                  } else {
-                    return { accountId: account.id, name: account.displayName, email: account.email, usage: null, error: 'Token refresh failed' }
-                  }
-                }
-                const usage = await codexService.fetchUsage(currentAccount)
-                return { accountId: account.id, name: account.displayName, email: account.email, usage }
-              } catch (error) {
-                return { accountId: account.id, name: account.displayName, email: account.email, usage: null, error: String(error) }
-              }
-            })
-          )
-        } catch (error) {
-          console.error('[Background Refresh] Codex fetch failed:', error)
-          return []
-        }
-      })(),
-      (async () => {
-        try {
-          const accounts = await refreshStorageService.getAccounts('opencodeGo')
-          return Promise.all(
-            accounts.map(async (account: any) => {
-              try {
-                let currentAccount = account
-                if (Date.now() > account.expiresAt - 300000) {
-                  const refreshed = await opencodeGoService.refreshCookies(account)
-                  if (refreshed) {
-                    await refreshStorageService.updateAccount('opencodeGo', account.id, refreshed)
-                    currentAccount = { ...account, ...refreshed }
-                  }
-                }
-                const usage = await opencodeGoService.fetchUsage(currentAccount)
-                return { accountId: account.id, name: account.displayName, workspaceId: account.workspaceId, usage }
-              } catch (error) {
-                return { accountId: account.id, name: account.displayName, workspaceId: account.workspaceId, usage: null, error: String(error) }
-              }
-            })
-          )
-        } catch (error) {
-          console.error('[Background Refresh] Opencode Go fetch failed:', error)
-          return []
-        }
-      })()
+    const [
+      antigravity,
+      githubCopilot,
+      zaiCoding,
+      codex,
+      opencodeGo,
+      ollamaCloud,
+      aiStudio
+    ] = await Promise.all([
+      fetchAllAntigravityUsage(),
+      fetchAllGithubCopilotUsage(),
+      fetchAllZaiCodingUsage(),
+      fetchAllCodexUsage(),
+      fetchAllOpencodeGoUsage(),
+      fetchAllOllamaCloudUsage(),
+      fetchAllAiStudioUsage()
     ])
+    const snapshot: UsageSnapshot = {
+      updatedAt: Date.now(),
+      antigravity,
+      githubCopilot,
+      zaiCoding,
+      codex,
+      opencodeGo,
+      ollamaCloud,
+      aiStudio
+    }
 
-    const antigravityTray = antigravityResults
-      .filter((r: any) => r.usage?.length > 0)
-      .map((r: any) => ({
-        name: r.email,
-        percent: Math.round(Math.min(...r.usage.map((quota: any) => quota.remainingFraction)) * 100)
-      }))
-    const copilotTray = copilotResults
-      .filter((r: any) => r.usage !== null)
-      .map((r: any) => ({ name: r.name, percent: r.usage?.percent || 0 }))
-    const zaiTray = zaiResults
-      .filter((r: any) => r.usage !== null)
-      .map((r: any) => ({ name: r.name, percent: r.usage?.percent || 0 }))
-    const codexTray = codexResults
-      .filter((r: any) => r.usage !== null)
-      .map((r: any) => ({ name: r.name, percent: 0 }))
-    const opencodeGoTray = opencodeGoResults
-      .filter((r: any) => r.usage !== null)
-      .map((r: any) => ({
-        name: r.name,
-        percent: Math.round(
-          (r.usage?.limits?.length ?? 0) > 0
-            ? Math.min(...r.usage.limits.map((limit: any) => limit.remaining))
-            : 0
-        )
-      }))
-
-    trayService.triggerUpdate({
-      antigravity: antigravityTray,
-      githubCopilot: copilotTray,
-      zaiCoding: zaiTray,
-      codex: codexTray,
-      opencodeGo: opencodeGoTray
-    })
+    mainWindow?.webContents.send('app:usage-updated', snapshot)
+    trayService.notifyDataChanged()
 
     notificationService.checkAndNotify(
-      antigravityResults,
-      copilotResults,
-      zaiResults,
-      codexResults,
-      opencodeGoResults,
+      antigravity,
+      githubCopilot,
+      zaiCoding,
+      codex,
+      opencodeGo,
       refreshSettings,
       {
         hideUnlimitedQuota: customization?.global?.hideUnlimitedQuota ?? false,
-        hiddenCardIds: new Set(
-          Object.entries(customization?.cards ?? {})
-            .filter(([, config]) => config.visible === false)
-            .map(([cardId]) => cardId)
-        )
+        cards: customization?.cards ?? {},
+        providers: customization?.providers ?? {}
       }
     )
   } catch (error) {
@@ -447,27 +299,21 @@ async function startBackgroundRefresh(): Promise<void> {
       return
     }
 
-    const settings = await storageService.getSettings()
+    const settings = storageService.getSettings()
     const intervalMs = settings.refreshInterval * 1000
 
     if (refreshTimer) {
       clearInterval(refreshTimer)
     }
 
-    // Start background refresh only when window is not visible (hidden or minimized)
-    // This prevents duplicate refresh timers when foreground and background would both run
-    if (!mainWindow || mainWindow.isMinimized() || !mainWindow.isVisible()) {
-      refreshTimer = setInterval(performBackgroundRefresh, intervalMs)
-    } else {
-      refreshTimer = null
-    }
+    refreshTimer = setInterval(performBackgroundRefresh, intervalMs)
   } catch (error) {
-    console.error('[Background Refresh] Failed to start background refresh:', error)
+    console.error('[Auto Refresh] Failed to start refresh timer:', error)
   }
 }
 
-export function restartBackgroundRefresh(): void {
-  startBackgroundRefresh()
+export async function restartBackgroundRefresh(): Promise<void> {
+  await startBackgroundRefresh()
 }
 
 export function stopBackgroundRefresh(): void {
@@ -482,9 +328,13 @@ export { startBackgroundRefresh }
 // Handle quit properly
 app.on('before-quit', () => {
   isQuitting = true
+  stopBackgroundRefresh()
+  void localApiService.stop().catch(error => {
+    console.error('[Local API] Failed to stop:', error)
+  })
 })
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   cleanCorruptedCache()
 
   electronApp.setAppUserModelId('com.aimanager.app')
@@ -494,23 +344,40 @@ app.whenReady().then(() => {
   })
 
   registerAllIpcHandlers()
-  createWindow()
-
+  trayService.configure({
+    openMainWindow: showMainWindow,
+    refreshUsage: performBackgroundRefresh
+  })
+  notificationService.setOpenMainWindow(showMainWindow)
   trayService.createTray()
 
+  const isAutoLaunch = process.argv.includes('--hidden')
+  const hasPassword = cryptoService.hasPassword()
+  const isPasswordSkipped = cryptoService.isPasswordSkipped()
+  const unlockResult = hasPassword && isPasswordSkipped
+    ? unlockWithSkippedPassword()
+    : null
+  const isUpdateRequired = unlockResult?.success === false &&
+    unlockResult.reason === 'data-version-too-new'
+  const hasRealPassword = hasPassword && !isPasswordSkipped
+  const shouldShowMainWindow = !isAutoLaunch || hasRealPassword || isUpdateRequired
+
+  if (unlockResult?.success) void startBackgroundRefresh()
+  await restartLocalApi()
+  if (shouldShowMainWindow) {
+    console.log('[Startup] Showing main window', { isAutoLaunch, hasPassword, isPasswordSkipped })
+    showMainWindow()
+  } else {
+    console.log('[Startup] Started in tray without creating the main window')
+  }
+
   app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
-    } else if (mainWindow) {
-      mainWindow.show()
-    }
+    showMainWindow()
   })
 
-  startBackgroundRefresh()
-
-  setTimeout(async () => {
-    await performBackgroundRefresh()
-  }, 5000)
+  powerMonitor.on('resume', () => {
+    void restartBackgroundRefresh()
+  })
 
   // Check for updates after 10 seconds, then every 24 hours
   setTimeout(() => {

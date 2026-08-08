@@ -4,6 +4,7 @@ import type {
   CodexAccount,
   GithubCopilotAccount,
   OpencodeGoAccount,
+  OllamaCloudAccount,
   ZaiCodingAccount,
   AiStudioAccount,
   AiStudioLoginSession,
@@ -13,31 +14,36 @@ import type {
   CodexAccountUsage,
   GithubCopilotAccountUsage,
   OpencodeGoAccountUsage,
+  OllamaCloudAccountUsage,
   ZaiAccountUsage,
   Settings,
-  CustomizationState
+  CustomizationState,
+  StorageUnlockResult,
+  ProviderId,
+  QuotaHistory,
+  TrayPopoverViewModel
 } from '@shared/types'
 import type { UpdateInfo, UpdateCheckResult, UpdateDownloadStatus } from '@shared/types/update'
 
 interface AuthAPI {
   hasPassword: () => Promise<boolean>
-  verifyPassword: (password: string) => Promise<boolean>
+  verifyPassword: (password: string) => Promise<StorageUnlockResult>
   setPassword: (password: string) => Promise<boolean>
   changePassword: (oldPassword: string, newPassword: string) => Promise<boolean>
   lock: () => Promise<void>
   clearAllData: () => Promise<void>
   skipPassword: () => Promise<boolean>
   isPasswordSkipped: () => Promise<boolean>
-  unlockWithSkippedPassword: () => Promise<boolean>
+  unlockWithSkippedPassword: () => Promise<StorageUnlockResult>
   removePassword: (password: string) => Promise<boolean>
   setPasswordFromSettings: (password: string) => Promise<boolean>
 }
 
 interface StorageAPI {
-  getAccounts: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | AiStudioAccount>(
+  getAccounts: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | OllamaCloudAccount | AiStudioAccount>(
     provider: string
   ) => Promise<T[]>
-  saveAccount: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | AiStudioAccount>(
+  saveAccount: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | OllamaCloudAccount | AiStudioAccount>(
     provider: string,
     account: T
   ) => Promise<boolean>
@@ -45,12 +51,13 @@ interface StorageAPI {
   updateAccount: (
     provider: string,
     accountId: string,
-    data: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount> | Partial<CodexAccount> | Partial<OpencodeGoAccount> | Partial<AiStudioAccount>
+    data: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount> | Partial<CodexAccount> | Partial<OpencodeGoAccount> | Partial<OllamaCloudAccount> | Partial<AiStudioAccount>
   ) => Promise<boolean>
   getSettings: () => Promise<Settings>
   saveSettings: (settings: Partial<Settings>) => Promise<boolean>
   getCustomization: () => Promise<Partial<CustomizationState> | null>
   saveCustomization: (data: CustomizationState) => Promise<boolean>
+  getQuotaHistory: (provider: ProviderId, accountId: string) => Promise<QuotaHistory>
 }
 
 interface AntigravityAPI {
@@ -131,6 +138,12 @@ interface UpdateAPI {
   onStatusChange: (callback: (status: UpdateDownloadStatus) => void) => () => void
 }
 
+interface OllamaCloudAPI {
+  login: () => Promise<LoginResult<OllamaCloudAccount>>
+  cancelLogin: () => Promise<boolean>
+  fetchAllUsage: () => Promise<OllamaCloudAccountUsage[]>
+}
+
 interface AiStudioAPI {
   hasOAuthCredentials: () => Promise<boolean>
   saveOAuthCredentials: (clientId: string, clientSecret: string) => Promise<boolean>
@@ -151,14 +164,23 @@ interface CustomAPI {
   aiStudio: AiStudioAPI
   codex: CodexAPI
   opencodeGo: OpencodeGoAPI
+  ollamaCloud: OllamaCloudAPI
   app: AppAPI
   notification: NotificationAPI
   update: UpdateAPI
+}
+
+interface TrayAPI {
+  getViewModel: () => Promise<TrayPopoverViewModel>
+  openMain: () => void
+  hide: () => void
+  onDataUpdated: (callback: () => void) => () => void
 }
 
 declare global {
   interface Window {
     electron: ElectronAPI
     api: CustomAPI
+    trayApi: TrayAPI
   }
 }

@@ -19,6 +19,7 @@ import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
 import { useCodexStore } from '@/stores/useCodexStore'
 import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
+import { useOllamaCloudStore } from '@/stores/useOllamaCloudStore'
 import { useAiStudioStore } from '@/stores/useAiStudioStore'
 import { getGoogleApiEnableUrl } from '@/lib/googleApiError'
 import type { ProviderId } from '@/types/customization'
@@ -186,6 +187,12 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
     fetchAccounts: fetchOpencodeGo
   } = useOpencodeGoStore()
   const {
+    login: ollamaCloudLogin,
+    cancelLogin: cancelOllamaCloudLogin,
+    updateAccount: updateOllamaCloud,
+    fetchAccounts: fetchOllamaCloud
+  } = useOllamaCloudStore()
+  const {
     login: aiStudioLogin,
     cancelLogin: cancelAiStudioLogin,
     addAccount: addAiStudioAccount
@@ -229,15 +236,9 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
     }
   }, [isOpen])
   
-  // Update displayName and reset OAuth state when provider changes
+  // Reset the provider-specific form state when provider changes
   useEffect(() => {
-    // Only update displayName if it matches the previous provider's name
-    // (i.e., user hasn't modified it)
-    const prevProvider = PROVIDERS.find(p => p.name === displayName)
-    if (prevProvider || displayName === '') {
-      setDisplayName(selectedProvider.name)
-    }
-    
+    setDisplayName(selectedProvider.name)
     setOauthStep('initial')
     setConnectedAccount(null)
     setApiKey('')
@@ -287,6 +288,8 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         await cancelCodexLogin()
       } else if (selectedProviderId === 'opencodeGo') {
         await cancelOpencodeGoLogin()
+      } else if (selectedProviderId === 'ollamaCloud') {
+        await cancelOllamaCloudLogin()
       } else if (selectedProviderId === 'aiStudio') {
         await cancelAiStudioLogin()
       }
@@ -326,6 +329,8 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         result = await codexLogin()
       } else if (selectedProviderId === 'opencodeGo') {
         result = await opencodeGoLogin()
+      } else if (selectedProviderId === 'ollamaCloud') {
+        result = await ollamaCloudLogin()
       } else if (selectedProviderId === 'aiStudio') {
         result = await aiStudioLogin()
       } else {
@@ -341,11 +346,6 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         setOauthStep('success')
         if (selectedProviderId === 'aiStudio') {
           setSelectedProjectId((result.account as AiStudioLoginSession).projects[0]?.projectId || '')
-        }
-        // Update display name from account info if user hasn't customized it
-        const accountName = result.account.name || result.account.login || result.account.email || result.account.workspaceName || result.account.workspaceId
-        if (displayName === selectedProvider.name && accountName) {
-          setDisplayName(accountName)
         }
       } else {
         const errorMessage = result.error || t('provider.loginFailed')
@@ -432,6 +432,9 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         } else if (selectedProviderId === 'opencodeGo') {
           await updateOpencodeGo(connectedAccount.id, { displayName: finalDisplayName })
           await fetchOpencodeGo()
+        } else if (selectedProviderId === 'ollamaCloud') {
+          await updateOllamaCloud(connectedAccount.id, { displayName: finalDisplayName })
+          await fetchOllamaCloud()
         }
         
         onClose()

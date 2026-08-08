@@ -13,7 +13,7 @@ vi.mock('electron', () => ({
 }))
 
 import { CryptoService } from '../crypto'
-import { StorageService } from '../storage'
+import { StorageService, StorageVersionTooNewError } from '../storage'
 
 function resetStorageService(): void {
   Reflect.set(StorageService, 'instance', undefined)
@@ -72,6 +72,31 @@ describe('StorageService persistence', () => {
     expect(corruptedStorage.isUnlocked()).toBe(false)
   })
 
+  it('does not replace newer data with an older backup', () => {
+    const crypto = new CryptoService()
+    const storage = new StorageService()
+    const storagePath = join(electronMock.userDataPath, 'data', 'credentials.enc')
+    const currentData = {
+      antigravity: [],
+      githubCopilot: [],
+      zaiCoding: [],
+      codex: [],
+      opencodeGo: [],
+      ollamaCloud: [],
+      aiStudio: [],
+      settings: {}
+    }
+    const primary = crypto.encrypt(JSON.stringify({ ...currentData, _version: 7 }), 'password')
+    const backup = crypto.encrypt(JSON.stringify({ ...currentData, _version: 6 }), 'password')
+    writeFileSync(storagePath, primary)
+    writeFileSync(`${storagePath}.bak`, backup)
+
+    expect(() => storage.unlock('password')).toThrow(StorageVersionTooNewError)
+    expect(storage.isUnlocked()).toBe(false)
+    expect(readFileSync(storagePath, 'utf-8')).toBe(primary)
+    expect(readFileSync(`${storagePath}.bak`, 'utf-8')).toBe(backup)
+  })
+
   it('rolls back both files after an interrupted password change', async () => {
     const crypto = new CryptoService()
     await crypto.setPassword('old-password')
@@ -116,5 +141,27 @@ describe('StorageService persistence', () => {
     const recoveredStorage = new StorageService()
     recoveredStorage.unlock('password')
     expect(await recoveredStorage.hasAiStudioOAuthCredentials()).toBe(false)
+  })
+
+  it('rejects refresh intervals outside the supported range', async () => {
+    const storage = new StorageService()
+    storage.unlock('password')
+
+    await expect(storage.saveSettings({ refreshInterval: 0 })).resolves.toBe(false)
+    await expect(storage.saveSettings({ refreshInterval: Number.NaN })).resolves.toBe(false)
+    await expect(storage.saveSettings({ refreshInterval: 301 })).resolves.toBe(false)
+    expect(storage.getSettings().refreshInterval).toBe(60)
+  })
+
+  it('defaults remote API access to off and accepts only booleans', async () => {
+    const storage = new StorageService()
+    storage.unlock('password')
+
+    expect(storage.getSettings().allowRemoteApiAccess).toBe(false)
+    await expect(storage.saveSettings({ allowRemoteApiAccess: true })).resolves.toBe(true)
+    await expect(storage.saveSettings({
+      allowRemoteApiAccess: 'yes' as unknown as boolean
+    })).resolves.toBe(false)
+    expect(storage.getSettings().allowRemoteApiAccess).toBe(true)
   })
 })

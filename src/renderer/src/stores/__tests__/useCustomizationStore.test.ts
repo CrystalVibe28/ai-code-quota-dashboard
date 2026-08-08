@@ -9,7 +9,7 @@ describe('useCustomizationStore', () => {
     overviewLayout: 'compact',
     gridColumns: 'auto',
     cardSize: 'default',
-    providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'aiStudio'],
+    providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'ollamaCloud', 'aiStudio'],
     theme: 'system',
     accentColor: 'blue',
     progressStyle: 'solid',
@@ -27,6 +27,7 @@ describe('useCustomizationStore', () => {
 
   beforeEach(() => {
     useCustomizationStore.setState({
+      isLoaded: false,
       global: DEFAULT_GLOBAL_CONFIG,
       providers: {
         antigravity: {},
@@ -34,6 +35,7 @@ describe('useCustomizationStore', () => {
         zaiCoding: {},
         codex: {},
         opencodeGo: {},
+        ollamaCloud: {},
         aiStudio: {}
       },
       cards: {}
@@ -55,6 +57,7 @@ describe('useCustomizationStore', () => {
         zaiCoding: {},
         codex: {},
         opencodeGo: {},
+        ollamaCloud: {},
         aiStudio: {}
       })
     })
@@ -123,6 +126,7 @@ describe('useCustomizationStore', () => {
       const providerConfig: ProviderConfig = {
         collapsed: true,
         accountCollapsed: { 'acc1': true },
+        accountCardVisibility: { 'acc1': false },
         gridColumns: 3,
         cardSize: 'large',
         cardOrder: ['card1', 'card2'],
@@ -213,6 +217,39 @@ describe('useCustomizationStore', () => {
     })
   })
 
+  describe('account card visibility', () => {
+    it('applies group defaults to new cards and preserves cards while they are absent', () => {
+      const account = {
+        providerId: 'antigravity' as const,
+        accountId: 'account1',
+        fallbackVisible: true
+      }
+      const cardA = 'antigravity-account1-model-a'
+      const cardB = 'antigravity-account1-model-b'
+      const cardC = 'antigravity-account1-model-c'
+      const cardD = 'antigravity-account1-model-d'
+      const cardE = 'antigravity-account1-model-e'
+
+      useCustomizationStore.getState().syncAccountCards([{ ...account, cardIds: [cardA, cardB, cardC] }])
+      useCustomizationStore.getState().setCardVisibility('antigravity', 'account1', [cardA, cardB, cardC], cardB, false, true)
+      useCustomizationStore.getState().syncAccountCards([{ ...account, cardIds: [cardA, cardB, cardD] }])
+
+      expect(useCustomizationStore.getState().cards[cardD].visible).toBe(true)
+      expect(useCustomizationStore.getState().providers.antigravity.accountCardVisibility?.account1).toBe(true)
+
+      useCustomizationStore.getState().setAccountCardsVisibility('antigravity', 'account1', [cardA, cardB, cardD], false)
+      useCustomizationStore.getState().syncAccountCards([{ ...account, cardIds: [cardA, cardB, cardD, cardE] }])
+
+      expect(useCustomizationStore.getState().cards[cardE].visible).toBe(false)
+      expect(useCustomizationStore.getState().cards[cardC].visible).toBe(true)
+
+      useCustomizationStore.getState().syncAccountCards([{ ...account, cardIds: [cardA, cardB, cardC, cardD, cardE] }])
+
+      expect(useCustomizationStore.getState().cards[cardC].visible).toBe(true)
+      expect(useCustomizationStore.getState().providers.antigravity.accountCardVisibility?.account1).toBe(true)
+    })
+  })
+
   describe('removeAccount', () => {
     it('should remove the account card, order, and collapsed-state customizations', () => {
       useCustomizationStore.setState({
@@ -224,7 +261,8 @@ describe('useCustomizationStore', () => {
           ...useCustomizationStore.getState().providers,
           antigravity: {
             cardOrder: ['antigravity-account1-model1', 'antigravity-account2-model1'],
-            accountCollapsed: { account1: true, account2: true }
+            accountCollapsed: { account1: true, account2: true },
+            accountCardVisibility: { account1: false, account2: true }
           }
         }
       })
@@ -236,7 +274,8 @@ describe('useCustomizationStore', () => {
       })
       expect(useCustomizationStore.getState().providers.antigravity).toEqual({
         cardOrder: ['antigravity-account2-model1'],
-        accountCollapsed: { account2: true }
+        accountCollapsed: { account2: true },
+        accountCardVisibility: { account2: true }
       })
       expect(mockWindowApi.storage.saveCustomization).toHaveBeenCalled()
     })
@@ -252,6 +291,7 @@ describe('useCustomizationStore', () => {
           zaiCoding: {},
           codex: {},
           opencodeGo: {},
+          ollamaCloud: {},
           aiStudio: {}
         },
         cards: { 'card1': { visible: false } }
@@ -332,6 +372,7 @@ describe('useCustomizationStore', () => {
         zaiCoding: {},
         codex: {},
         opencodeGo: {},
+        ollamaCloud: {},
         aiStudio: {}
       })
       expect(state.cards).toEqual({})

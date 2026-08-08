@@ -18,6 +18,7 @@ import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
 import { useCodexStore } from '@/stores/useCodexStore'
 import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
+import { useOllamaCloudStore } from '@/stores/useOllamaCloudStore'
 import { useAiStudioStore } from '@/stores/useAiStudioStore'
 import { getProviderById } from '@/constants/providers'
 import { AddAccountDialog } from '@/components/common/AddAccountDialog'
@@ -47,6 +48,7 @@ export function MainLayout() {
   const { accounts: zaiAccounts } = useZaiCodingStore()
   const { accounts: codexAccounts } = useCodexStore()
   const { accounts: opencodeGoAccounts } = useOpencodeGoStore()
+  const { accounts: ollamaCloudAccounts } = useOllamaCloudStore()
   const { accounts: aiStudioAccounts } = useAiStudioStore()
   
   // Dialog state
@@ -88,6 +90,11 @@ export function MainLayout() {
       id: a.id,
       displayName: a.displayName || a.workspaceName || a.workspaceId,
       providerId: 'opencodeGo' as const
+    })),
+    ...ollamaCloudAccounts.map(a => ({
+      id: a.id,
+      displayName: a.displayName || a.email,
+      providerId: 'ollamaCloud' as const
     })),
     ...aiStudioAccounts.map(a => ({
       id: a.id,

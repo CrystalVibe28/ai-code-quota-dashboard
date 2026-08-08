@@ -6,12 +6,12 @@ export const mockWindowApi: Record<string, Record<string, Mock>> = {
   auth: {
     hasPassword: vi.fn().mockResolvedValue(false),
     isPasswordSkipped: vi.fn().mockResolvedValue(false),
-    verifyPassword: vi.fn().mockResolvedValue(true),
+    verifyPassword: vi.fn().mockResolvedValue({ success: true }),
     setPassword: vi.fn().mockResolvedValue(true),
     skipPassword: vi.fn().mockResolvedValue(true),
     lock: vi.fn().mockResolvedValue(undefined),
     clearAllData: vi.fn().mockResolvedValue(undefined),
-    unlockWithSkippedPassword: vi.fn().mockResolvedValue(true),
+    unlockWithSkippedPassword: vi.fn().mockResolvedValue({ success: true }),
     changePassword: vi.fn().mockResolvedValue(true),
     removePassword: vi.fn().mockResolvedValue(true),
     setPasswordFromSettings: vi.fn().mockResolvedValue(true)
@@ -28,11 +28,13 @@ export const mockWindowApi: Record<string, Record<string, Mock>> = {
       notifications: true,
       language: 'en',
       closeToTray: false,
+      allowRemoteApiAccess: false,
       notificationReminderInterval: 0
     }),
     saveSettings: vi.fn().mockResolvedValue(true),
     getCustomization: vi.fn().mockResolvedValue(null),
-    saveCustomization: vi.fn().mockResolvedValue(true)
+    saveCustomization: vi.fn().mockResolvedValue(true),
+    getQuotaHistory: vi.fn().mockResolvedValue({ weekly: [], monthly: [] })
   },
   antigravity: {
     getAccounts: vi.fn().mockResolvedValue([]),
@@ -77,6 +79,11 @@ export const mockWindowApi: Record<string, Record<string, Mock>> = {
     fetchUsage: vi.fn().mockResolvedValue(null),
     fetchAllUsage: vi.fn().mockResolvedValue([])
   },
+  ollamaCloud: {
+    login: vi.fn().mockResolvedValue({ success: true }),
+    cancelLogin: vi.fn().mockResolvedValue(true),
+    fetchAllUsage: vi.fn().mockResolvedValue([])
+  },
   aiStudio: {
     hasOAuthCredentials: vi.fn().mockResolvedValue(true),
     saveOAuthCredentials: vi.fn().mockResolvedValue(true),
@@ -91,7 +98,12 @@ export const mockWindowApi: Record<string, Record<string, Mock>> = {
     minimize: vi.fn(),
     maximize: vi.fn(),
     close: vi.fn(),
-    isMaximized: vi.fn().mockResolvedValue(false)
+    isMaximized: vi.fn().mockResolvedValue(false),
+    refreshIntervalChanged: vi.fn().mockResolvedValue(true),
+    stopBackgroundRefresh: vi.fn().mockResolvedValue(true),
+    startBackgroundRefresh: vi.fn().mockResolvedValue(true),
+    getAutoLaunch: vi.fn().mockResolvedValue(false),
+    setAutoLaunch: vi.fn().mockResolvedValue(true)
   },
   notification: {
     resetState: vi.fn().mockResolvedValue(undefined),

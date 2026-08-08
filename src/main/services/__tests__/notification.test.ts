@@ -14,7 +14,7 @@ describe('NotificationService', () => {
     notificationThresholds: [{ value: 25, enabled: true }],
     language: 'en'
   }
-  const filters = { hideUnlimitedQuota: false, hiddenCardIds: new Set<string>() }
+  const filters = { hideUnlimitedQuota: false, cards: {}, providers: {} }
 
   beforeEach(() => service.resetState())
 
@@ -46,6 +46,48 @@ describe('NotificationService', () => {
     expect([...service.getState().keys()]).toEqual([
       'zaiCoding-zai-account-TOKENS_LIMIT-3-5',
       'zaiCoding-zai-account-TOKENS_LIMIT-6-1'
+    ])
+  })
+
+  it('uses account and mixed-state defaults for new cards', () => {
+    service.checkAndNotify(
+      [
+        {
+          accountId: 'hidden-account',
+          email: 'hidden@example.com',
+          usage: [{ modelName: 'new-hidden', remainingFraction: 0.2 }]
+        },
+        {
+          accountId: 'mixed-account',
+          email: 'mixed@example.com',
+          usage: [
+            { modelName: 'visible', remainingFraction: 0.2 },
+            { modelName: 'hidden', remainingFraction: 0.2 },
+            { modelName: 'new-visible', remainingFraction: 0.2 }
+          ]
+        }
+      ] as never,
+      [], [], [], [], settings,
+      {
+        hideUnlimitedQuota: false,
+        cards: {
+          'antigravity-mixed-account-visible': { visible: true },
+          'antigravity-mixed-account-hidden': { visible: false }
+        },
+        providers: {
+          antigravity: {
+            accountCardVisibility: {
+              'hidden-account': false,
+              'mixed-account': false
+            }
+          }
+        }
+      }
+    )
+
+    expect([...service.getState().keys()]).toEqual([
+      'antigravity-mixed-account-visible',
+      'antigravity-mixed-account-new-visible'
     ])
   })
 })

@@ -15,6 +15,9 @@ interface ErrorCardProps {
   className?: string
   cardSize?: CardSize
   cardRadius?: CardRadius
+  actionLabel?: string
+  isActionPending?: boolean
+  onAction?: () => void
   onRetry?: () => void
 }
 
@@ -38,6 +41,9 @@ export const ErrorCard = memo(function ErrorCard({
   className,
   cardSize = 'default',
   cardRadius = 'md',
+  actionLabel,
+  isActionPending = false,
+  onAction,
   onRetry
 }: ErrorCardProps) {
   const { t } = useTranslation()
@@ -85,6 +91,20 @@ export const ErrorCard = memo(function ErrorCard({
             </OverflowTooltip>
           </div>
           <div className="flex flex-shrink-0 items-center">
+            {onAction && actionLabel && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={isActionPending}
+                aria-busy={isActionPending}
+                onClick={onAction}
+                className="h-auto min-h-0 px-2 py-1 text-xs shadow-none"
+              >
+                <RefreshCw className={cn('h-3 w-3', isActionPending && 'animate-spin')} aria-hidden="true" />
+                {actionLabel}
+              </Button>
+            )}
             {enableUrl && (
               <Button asChild variant="ghost" size="sm" className="h-auto min-h-0 px-2 py-1 text-xs shadow-none">
                 <a href={enableUrl} target="_blank" rel="noreferrer">

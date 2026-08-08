@@ -154,6 +154,12 @@ npm --version
 
 如果版本不符，請升級至推薦版本。
 
+## 本機用量 API
+
+應用程式執行時，`GET http://127.0.0.1:3210/api/v1/usage` 會回傳最新的本地用量快取。此端點不會重新整理供應商資料；只有設定的自動重新整理間隔與手動重新整理操作能更新快取。加密儲存區鎖定時會回傳 `423`。
+
+API 預設只綁定 loopback。您可以在「設定 → 連線與 API」允許其他裝置連線，伺服器將改為綁定 `0.0.0.0`。應用程式解鎖時，API 請求不需另行驗證，因此請只在受信任的網路中開啟，並使用電腦實際的網路 IP 位址連線。
+
 ## 致謝
 
 - 本項目Antigravity的部分參考了 [AntigravityQuotaWatcher](https://github.com/wusimpl/AntigravityQuotaWatcher)

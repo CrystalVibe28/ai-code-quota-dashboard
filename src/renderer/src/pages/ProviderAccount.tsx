@@ -10,21 +10,41 @@ import { AiStudioTierBadge } from '@/components/common/AiStudioTierBadge'
 import { AiStudioTierDialog } from '@/components/common/AiStudioTierDialog'
 import { ErrorCard } from '@/components/common/ErrorCard'
 import { EditNameDialog } from '@/components/common/EditNameDialog'
+import { QuotaHistoryChart } from '@/components/common/QuotaHistoryChart'
 import { useAntigravityStore } from '@/stores/useAntigravityStore'
 import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
 import { useCodexStore } from '@/stores/useCodexStore'
 import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
+import { useOllamaCloudStore } from '@/stores/useOllamaCloudStore'
 import { useAiStudioStore } from '@/stores/useAiStudioStore'
 import { useCustomization } from '@/contexts/CustomizationContext'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
 import { getQuotaGridClassName } from '@/constants/customization'
 import { getProviderById } from '@/constants/providers'
 import type { ProviderId } from '@/types/customization'
-import type { AiStudioAccount, AiStudioPaidTier, AiStudioUsage, ZaiLimit, ZaiUsage } from '@shared/types'
+import type {
+  AiStudioAccount,
+  AiStudioPaidTier,
+  AiStudioUsage,
+  QuotaHistory,
+  QuotaHistoryPeriod,
+  ZaiLimit,
+  ZaiUsage
+} from '@shared/types'
 import { getAntigravityQuotaType } from '@shared/antigravityQuota'
-import { getZaiQuotaType } from '@shared/zaiQuota'
+import { getZaiCardId, getZaiQuotaType } from '@shared/zaiQuota'
 import { getCodexWindowLabel } from '@/lib/codexQuota'
+import { getAccountCardIds } from '@/lib/cardVisibility'
+import { isGoogleOAuthReauthorizationRequired } from '@/lib/googleApiError'
+
+const HISTORY_PERIODS: Partial<Record<ProviderId, QuotaHistoryPeriod[]>> = {
+  antigravity: ['weekly'],
+  zaiCoding: ['weekly'],
+  codex: ['weekly', 'monthly'],
+  opencodeGo: ['weekly', 'monthly'],
+  ollamaCloud: ['weekly']
+}
 
 export function ProviderAccount() {
   const { t } = useTranslation()
@@ -33,6 +53,7 @@ export function ProviderAccount() {
   
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showTierDialog, setShowTierDialog] = useState(false)
+  const [history, setHistory] = useState<QuotaHistory>({ weekly: [], monthly: [] })
   
   // Stores
   const { 
@@ -86,17 +107,34 @@ export function ProviderAccount() {
   } = useOpencodeGoStore()
 
   const {
+    accounts: ollamaCloudAccounts,
+    usageData: ollamaCloudUsage,
+    isLoading: ollamaCloudLoading,
+    fetchAccounts: fetchOllamaCloudAccounts,
+    fetchUsage: fetchOllamaCloudUsage,
+    deleteAccount: deleteOllamaCloudAccount,
+    updateAccount: updateOllamaCloudAccount
+  } = useOllamaCloudStore()
+
+  const {
     accounts: aiStudioAccounts,
     usageData: aiStudioUsage,
     isLoading: aiStudioLoading,
     fetchAccounts: fetchAiStudioAccounts,
     fetchUsage: fetchAiStudioUsage,
     deleteAccount: deleteAiStudioAccount,
-    updateAccount: updateAiStudioAccount
+    updateAccount: updateAiStudioAccount,
+    reauthorizeAccount: reauthorizeAiStudioAccount
   } = useAiStudioStore()
   
   const { global, getCardConfig, isCardVisible } = useCustomization()
-  const { providers, updateCard } = useCustomizationStore()
+  const {
+    isLoaded,
+    providers,
+    syncAccountCards,
+    setAccountCardsVisibility,
+    setCardVisibility
+  } = useCustomizationStore()
   
   // Get provider info
   const provider = getProviderById(providerId as ProviderId)
@@ -123,13 +161,17 @@ export function ProviderAccount() {
       const acc = opencodeGoAccounts.find(a => a.id === accountId)
       const usageItem = opencodeGoUsage.find(u => u.accountId === accountId)
       return { account: acc, usage: usageItem, isLoading: opencodeGoLoading }
+    } else if (providerId === 'ollamaCloud') {
+      const acc = ollamaCloudAccounts.find(a => a.id === accountId)
+      const usageItem = ollamaCloudUsage.find(u => u.accountId === accountId)
+      return { account: acc, usage: usageItem, isLoading: ollamaCloudLoading }
     } else if (providerId === 'aiStudio') {
       const acc = aiStudioAccounts.find(a => a.id === accountId)
       const usageItem = aiStudioUsage.find(u => u.accountId === accountId)
       return { account: acc, usage: usageItem, isLoading: aiStudioLoading }
     }
     return { account: undefined, usage: undefined, isLoading: false }
-  }, [providerId, accountId, antiAccounts, antiUsage, antiLoading, ghAccounts, ghUsage, ghLoading, zaiAccounts, zaiUsage, zaiLoading, codexAccounts, codexUsage, codexLoading, opencodeGoAccounts, opencodeGoUsage, opencodeGoLoading, aiStudioAccounts, aiStudioUsage, aiStudioLoading])
+  }, [providerId, accountId, antiAccounts, antiUsage, antiLoading, ghAccounts, ghUsage, ghLoading, zaiAccounts, zaiUsage, zaiLoading, codexAccounts, codexUsage, codexLoading, opencodeGoAccounts, opencodeGoUsage, opencodeGoLoading, ollamaCloudAccounts, ollamaCloudUsage, ollamaCloudLoading, aiStudioAccounts, aiStudioUsage, aiStudioLoading])
 
   const aiStudioAccount = providerId === 'aiStudio' ? account as AiStudioAccount | undefined : undefined
   const currentAiStudioUsage = providerId === 'aiStudio' && usage?.usage ? usage.usage as AiStudioUsage : null
@@ -139,6 +181,45 @@ export function ProviderAccount() {
   useEffect(() => {
     if (aiStudioTier === 'free') setShowTierDialog(false)
   }, [aiStudioTier])
+
+  useEffect(() => {
+    const periods = HISTORY_PERIODS[providerId as ProviderId]
+    if (!providerId || !accountId || !periods) {
+      setHistory({ weekly: [], monthly: [] })
+      return
+    }
+
+    let cancelled = false
+    void window.api.storage
+      .getQuotaHistory(providerId as ProviderId, accountId)
+      .then(value => {
+        if (!cancelled) setHistory(value)
+      })
+      .catch(() => {
+        if (!cancelled) setHistory({ weekly: [], monthly: [] })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [providerId, accountId, usage])
+
+  const fallbackCardVisibility = (account as any)?.showInOverview ?? true
+  const currentCardIds = useMemo(() => {
+    if (!providerId || !accountId) return []
+    return getAccountCardIds(providerId as ProviderId, accountId, usage?.usage, global.hideUnlimitedQuota)
+  }, [providerId, accountId, usage?.usage, global.hideUnlimitedQuota])
+  const historyPeriods = (HISTORY_PERIODS[providerId as ProviderId] ?? [])
+    .filter(period => providerId !== 'codex' || history[period].length > 0)
+
+  useEffect(() => {
+    if (!isLoaded || !provider || !providerId || !accountId) return
+    syncAccountCards([{
+      providerId: providerId as ProviderId,
+      accountId,
+      cardIds: currentCardIds,
+      fallbackVisible: fallbackCardVisibility
+    }])
+  }, [isLoaded, provider, providerId, accountId, currentCardIds, fallbackCardVisibility, syncAccountCards])
   
   const copilotLabelMap: Record<string, string> = {
     chat: 'Chat messages',
@@ -158,12 +239,17 @@ export function ProviderAccount() {
     return quotaType ? t(`zaiCoding.limits.${quotaType}`) : limit.type.replace(/_/g, ' ')
   }
 
-  const getOpencodeGoLimitLabel = (key: string) => {
-    const mapping: Record<string, string> = {
-      rollingUsage: t('opencodeGo.quotaTypes.rolling'),
-      weeklyUsage: t('opencodeGo.quotaTypes.weekly'),
-      monthlyUsage: t('opencodeGo.quotaTypes.monthly')
-    }
+  const getPercentLimitLabel = (percentProviderId: 'opencodeGo' | 'ollamaCloud', key: string) => {
+    const mapping: Record<string, string> = percentProviderId === 'opencodeGo'
+      ? {
+          rollingUsage: t('opencodeGo.quotaTypes.rolling'),
+          weeklyUsage: t('opencodeGo.quotaTypes.weekly'),
+          monthlyUsage: t('opencodeGo.quotaTypes.monthly')
+        }
+      : {
+          session: t('ollamaCloud.quotaTypes.session'),
+          weekly: t('ollamaCloud.quotaTypes.weekly')
+        }
     return mapping[key] ?? key.replace(/([A-Z])/g, ' $1').replace(/Usage$/, '').trim()
   }
   
@@ -191,7 +277,10 @@ export function ProviderAccount() {
   const accountDetail = providerId === 'aiStudio'
     ? `${(account as any).projectName} (${(account as any).projectId})`
     : (account as any).email || (account as any).login || (account as any).workspaceName || (account as any).workspaceId
-  const showInOverview = (account as any).showInOverview ?? true
+  const currentProviderId = providerId as ProviderId
+  const hasVisibleCards = currentCardIds.length > 0
+    ? currentCardIds.some(cardId => isCardVisible(currentProviderId, cardId, accountId, fallbackCardVisibility))
+    : providers[currentProviderId]?.accountCardVisibility?.[accountId!] ?? fallbackCardVisibility
   
   const handleRefresh = async () => {
     if (providerId === 'antigravity') {
@@ -209,6 +298,9 @@ export function ProviderAccount() {
     } else if (providerId === 'opencodeGo') {
       await fetchOpencodeGoAccounts()
       await fetchOpencodeGoUsage()
+    } else if (providerId === 'ollamaCloud') {
+      await fetchOllamaCloudAccounts()
+      await fetchOllamaCloudUsage()
     } else if (providerId === 'aiStudio') {
       await fetchAiStudioUsage()
       await fetchAiStudioAccounts()
@@ -229,6 +321,8 @@ export function ProviderAccount() {
       success = await deleteCodexAccount(accountId!)
     } else if (providerId === 'opencodeGo') {
       success = await deleteOpencodeGoAccount(accountId!)
+    } else if (providerId === 'ollamaCloud') {
+      success = await deleteOllamaCloudAccount(accountId!)
     } else if (providerId === 'aiStudio') {
       success = await deleteAiStudioAccount(accountId!)
     }
@@ -238,21 +332,19 @@ export function ProviderAccount() {
     }
   }
   
-  const handleToggleOverview = async () => {
-    const newValue = !showInOverview
-    if (providerId === 'antigravity') {
-      await updateAntiAccount(accountId!, { showInOverview: newValue })
-    } else if (providerId === 'githubCopilot') {
-      await updateGhAccount(accountId!, { showInOverview: newValue })
-    } else if (providerId === 'zaiCoding') {
-      await updateZaiAccount(accountId!, { showInOverview: newValue })
-    } else if (providerId === 'codex') {
-      await updateCodexAccount(accountId!, { showInOverview: newValue })
-    } else if (providerId === 'opencodeGo') {
-      await updateOpencodeGoAccount(accountId!, { showInOverview: newValue })
-    } else if (providerId === 'aiStudio') {
-      await updateAiStudioAccount(accountId!, { showInOverview: newValue })
-    }
+  const handleToggleAllCards = () => {
+    setAccountCardsVisibility(currentProviderId, accountId!, currentCardIds, !hasVisibleCards)
+  }
+
+  const handleCardVisibilityToggle = (cardId: string, visible: boolean) => {
+    setCardVisibility(
+      currentProviderId,
+      accountId!,
+      currentCardIds,
+      cardId,
+      visible,
+      fallbackCardVisibility
+    )
   }
   
   const handleSaveName = async (newName: string) => {
@@ -267,6 +359,8 @@ export function ProviderAccount() {
       success = await updateCodexAccount(accountId!, { displayName: newName })
     } else if (providerId === 'opencodeGo') {
       success = await updateOpencodeGoAccount(accountId!, { displayName: newName })
+    } else if (providerId === 'ollamaCloud') {
+      success = await updateOllamaCloudAccount(accountId!, { displayName: newName })
     } else if (providerId === 'aiStudio') {
       success = await updateAiStudioAccount(accountId!, { displayName: newName })
     }
@@ -301,7 +395,7 @@ export function ProviderAccount() {
       const usageData = usage.usage as any[]
       return usageData.map((model: any) => {
         const cardId = `antigravity-${accountId}-${model.modelName}`
-        const config = getCardConfig('antigravity', cardId)
+        const config = getCardConfig('antigravity', cardId, accountId, fallbackCardVisibility)
         return (
           <UsageCard
             key={cardId}
@@ -316,8 +410,8 @@ export function ProviderAccount() {
             showResetTime={config.showResetTime}
             cardRadius={config.cardRadius}
             showVisibilityToggle
-            isVisibleInOverview={isCardVisible('antigravity', cardId)}
-            onVisibilityToggle={(visible) => updateCard(cardId, { visible })}
+            isVisibleInOverview={isCardVisible('antigravity', cardId, accountId, fallbackCardVisibility)}
+            onVisibilityToggle={(visible) => handleCardVisibilityToggle(cardId, visible)}
           />
         )
       })
@@ -329,7 +423,7 @@ export function ProviderAccount() {
       return Object.entries(snapshots).map(([key, quota]: [string, any]) => {
         if (quota.unlimited && global.hideUnlimitedQuota) return null
         const cardId = `githubCopilot-${accountId}-${key}`
-        const config = getCardConfig('githubCopilot', cardId)
+        const config = getCardConfig('githubCopilot', cardId, accountId, fallbackCardVisibility)
         return (
           <UsageCard
             key={cardId}
@@ -346,8 +440,8 @@ export function ProviderAccount() {
             showResetTime={config.showResetTime}
             cardRadius={config.cardRadius}
             showVisibilityToggle
-            isVisibleInOverview={isCardVisible('githubCopilot', cardId)}
-            onVisibilityToggle={(visible) => updateCard(cardId, { visible })}
+            isVisibleInOverview={isCardVisible('githubCopilot', cardId, accountId, fallbackCardVisibility)}
+            onVisibilityToggle={(visible) => handleCardVisibilityToggle(cardId, visible)}
           />
         )
       }).filter(Boolean)
@@ -355,9 +449,9 @@ export function ProviderAccount() {
     
     if (providerId === 'zaiCoding') {
       const usageData = usage.usage as ZaiUsage
-      return usageData.limits.map((limit, index) => {
-        const cardId = `zaiCoding-${accountId}-${limit.type}-${limit.unit ?? index}-${limit.number ?? index}`
-        const config = getCardConfig('zaiCoding', cardId)
+      return usageData.limits.map((limit) => {
+        const cardId = getZaiCardId(accountId!, limit)
+        const config = getCardConfig('zaiCoding', cardId, accountId, fallbackCardVisibility)
         return (
           <UsageCard
             key={cardId}
@@ -374,8 +468,8 @@ export function ProviderAccount() {
             showResetTime={config.showResetTime}
             cardRadius={config.cardRadius}
             showVisibilityToggle
-            isVisibleInOverview={isCardVisible('zaiCoding', cardId)}
-            onVisibilityToggle={(visible) => updateCard(cardId, { visible })}
+            isVisibleInOverview={isCardVisible('zaiCoding', cardId, accountId, fallbackCardVisibility)}
+            onVisibilityToggle={(visible) => handleCardVisibilityToggle(cardId, visible)}
           />
         )
       })
@@ -393,7 +487,7 @@ export function ProviderAccount() {
 
       return usageData.limits.map((limit) => {
         const cardId = `aiStudio-${accountId}-${limit.model}`
-        const config = getCardConfig('aiStudio', cardId)
+        const config = getCardConfig('aiStudio', cardId, accountId, fallbackCardVisibility)
         return (
           <AiStudioLimitCard
             key={cardId}
@@ -401,8 +495,8 @@ export function ProviderAccount() {
             cardSize={config.cardSize}
             cardRadius={config.cardRadius}
             showVisibilityToggle
-            isVisibleInOverview={isCardVisible('aiStudio', cardId)}
-            onVisibilityToggle={(visible) => updateCard(cardId, { visible })}
+            isVisibleInOverview={isCardVisible('aiStudio', cardId, accountId, fallbackCardVisibility)}
+            onVisibilityToggle={(visible) => handleCardVisibilityToggle(cardId, visible)}
           />
         )
       })
@@ -422,7 +516,7 @@ export function ProviderAccount() {
         const cardId = `codex-${accountId}-${entry.cardIdSuffix}`
         const percentage = 100 - Math.min(entry.window.used_percent, 100)
         const resetTime = entry.window.reset_at ? entry.window.reset_at * 1000 : undefined
-        const config = getCardConfig('codex', cardId)
+        const config = getCardConfig('codex', cardId, accountId, fallbackCardVisibility)
         return (
           <UsageCard
             key={cardId}
@@ -437,8 +531,8 @@ export function ProviderAccount() {
             showResetTime={config.showResetTime}
             cardRadius={config.cardRadius}
             showVisibilityToggle
-            isVisibleInOverview={isCardVisible('codex', cardId)}
-            onVisibilityToggle={(visible) => updateCard(cardId, { visible })}
+            isVisibleInOverview={isCardVisible('codex', cardId, accountId, fallbackCardVisibility)}
+            onVisibilityToggle={(visible) => handleCardVisibilityToggle(cardId, visible)}
           />
         )
       }).filter(Boolean)
@@ -459,16 +553,16 @@ export function ProviderAccount() {
       return cards
     }
 
-    if (providerId === 'opencodeGo') {
+    if (providerId === 'opencodeGo' || providerId === 'ollamaCloud') {
       const usageData = usage.usage as any
       const cards = (usageData.limits || []).map((limit: any) => {
-        const cardId = `opencodeGo-${accountId}-${limit.type}`
+        const cardId = `${providerId}-${accountId}-${limit.type}`
         const percentage = limit.unlimited ? 100 : limit.remaining
-        const config = getCardConfig('opencodeGo', cardId)
+        const config = getCardConfig(providerId, cardId, accountId, fallbackCardVisibility)
         return (
           <UsageCard
             key={cardId}
-            title={getOpencodeGoLimitLabel(limit.type)}
+            title={getPercentLimitLabel(providerId, limit.type)}
             percentage={percentage}
             remaining={limit.remaining}
             total={limit.limit}
@@ -481,19 +575,19 @@ export function ProviderAccount() {
             showResetTime={config.showResetTime}
             cardRadius={config.cardRadius}
             showVisibilityToggle
-            isVisibleInOverview={isCardVisible('opencodeGo', cardId)}
-            onVisibilityToggle={(visible) => updateCard(cardId, { visible })}
+            isVisibleInOverview={isCardVisible(providerId, cardId, accountId, fallbackCardVisibility)}
+            onVisibilityToggle={(visible) => handleCardVisibilityToggle(cardId, visible)}
           />
         )
       })
 
       if (cards.length === 0) {
         return [
-          <Card key={`opencodeGo-${accountId}-no-data`} className="rounded-md">
+          <Card key={`${providerId}-${accountId}-no-data`} className="rounded-md">
             <CardContent className="pt-4">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Info className="h-4 w-4 flex-shrink-0" />
-                <span className="text-sm">{t('opencodeGo.noQuotaData')}</span>
+                <span className="text-sm">{t(`${providerId}.noQuotaData`)}</span>
               </div>
             </CardContent>
           </Card>
@@ -508,13 +602,22 @@ export function ProviderAccount() {
 
   const renderErrorCard = () => {
     if (!usage?.error || usage?.usage) return null
-    
+
+    const requiresReauthorization = providerId === 'aiStudio' &&
+      isGoogleOAuthReauthorizationRequired(usage.error)
     return (
       <ErrorCard
         title={provider?.name || ''}
         subtitle={displayName}
-        errorMessage={usage.error}
-        onRetry={handleRefresh}
+        errorMessage={requiresReauthorization
+          ? t('aiStudio.reauthorization.expired')
+          : usage.error}
+        actionLabel={requiresReauthorization ? t('aiStudio.reauthorization.action') : undefined}
+        isActionPending={requiresReauthorization && aiStudioLoading}
+        onAction={requiresReauthorization
+          ? () => void reauthorizeAiStudioAccount(accountId!)
+          : undefined}
+        onRetry={requiresReauthorization ? undefined : handleRefresh}
       />
     )
   }
@@ -569,18 +672,18 @@ export function ProviderAccount() {
           </Button>
           
           <Button 
-            variant={showInOverview ? 'outline' : 'default'}
-            onClick={handleToggleOverview}
+            variant="outline"
+            onClick={handleToggleAllCards}
           >
-            {showInOverview ? (
+            {hasVisibleCards ? (
               <>
                 <EyeOff aria-hidden="true" />
-                {t('provider.hideFromOverview')}
+                {t('provider.hideAll')}
               </>
             ) : (
               <>
                 <Eye aria-hidden="true" />
-                {t('provider.showInOverview')}
+                {t('provider.showAll')}
               </>
             )}
           </Button>
@@ -610,6 +713,24 @@ export function ProviderAccount() {
           <h2 id="provider-usage-error-title" className="mb-3 text-xl font-semibold leading-[26px]">{t('provider.usage')}</h2>
           <div className={getGridClass()}>
             {renderErrorCard()}
+          </div>
+        </section>
+      )}
+
+      {historyPeriods.length > 0 && (
+        <section aria-labelledby="provider-history-title">
+          <h2 id="provider-history-title" className="mb-3 text-xl font-semibold leading-[26px]">
+            {t('history.title')}
+          </h2>
+          <div className={`grid gap-4 ${historyPeriods.length > 1 ? 'xl:grid-cols-2' : ''}`}>
+            {historyPeriods.map(period => (
+              <QuotaHistoryChart
+                key={period}
+                providerId={providerId as ProviderId}
+                period={period}
+                points={history[period]}
+              />
+            ))}
           </div>
         </section>
       )}

@@ -154,6 +154,12 @@ npm --version
 
 如果版本不符，请升级至推荐版本。
 
+## 本机用量 API
+
+应用程序运行时，`GET http://127.0.0.1:3210/api/v1/usage` 会返回最新的本地用量缓存。此端点不会刷新供应商数据；只有设置的自动刷新间隔与手动刷新操作能更新缓存。加密存储区锁定时会返回 `423`。
+
+API 默认只绑定 loopback。您可以在“设置 → 连接与 API”允许其他设备连接，服务器将改为绑定 `0.0.0.0`。应用程序解锁时，API 请求无需另行验证，因此请只在受信任的网络中开启，并使用计算机实际的网络 IP 地址连接。
+
 ## 致谢
 
 - 本项目 Antigravity 的部分参考了 [AntigravityQuotaWatcher](https://github.com/wusimpl/AntigravityQuotaWatcher)

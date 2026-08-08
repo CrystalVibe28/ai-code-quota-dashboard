@@ -2,10 +2,40 @@ import { ipcMain } from 'electron'
 import { GithubCopilotService } from '../services/providers/github-copilot'
 import { StorageService } from '../services/storage'
 import { TrayService } from '../services/tray'
+import { UsageDataService } from '../services/usage-data'
 import type { GithubCopilotAccount, GithubCopilotAccountUsage } from '@shared/types'
 
 const githubCopilotService = new GithubCopilotService()
 const storageService = new StorageService()
+
+export async function fetchAllGithubCopilotUsage(): Promise<GithubCopilotAccountUsage[]> {
+  try {
+    const accounts = await storageService.getAccounts('githubCopilot') as GithubCopilotAccount[]
+
+    const results = await Promise.all(
+      accounts.map(async (account): Promise<GithubCopilotAccountUsage> => {
+        try {
+          const usage = await githubCopilotService.fetchUsage(account.accessToken)
+          return { accountId: account.id, name: account.name, login: account.login, usage }
+        } catch (error) {
+          console.error('[GitHub Copilot] fetch-usage error for', account.login, ':', error)
+          return { accountId: account.id, name: account.name, login: account.login, usage: null, error: String(error) }
+        }
+      })
+    )
+
+    UsageDataService.getInstance().recordProvider('githubCopilot', results)
+    const trayData = results
+      .filter(r => r.usage !== null)
+      .map(r => ({ name: r.name, percent: 0 }))
+    TrayService.getInstance().triggerUpdate({ githubCopilot: trayData })
+
+    return results
+  } catch (error) {
+    console.error('[GitHub Copilot IPC] Failed to fetch all usage:', error)
+    return []
+  }
+}
 
 export function registerGithubCopilotHandlers(): void {
   ipcMain.handle('github-copilot:login', async () => {
@@ -64,32 +94,5 @@ export function registerGithubCopilotHandlers(): void {
     }
   })
 
-  ipcMain.handle('github-copilot:fetch-all-usage', async (): Promise<GithubCopilotAccountUsage[]> => {
-    try {
-      const accounts = await storageService.getAccounts('githubCopilot') as GithubCopilotAccount[]
-
-      const results = await Promise.all(
-        accounts.map(async (account): Promise<GithubCopilotAccountUsage> => {
-          try {
-            const usage = await githubCopilotService.fetchUsage(account.accessToken)
-            return { accountId: account.id, name: account.name, login: account.login, usage }
-          } catch (error) {
-            console.error('[GitHub Copilot] fetch-usage error for', account.login, ':', error)
-            return { accountId: account.id, name: account.name, login: account.login, usage: null, error: String(error) }
-          }
-        })
-      )
-
-      const trayService = TrayService.getInstance()
-      const trayData = results
-        .filter(r => r.usage !== null)
-        .map(r => ({ name: r.name, percent: 0 })) // Note: percent would need calculation from usage data
-      trayService.triggerUpdate({ githubCopilot: trayData })
-
-      return results
-    } catch (error) {
-      console.error('[GitHub Copilot IPC] Failed to fetch all usage:', error)
-      return []
-    }
-  })
+  ipcMain.handle('github-copilot:fetch-all-usage', fetchAllGithubCopilotUsage)
 }

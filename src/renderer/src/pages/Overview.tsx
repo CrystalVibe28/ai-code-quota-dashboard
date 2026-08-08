@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useOutletContext } from 'react-router-dom'
 import { RefreshCw, AlertTriangle, Info, Plus } from 'lucide-react'
@@ -14,6 +14,7 @@ import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
 import { useCodexStore } from '@/stores/useCodexStore'
 import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
+import { useOllamaCloudStore } from '@/stores/useOllamaCloudStore'
 import { useAiStudioStore } from '@/stores/useAiStudioStore'
 import { useCustomization } from '@/contexts/CustomizationContext'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
@@ -22,8 +23,10 @@ import { getProviderById } from '@/constants/providers'
 import type { ProviderId } from '@/types/customization'
 import type { ZaiLimit } from '@shared/types'
 import { getAntigravityQuotaType } from '@shared/antigravityQuota'
-import { getZaiQuotaType } from '@shared/zaiQuota'
+import { getZaiCardId, getZaiQuotaType } from '@shared/zaiQuota'
 import { getCodexWindowLabel } from '@/lib/codexQuota'
+import { getAccountCardIds } from '@/lib/cardVisibility'
+import { isGoogleOAuthReauthorizationRequired } from '@/lib/googleApiError'
 import { cn } from '@/lib/utils'
 
 export function Overview() {
@@ -55,23 +58,32 @@ export function Overview() {
   const { accounts: zaiAccounts, usageData: zaiUsage, fetchAccounts: fetchZaiAccounts, fetchUsage: fetchZaiUsage } = useZaiCodingStore()
   const { accounts: codexAccounts, usageData: codexUsage, fetchAccounts: fetchCodexAccounts, fetchUsage: fetchCodexUsage } = useCodexStore()
   const { accounts: opencodeGoAccounts, usageData: opencodeGoUsage, fetchAccounts: fetchOpencodeGoAccounts, fetchUsage: fetchOpencodeGoUsage } = useOpencodeGoStore()
-  const { accounts: aiStudioAccounts, usageData: aiStudioUsage, fetchAccounts: fetchAiStudioAccounts, fetchUsage: fetchAiStudioUsage } = useAiStudioStore()
+  const { accounts: ollamaCloudAccounts, usageData: ollamaCloudUsage, fetchAccounts: fetchOllamaCloudAccounts, fetchUsage: fetchOllamaCloudUsage } = useOllamaCloudStore()
+  const {
+    accounts: aiStudioAccounts,
+    usageData: aiStudioUsage,
+    isLoading: aiStudioLoading,
+    fetchAccounts: fetchAiStudioAccounts,
+    fetchUsage: fetchAiStudioUsage,
+    reauthorizeAccount: reauthorizeAiStudioAccount
+  } = useAiStudioStore()
   
   const { global, getSortedProviders, getCardConfig, isCardVisible } = useCustomization()
-  const { providers, updateProvider } = useCustomizationStore()
+  const { isLoaded, providers, updateProvider, syncAccountCards } = useCustomizationStore()
   const isCompactOverview = global.overviewLayout === 'compact'
   const compactFallbackClassName = isCompactOverview ? 'rounded-none border-0 shadow-none' : undefined
 
   const refreshAll = useCallback(async () => {
     setIsRefreshing(true)
     try {
-      await Promise.all([fetchAntiAccounts(), fetchGhAccounts(), fetchZaiAccounts(), fetchCodexAccounts(), fetchOpencodeGoAccounts(), fetchAiStudioAccounts()])
+      await Promise.all([fetchAntiAccounts(), fetchGhAccounts(), fetchZaiAccounts(), fetchCodexAccounts(), fetchOpencodeGoAccounts(), fetchOllamaCloudAccounts(), fetchAiStudioAccounts()])
       const [antigravity, copilot, zai, codex, opencodeGo] = await Promise.all([
         fetchAntiUsage(),
         fetchGhUsage(),
         fetchZaiUsage(),
         fetchCodexUsage(),
         fetchOpencodeGoUsage(),
+        fetchOllamaCloudUsage(),
         fetchAiStudioUsage()
       ])
       await window.api.notification.checkAndNotify({ antigravity, copilot, zai, codex, opencodeGo }).catch(() => {})
@@ -79,14 +91,51 @@ export function Overview() {
     } finally {
       setIsRefreshing(false)
     }
-  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchAiStudioAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage, fetchAiStudioUsage])
+  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchOllamaCloudAccounts, fetchAiStudioAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage, fetchOllamaCloudUsage, fetchAiStudioUsage])
 
-  const visibleAntiAccounts = antiAccounts.filter(a => a.showInOverview)
-  const visibleGhAccounts = ghAccounts.filter(a => a.showInOverview)
-  const visibleZaiAccounts = zaiAccounts.filter(a => a.showInOverview)
-  const visibleCodexAccounts = codexAccounts.filter(a => a.showInOverview)
-  const visibleOpencodeGoAccounts = opencodeGoAccounts.filter(a => a.showInOverview)
-  const visibleAiStudioAccounts = aiStudioAccounts.filter(a => a.showInOverview)
+  useEffect(() => {
+    if (!isLoaded) return
+
+    const groups: Array<{
+      providerId: ProviderId
+      accountId: string
+      cardIds: string[]
+      fallbackVisible: boolean
+    }> = []
+    const addGroups = (
+      providerId: ProviderId,
+      accounts: ReadonlyArray<{ id: string; showInOverview: boolean }>,
+      usageData: ReadonlyArray<{ accountId: string; usage: unknown }>
+    ) => {
+      usageData.forEach(accountUsage => {
+        const account = accounts.find(value => value.id === accountUsage.accountId)
+        if (!account) return
+        groups.push({
+          providerId,
+          accountId: accountUsage.accountId,
+          cardIds: getAccountCardIds(providerId, accountUsage.accountId, accountUsage.usage, global.hideUnlimitedQuota),
+          fallbackVisible: account.showInOverview
+        })
+      })
+    }
+
+    addGroups('antigravity', antiAccounts, antiUsage)
+    addGroups('githubCopilot', ghAccounts, ghUsage)
+    addGroups('zaiCoding', zaiAccounts, zaiUsage)
+    addGroups('codex', codexAccounts, codexUsage)
+    addGroups('opencodeGo', opencodeGoAccounts, opencodeGoUsage)
+    addGroups('ollamaCloud', ollamaCloudAccounts, ollamaCloudUsage)
+    addGroups('aiStudio', aiStudioAccounts, aiStudioUsage)
+    syncAccountCards(groups)
+  }, [isLoaded, global.hideUnlimitedQuota, antiAccounts, antiUsage, ghAccounts, ghUsage, zaiAccounts, zaiUsage, codexAccounts, codexUsage, opencodeGoAccounts, opencodeGoUsage, ollamaCloudAccounts, ollamaCloudUsage, aiStudioAccounts, aiStudioUsage, syncAccountCards])
+
+  const visibleAntiAccounts = antiAccounts.filter(a => providers.antigravity.accountCardVisibility?.[a.id] ?? a.showInOverview)
+  const visibleGhAccounts = ghAccounts.filter(a => providers.githubCopilot.accountCardVisibility?.[a.id] ?? a.showInOverview)
+  const visibleZaiAccounts = zaiAccounts.filter(a => providers.zaiCoding.accountCardVisibility?.[a.id] ?? a.showInOverview)
+  const visibleCodexAccounts = codexAccounts.filter(a => providers.codex.accountCardVisibility?.[a.id] ?? a.showInOverview)
+  const visibleOpencodeGoAccounts = opencodeGoAccounts.filter(a => providers.opencodeGo.accountCardVisibility?.[a.id] ?? a.showInOverview)
+  const visibleOllamaCloudAccounts = ollamaCloudAccounts.filter(a => providers.ollamaCloud.accountCardVisibility?.[a.id] ?? a.showInOverview)
+  const visibleAiStudioAccounts = aiStudioAccounts.filter(a => providers.aiStudio.accountCardVisibility?.[a.id] ?? a.showInOverview)
 
   const hasLowQuota = (percentage: number) => percentage <= global.lowQuotaThreshold
   
@@ -130,10 +179,10 @@ export function Overview() {
       return accountUsage.usage.map((model: any) => {
         const cardId = `antigravity-${accountUsage.accountId}-${model.modelName}`
         const percentage = model.remainingFraction * 100
-        if (!isCardVisible('antigravity', cardId)) return null
+        if (!isCardVisible('antigravity', cardId, accountUsage.accountId, account.showInOverview)) return null
         if (!shouldShowCard(percentage, false)) return null
         
-        const config = getCardConfig('antigravity', cardId)
+        const config = getCardConfig('antigravity', cardId, accountUsage.accountId, account.showInOverview)
         return (
           <UsageCard
             key={cardId}
@@ -186,10 +235,10 @@ export function Overview() {
         if (isUnlimited && global.hideUnlimitedQuota) return null
         
         const percentage = quota.percent_remaining ?? 100
-        if (!isCardVisible('githubCopilot', cardId)) return null
+        if (!isCardVisible('githubCopilot', cardId, accountUsage.accountId, account.showInOverview)) return null
         if (!shouldShowCard(percentage, isUnlimited)) return null
         
-        const config = getCardConfig('githubCopilot', cardId)
+        const config = getCardConfig('githubCopilot', cardId, accountUsage.accountId, account.showInOverview)
         return (
           <UsageCard
             key={cardId}
@@ -237,13 +286,13 @@ export function Overview() {
 
       if (!accountUsage.usage) return []
       
-      return accountUsage.usage.limits.map((limit, index) => {
-        const cardId = `zaiCoding-${accountUsage.accountId}-${limit.type}-${limit.unit ?? index}-${limit.number ?? index}`
+      return accountUsage.usage.limits.map((limit) => {
+        const cardId = getZaiCardId(accountUsage.accountId, limit)
         const percentage = 100 - limit.percentage
-        if (!isCardVisible('zaiCoding', cardId)) return null
+        if (!isCardVisible('zaiCoding', cardId, accountUsage.accountId, account.showInOverview)) return null
         if (!shouldShowCard(percentage, false)) return null
         
-        const config = getCardConfig('zaiCoding', cardId)
+        const config = getCardConfig('zaiCoding', cardId, accountUsage.accountId, account.showInOverview)
         return (
           <UsageCard
             key={cardId}
@@ -298,14 +347,27 @@ export function Overview() {
         { kind: 'codeReview', cardIdSuffix: 'codeReview_secondary', window: accountUsage.usage.code_review_rate_limit?.secondary_window }
       ]
 
-      const cards = windowEntries.map((entry) => {
-        if (!entry.window) return null
+      const availableEntries = windowEntries.filter(entry => entry.window)
+      if (availableEntries.length === 0) {
+        return [
+          <Card key={`codex-${accountUsage.accountId}-no-data`} className={compactFallbackClassName || 'rounded-md'}>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Info className="h-4 w-4 flex-shrink-0" />
+                <span className="text-sm">{t('codex.noQuotaData')}</span>
+              </div>
+            </CardContent>
+          </Card>
+        ]
+      }
+
+      return availableEntries.map((entry) => {
         const cardId = `codex-${accountUsage.accountId}-${entry.cardIdSuffix}`
         const percentage = 100 - Math.min(entry.window.used_percent, 100)
-        if (!isCardVisible('codex', cardId)) return null
+        if (!isCardVisible('codex', cardId, accountUsage.accountId, account.showInOverview)) return null
         if (!shouldShowCard(percentage, false)) return null
 
-        const config = getCardConfig('codex', cardId)
+        const config = getCardConfig('codex', cardId, accountUsage.accountId, account.showInOverview)
         const resetTime = entry.window.reset_at ? entry.window.reset_at * 1000 : undefined
         return (
           <UsageCard
@@ -327,44 +389,38 @@ export function Overview() {
           />
         )
       }).filter(Boolean)
-
-      if (cards.length === 0) {
-        return [
-          <Card key={`codex-${accountUsage.accountId}-no-data`} className={compactFallbackClassName || 'rounded-md'}>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Info className="h-4 w-4 flex-shrink-0" />
-                <span className="text-sm">{t('codex.noQuotaData')}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ]
-      }
-
-      return cards
     })
   }
 
-  const getOpencodeGoLimitLabel = (key: string) => {
-    const mapping: Record<string, string> = {
-      rollingUsage: t('opencodeGo.quotaTypes.rolling'),
-      weeklyUsage: t('opencodeGo.quotaTypes.weekly'),
-      monthlyUsage: t('opencodeGo.quotaTypes.monthly')
-    }
+  const getPercentLimitLabel = (providerId: 'opencodeGo' | 'ollamaCloud', key: string) => {
+    const mapping: Record<string, string> = providerId === 'opencodeGo'
+      ? {
+          rollingUsage: t('opencodeGo.quotaTypes.rolling'),
+          weeklyUsage: t('opencodeGo.quotaTypes.weekly'),
+          monthlyUsage: t('opencodeGo.quotaTypes.monthly')
+        }
+      : {
+          session: t('ollamaCloud.quotaTypes.session'),
+          weekly: t('ollamaCloud.quotaTypes.weekly')
+        }
     return mapping[key] ?? key.replace(/([A-Z])/g, ' $1').replace(/Usage$/, '').trim()
   }
 
-  const renderOpencodeGoCards = () => {
-    return opencodeGoUsage.flatMap((accountUsage) => {
-      const account = visibleOpencodeGoAccounts.find(a => a.id === accountUsage.accountId)
+  const renderPercentUsageCards = (
+    providerId: 'opencodeGo' | 'ollamaCloud',
+    accounts: Array<{ id: string; displayName: string; showInOverview: boolean }>,
+    usageData: Array<{ accountId: string; name: string; usage: { limits: any[] } | null; error?: string }>
+  ) => {
+    return usageData.flatMap((accountUsage) => {
+      const account = accounts.find(a => a.id === accountUsage.accountId)
       if (!account) return []
 
       if (accountUsage.error && !accountUsage.usage) {
-        const cardId = `opencodeGo-${accountUsage.accountId}-error`
+        const cardId = `${providerId}-${accountUsage.accountId}-error`
         return [
           <ErrorCard
             key={cardId}
-            title={t('nav.opencodeGo')}
+            title={t(`nav.${providerId}`)}
             subtitle={account.displayName || accountUsage.name}
             errorMessage={accountUsage.error}
             cardSize={isCompactOverview ? 'compact' : undefined}
@@ -376,17 +432,30 @@ export function Overview() {
 
       if (!accountUsage.usage) return []
 
-      const cards = accountUsage.usage.limits.map((limit: any) => {
-        const cardId = `opencodeGo-${accountUsage.accountId}-${limit.type}`
+      if (accountUsage.usage.limits.length === 0) {
+        return [
+          <Card key={`${providerId}-${accountUsage.accountId}-no-data`} className={compactFallbackClassName || 'rounded-md'}>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Info className="h-4 w-4 flex-shrink-0" />
+                <span className="text-sm">{t(`${providerId}.noQuotaData`)}</span>
+              </div>
+            </CardContent>
+          </Card>
+        ]
+      }
+
+      return accountUsage.usage.limits.map((limit: any) => {
+        const cardId = `${providerId}-${accountUsage.accountId}-${limit.type}`
         const percentage = limit.unlimited ? 100 : limit.remaining
-        if (!isCardVisible('opencodeGo', cardId)) return null
+        if (!isCardVisible(providerId, cardId, accountUsage.accountId, account.showInOverview)) return null
         if (!shouldShowCard(percentage, Boolean(limit.unlimited))) return null
 
-        const config = getCardConfig('opencodeGo', cardId)
+        const config = getCardConfig(providerId, cardId, accountUsage.accountId, account.showInOverview)
         return (
           <UsageCard
             key={cardId}
-            title={getOpencodeGoLimitLabel(limit.type)}
+            title={getPercentLimitLabel(providerId, limit.type)}
             subtitle={account.displayName || accountUsage.name}
             percentage={percentage}
             remaining={limit.remaining}
@@ -405,23 +474,11 @@ export function Overview() {
           />
         )
       }).filter(Boolean)
-
-      if (cards.length === 0) {
-        return [
-          <Card key={`opencodeGo-${accountUsage.accountId}-no-data`} className={compactFallbackClassName || 'rounded-md'}>
-            <CardContent className="pt-4">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Info className="h-4 w-4 flex-shrink-0" />
-                <span className="text-sm">{t('opencodeGo.noQuotaData')}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ]
-      }
-
-      return cards
     })
   }
+
+  const renderOpencodeGoCards = () => renderPercentUsageCards('opencodeGo', visibleOpencodeGoAccounts, opencodeGoUsage)
+  const renderOllamaCloudCards = () => renderPercentUsageCards('ollamaCloud', visibleOllamaCloudAccounts, ollamaCloudUsage)
 
   const renderAiStudioCards = () => {
     return aiStudioUsage.flatMap((accountUsage) => {
@@ -429,15 +486,23 @@ export function Overview() {
       if (!account) return []
 
       if (accountUsage.error && !accountUsage.usage) {
+        const requiresReauthorization = isGoogleOAuthReauthorizationRequired(accountUsage.error)
         return [
           <ErrorCard
             key={`aiStudio-${accountUsage.accountId}-error`}
             title={t('nav.aiStudio')}
             subtitle={account.displayName}
-            errorMessage={accountUsage.error}
+            errorMessage={requiresReauthorization
+              ? t('aiStudio.reauthorization.expired')
+              : accountUsage.error}
             cardSize={isCompactOverview ? 'compact' : undefined}
             className={compactFallbackClassName}
-            onRetry={refreshAll}
+            actionLabel={requiresReauthorization ? t('aiStudio.reauthorization.action') : undefined}
+            isActionPending={requiresReauthorization && aiStudioLoading}
+            onAction={requiresReauthorization
+              ? () => void reauthorizeAiStudioAccount(accountUsage.accountId)
+              : undefined}
+            onRetry={requiresReauthorization ? undefined : refreshAll}
           />
         ]
       }
@@ -453,8 +518,8 @@ export function Overview() {
 
       return accountUsage.usage.limits.map((limit) => {
         const cardId = `aiStudio-${accountUsage.accountId}-${limit.model}`
-        if (!isCardVisible('aiStudio', cardId)) return null
-        const config = getCardConfig('aiStudio', cardId)
+        if (!isCardVisible('aiStudio', cardId, accountUsage.accountId, account.showInOverview)) return null
+        const config = getCardConfig('aiStudio', cardId, accountUsage.accountId, account.showInOverview)
         return (
           <AiStudioLimitCard
             key={cardId}
@@ -495,6 +560,11 @@ export function Overview() {
       title: t('nav.opencodeGo'),
       hasAccounts: visibleOpencodeGoAccounts.length > 0,
       render: renderOpencodeGoCards
+    },
+    ollamaCloud: {
+      title: t('nav.ollamaCloud'),
+      hasAccounts: visibleOllamaCloudAccounts.length > 0,
+      render: renderOllamaCloudCards
     },
     aiStudio: {
       title: t('nav.aiStudio'),
@@ -575,6 +645,7 @@ export function Overview() {
        visibleZaiAccounts.length === 0 && 
        visibleCodexAccounts.length === 0 &&
        visibleOpencodeGoAccounts.length === 0 &&
+       visibleOllamaCloudAccounts.length === 0 &&
        visibleAiStudioAccounts.length === 0 && (
         <Card className="border-dashed shadow-none">
           <CardContent className="flex flex-col items-center py-14 text-center">

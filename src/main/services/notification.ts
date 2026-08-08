@@ -1,8 +1,8 @@
 import { BrowserWindow, Notification } from 'electron'
 import type { NotificationThreshold } from '../../shared/types/settings'
-import type { ZaiAccountUsage } from '@shared/types'
+import type { CardConfig, ProviderConfig, ProviderId, ZaiAccountUsage } from '@shared/types'
 import { getAntigravityQuotaType } from '@shared/antigravityQuota'
-import { getZaiQuotaType } from '@shared/zaiQuota'
+import { getZaiCardId, getZaiQuotaType } from '@shared/zaiQuota'
 import { formatCodexQuotaLabel } from '../../shared/codexQuota'
 
 /**
@@ -39,7 +39,8 @@ interface AppSettings {
 
 interface DisplayFilters {
   hideUnlimitedQuota: boolean
-  hiddenCardIds: Set<string>
+  cards: Record<string, CardConfig>
+  providers: Partial<Record<ProviderId, ProviderConfig>>
 }
 
 interface AntigravityModelQuota {
@@ -50,7 +51,8 @@ interface AntigravityModelQuota {
 
 interface AntigravityUsageResult {
   accountId: string
-  email: string
+  name: string
+  email?: string
   usage: AntigravityModelQuota[] | null
   error?: string
 }
@@ -166,6 +168,7 @@ export class NotificationService {
   private static instance: NotificationService
   private state: NotificationState
   private mainWindow: BrowserWindow | null = null
+  private openMainWindow: (() => BrowserWindow) | null = null
   /** Keep references to active notifications to prevent GC from collecting them */
   private activeNotifications: Set<Notification> = new Set()
 
@@ -182,8 +185,12 @@ export class NotificationService {
     return NotificationService.instance
   }
 
-  setMainWindow(window: BrowserWindow): void {
+  setMainWindow(window: BrowserWindow | null): void {
     this.mainWindow = window
+  }
+
+  setOpenMainWindow(callback: () => BrowserWindow): void {
+    this.openMainWindow = callback
   }
 
   /**
@@ -249,6 +256,7 @@ export class NotificationService {
   ): void {
     for (const account of data) {
       if (!account.usage) continue
+      const cardIds = account.usage.map(model => `antigravity-${account.accountId}-${model.modelName}`)
 
       for (const model of account.usage) {
         const percentage = Math.round(model.remainingFraction * 100)
@@ -256,13 +264,13 @@ export class NotificationService {
         activeCardIds.add(cardId)
 
         // Check if card is hidden
-        if (filters.hiddenCardIds.has(cardId)) continue
+        if (this.isCardHidden(filters, 'antigravity', account.accountId, cardId, cardIds)) continue
 
         const crossedThreshold = this.checkThresholdCrossing(cardId, percentage, thresholds)
         if (crossedThreshold) {
           itemsToNotify.push({
             provider: 'Antigravity',
-            accountName: account.email,
+            accountName: account.email ?? account.name,
             itemName: model.modelName,
             percentage,
             severity: this.getSeverity(crossedThreshold, thresholds),
@@ -282,6 +290,9 @@ export class NotificationService {
   ): void {
     for (const account of data) {
       if (!account.usage) continue
+      const cardIds = Object.entries(account.usage.quotaSnapshots)
+        .filter(([, snapshot]) => !snapshot.unlimited || !filters.hideUnlimitedQuota)
+        .map(([quotaType]) => `githubCopilot-${account.accountId}-${quotaType}`)
 
       for (const [quotaType, snapshot] of Object.entries(account.usage.quotaSnapshots)) {
         // Skip unlimited quotas if filter is enabled
@@ -294,7 +305,7 @@ export class NotificationService {
         activeCardIds.add(cardId)
 
         // Check if card is hidden
-        if (filters.hiddenCardIds.has(cardId)) continue
+        if (this.isCardHidden(filters, 'githubCopilot', account.accountId, cardId, cardIds)) continue
 
         const crossedThreshold = this.checkThresholdCrossing(cardId, percentage, thresholds)
         if (crossedThreshold) {
@@ -321,14 +332,15 @@ export class NotificationService {
   ): void {
     for (const account of data) {
       if (!account.usage) continue
+      const cardIds = account.usage.limits.map(limit => getZaiCardId(account.accountId, limit))
 
-      for (const [index, limit] of account.usage.limits.entries()) {
+      for (const limit of account.usage.limits) {
         const percentage = 100 - limit.percentage
-        const cardId = `zaiCoding-${account.accountId}-${limit.type}-${limit.unit ?? index}-${limit.number ?? index}`
+        const cardId = getZaiCardId(account.accountId, limit)
         activeCardIds.add(cardId)
 
         // Check if card is hidden
-        if (filters.hiddenCardIds.has(cardId)) continue
+        if (this.isCardHidden(filters, 'zaiCoding', account.accountId, cardId, cardIds)) continue
 
         const crossedThreshold = this.checkThresholdCrossing(cardId, percentage, thresholds)
         if (crossedThreshold) {
@@ -386,6 +398,9 @@ export class NotificationService {
           window: account.usage.code_review_rate_limit?.secondary_window ?? null
         }
       ]
+      const cardIds = windowEntries
+        .filter(entry => entry.window)
+        .map(entry => `codex-${account.accountId}-${entry.cardIdSuffix}`)
 
       for (const entry of windowEntries) {
         if (!entry.window) continue
@@ -395,7 +410,7 @@ export class NotificationService {
         activeCardIds.add(cardId)
 
         // Check if card is hidden
-        if (filters.hiddenCardIds.has(cardId)) continue
+        if (this.isCardHidden(filters, 'codex', account.accountId, cardId, cardIds)) continue
 
         const crossedThreshold = this.checkThresholdCrossing(cardId, percentage, thresholds)
         if (crossedThreshold) {
@@ -421,13 +436,14 @@ export class NotificationService {
   ): void {
     for (const account of data) {
       if (!account.usage) continue
+      const cardIds = account.usage.limits.map(limit => `opencodeGo-${account.accountId}-${limit.type}`)
 
       for (const limit of account.usage.limits) {
         const percentage = Math.round(limit.remaining)
         const cardId = `opencodeGo-${account.accountId}-${limit.type}`
         activeCardIds.add(cardId)
 
-        if (filters.hiddenCardIds.has(cardId)) continue
+        if (this.isCardHidden(filters, 'opencodeGo', account.accountId, cardId, cardIds)) continue
 
         const crossedThreshold = this.checkThresholdCrossing(cardId, percentage, thresholds)
         if (crossedThreshold) {
@@ -446,6 +462,25 @@ export class NotificationService {
         }
       }
     }
+  }
+
+  private isCardHidden(
+    filters: DisplayFilters,
+    providerId: ProviderId,
+    accountId: string,
+    cardId: string,
+    cardIds: string[]
+  ): boolean {
+    // ponytail: quota groups are tiny; precompute per account if providers expose large card sets.
+    const configuredVisibility = cardIds
+      .map(currentCardId => filters.cards[currentCardId]?.visible)
+      .filter((visible): visible is boolean => visible !== undefined)
+    const defaultVisible = configuredVisibility.length > 0
+      ? configuredVisibility.some(Boolean)
+      : filters.providers[providerId]?.accountCardVisibility?.[accountId] ?? true
+
+    return (filters.cards[cardId]?.visible
+      ?? defaultVisible) === false
   }
 
   /**
@@ -610,18 +645,20 @@ export class NotificationService {
   }
 
   private showWindowAndNavigate(): void {
-    if (!this.mainWindow) {
-      return
+    const window = this.mainWindow ?? this.openMainWindow?.()
+    if (!window) return
+    this.mainWindow = window
+
+    if (window.isMinimized()) window.restore()
+    window.show()
+    window.focus()
+
+    const send = (): void => window.webContents.send('app:navigate-to-overview')
+    if (window.webContents.isLoading()) {
+      window.webContents.once('did-finish-load', send)
+    } else {
+      send()
     }
-
-    if (this.mainWindow.isMinimized()) {
-      this.mainWindow.restore()
-    }
-
-    this.mainWindow.show()
-    this.mainWindow.focus()
-
-    this.mainWindow.webContents.send('app:navigate-to-overview')
   }
 
   /**

@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { OpencodeGoService } from '../services/providers/opencode-go'
 import { StorageService } from '../services/storage'
 import { TrayService } from '../services/tray'
+import { UsageDataService } from '../services/usage-data'
 import type { OpencodeGoAccount, OpencodeGoAccountUsage, OpencodeGoUsage } from '@shared/types'
 
 const opencodeGoService = new OpencodeGoService()
@@ -51,6 +52,45 @@ function getTrayPercent(usage: OpencodeGoUsage): number {
   return Math.round(Math.min(...usage.limits.map(limit => limit.remaining)))
 }
 
+export async function fetchAllOpencodeGoUsage(): Promise<OpencodeGoAccountUsage[]> {
+  try {
+    const accounts = await storageService.getAccounts('opencodeGo') as OpencodeGoAccount[]
+    const results = await Promise.all(
+      accounts.map(async (account): Promise<OpencodeGoAccountUsage> => {
+        try {
+          const usage = await fetchUsageWithRefresh(account)
+          return {
+            accountId: account.id,
+            name: account.displayName,
+            workspaceId: account.workspaceId,
+            usage
+          }
+        } catch (error) {
+          console.error('[Opencode Go] fetch-all-usage error for', account.workspaceId, ':', error)
+          return {
+            accountId: account.id,
+            name: account.displayName,
+            workspaceId: account.workspaceId,
+            usage: null,
+            error: String(error)
+          }
+        }
+      })
+    )
+
+    UsageDataService.getInstance().recordProvider('opencodeGo', results)
+    const trayData = results
+      .filter((result): result is OpencodeGoAccountUsage & { usage: OpencodeGoUsage } => result.usage !== null)
+      .map(result => ({ name: result.name, percent: getTrayPercent(result.usage) }))
+    TrayService.getInstance().triggerUpdate({ opencodeGo: trayData })
+
+    return results
+  } catch (error) {
+    console.error('[Opencode Go] fetch-all-usage error:', error)
+    return []
+  }
+}
+
 export function registerOpencodeGoHandlers(): void {
   ipcMain.handle('opencode-go:login', async () => {
     try {
@@ -98,42 +138,5 @@ export function registerOpencodeGoHandlers(): void {
     }
   })
 
-  ipcMain.handle('opencode-go:fetch-all-usage', async (): Promise<OpencodeGoAccountUsage[]> => {
-    try {
-      const accounts = await storageService.getAccounts('opencodeGo') as OpencodeGoAccount[]
-      const results = await Promise.all(
-        accounts.map(async (account): Promise<OpencodeGoAccountUsage> => {
-          try {
-            const usage = await fetchUsageWithRefresh(account)
-            return {
-              accountId: account.id,
-              name: account.displayName,
-              workspaceId: account.workspaceId,
-              usage
-            }
-          } catch (error) {
-            console.error('[Opencode Go] fetch-all-usage error for', account.workspaceId, ':', error)
-            return {
-              accountId: account.id,
-              name: account.displayName,
-              workspaceId: account.workspaceId,
-              usage: null,
-              error: String(error)
-            }
-          }
-        })
-      )
-
-      const trayService = TrayService.getInstance()
-      const trayData = results
-        .filter((result): result is OpencodeGoAccountUsage & { usage: OpencodeGoUsage } => result.usage !== null)
-        .map(result => ({ name: result.name, percent: getTrayPercent(result.usage) }))
-      trayService.triggerUpdate({ opencodeGo: trayData })
-
-      return results
-    } catch (error) {
-      console.error('[Opencode Go] fetch-all-usage error:', error)
-      return []
-    }
-  })
+  ipcMain.handle('opencode-go:fetch-all-usage', fetchAllOpencodeGoUsage)
 }

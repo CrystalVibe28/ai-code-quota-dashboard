@@ -16,18 +16,21 @@ export type {
   AiStudioTierSource,
   CodexAccount,
   OpencodeGoAccount,
+  OllamaCloudAccount,
   Account,
   AntigravityAccountUpdate,
   GithubCopilotAccountUpdate,
   ZaiCodingAccountUpdate,
   CodexAccountUpdate,
   OpencodeGoAccountUpdate,
+  OllamaCloudAccountUpdate,
   AiStudioAccountUpdate,
   LoginResult,
   AntigravityLoginResult,
   GithubCopilotLoginResult,
   CodexLoginResult,
-  OpencodeGoLoginResult
+  OpencodeGoLoginResult,
+  OllamaCloudLoginResult
 } from './accounts'
 
 // Provider adapter interface
@@ -53,12 +56,29 @@ export type {
   CodexAccountUsage,
   OpencodeGoLimit,
   OpencodeGoUsage,
-  OpencodeGoAccountUsage
+  OpencodeGoAccountUsage,
+  OllamaCloudLimit,
+  OllamaCloudUsage,
+  OllamaCloudAccountUsage,
+  UsageSnapshot,
+  QuotaHistoryPeriod,
+  QuotaHistoryPoint,
+  QuotaHistory,
+  CachedAccountUsage,
+  LocalUsageCache,
+  UsageApiResponse
 } from './usage'
 
 // Settings types
 export type { Settings } from './settings'
-export { DEFAULT_SETTINGS } from './settings'
+export {
+  DEFAULT_SETTINGS,
+  MIN_REFRESH_INTERVAL,
+  MAX_REFRESH_INTERVAL
+} from './settings'
+
+// Authentication types
+export type { StorageUnlockResult } from './auth'
 
 // Customization types
 export type {
@@ -81,6 +101,9 @@ export type {
   EffectiveCardConfig
 } from './customization'
 export { DEFAULT_GLOBAL_CONFIG } from './customization'
+
+// Tray popover types
+export type { TrayPopoverViewModel } from './tray'
 
 // Error types
 export type {

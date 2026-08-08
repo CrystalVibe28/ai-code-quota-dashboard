@@ -1,16 +1,19 @@
+import i18n from 'i18next'
+import { ErrorCode } from '@shared/types'
 import type {
   AiStudioAccount,
   AiStudioAccountUsage,
   AiStudioLoginSession,
   AiStudioProject
 } from '@shared/types'
-import { ErrorCode } from '@shared/types'
+import { toast } from '@/hooks/useToast'
 import { createProviderStore, parseOAuthError } from './createProviderStore'
 import { useErrorStore } from './useErrorStore'
 
 interface AiStudioActions {
   login: () => Promise<{ success: boolean; account?: AiStudioLoginSession; error?: string }>
   cancelLogin: () => Promise<boolean>
+  reauthorizeAccount: (accountId: string) => Promise<boolean>
   addAccount: (
     session: AiStudioLoginSession,
     project: AiStudioProject,
@@ -45,6 +48,56 @@ export const useAiStudioStore = createProviderStore<AiStudioAccount, AiStudioAcc
         useErrorStore.getState().showError(ErrorCode.OAUTH_FAILED, message)
         return { success: false, error: message }
       }
+    },
+
+    reauthorizeAccount: async (accountId) => {
+      const account = get().accounts.find(value => value.id === accountId)
+      if (!account) {
+        const message = i18n.t('aiStudio.reauthorization.accountNotFound')
+        set({ error: message })
+        useErrorStore.getState().showError(ErrorCode.ACCOUNT_NOT_FOUND, message)
+        return false
+      }
+
+      const result = await get().login()
+      if (!result.success || !result.account) return false
+
+      set({ isLoading: true })
+      if (result.account.userId !== account.userId) {
+        const message = i18n.t('aiStudio.reauthorization.accountMismatch', { email: account.email })
+        set({ isLoading: false, error: message })
+        useErrorStore.getState().showError(ErrorCode.OAUTH_FAILED, message)
+        return false
+      }
+
+      const project = result.account.projects.find(value => value.projectId === account.projectId)
+      if (!project) {
+        const message = i18n.t('aiStudio.reauthorization.projectUnavailable', {
+          project: account.projectName || account.projectId
+        })
+        set({ isLoading: false, error: message })
+        useErrorStore.getState().showError(ErrorCode.API_NOT_FOUND, message)
+        return false
+      }
+
+      const updated = await get().updateAccount(accountId, {
+        email: result.account.email,
+        name: result.account.name,
+        picture: result.account.picture,
+        accessToken: result.account.accessToken,
+        refreshToken: result.account.refreshToken,
+        expiresAt: result.account.expiresAt,
+        projectNumber: project.projectNumber,
+        projectName: project.name
+      })
+      if (!updated) {
+        set({ isLoading: false })
+        return false
+      }
+
+      await get().fetchUsage()
+      toast.success(i18n.t('aiStudio.reauthorization.success'))
+      return true
     },
 
     addAccount: async (session, project, displayName) => {

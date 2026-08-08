@@ -29,6 +29,7 @@
     "zaiCoding": "Zai Coding Plan",
     "codex": "Codex",
     "opencodeGo": "Opencode Go",
+    "ollamaCloud": "Ollama Cloud",
     "settings": "Settings"
   },
   "branding": {
@@ -110,9 +111,14 @@
     "closeToTrayDesc": "Minimize to system tray instead of closing the application",
     "autoLaunch": "Launch at Login",
     "autoLaunchDesc": "Automatically start the application when the system starts",
+    "autoLaunchError": "Could not update the launch-at-login setting",
+    "apiServerSettings": "Local API Server",
+    "apiServerSettingsDesc": "Configure the network access scope of the local API",
+    "allowRemoteApiAccess": "Allow access from other devices",
+    "allowRemoteApiAccessDesc": "Listen on all network interfaces (0.0.0.0) when enabled. API requests require no separate authentication while the app is unlocked. When disabled, allow only this device (127.0.0.1).",
     "sections": {
       "system": "System & language",
-      "connections": "Provider connections",
+      "connections": "Connections & API",
       "alerts": "Quota alerts",
       "appearance": "Appearance & data",
       "privacy": "Security & maintenance"
@@ -120,6 +126,9 @@
     "update": {
       "title": "About & Updates",
       "description": "Check for application updates",
+      "requiredTitle": "Update required",
+      "requiredDescription": "This app is older than your saved data. Update before continuing.",
+      "dataSafe": "Your saved accounts and settings are unchanged.",
       "currentVersion": "Current Version",
       "latestVersion": "Latest Version",
       "upToDate": "You're up to date!",
@@ -156,6 +165,29 @@
       "reset": "Resets"
     }
   },
+  "trayPopover": {
+    "title": "Quota glance",
+    "lastUpdated": "Updated {{time}}",
+    "neverUpdated": "Not updated yet",
+    "localCache": "Local cached data",
+    "providers": "Providers",
+    "account": "Account",
+    "resets": "Resets {{time}}",
+    "openDashboard": "Open dashboard",
+    "lockedTitle": "Dashboard is locked",
+    "lockedDescription": "Open the dashboard to unlock your locally stored data.",
+    "noAccountsTitle": "No cached accounts",
+    "noAccountsDescription": "Open the dashboard to add an account and refresh its quota.",
+    "noQuotaTitle": "No quota data",
+    "noQuotaDescription": "Cached quota will appear after the next scheduled or manual refresh.",
+    "unavailableTitle": "Usage unavailable",
+    "unavailableDescription": "Open the dashboard for account details.",
+    "copilot": {
+      "chat": "Chat messages",
+      "completions": "Code completions",
+      "premiumInteractions": "Premium requests"
+    }
+  },
   "provider": {
     "accounts": "Accounts",
     "usage": "Usage",
@@ -165,10 +197,21 @@
     "removeAccount": "Remove Account",
     "showInOverview": "Show in overview",
     "hideFromOverview": "Hide from overview",
+    "showAll": "Show all",
+    "hideAll": "Hide all",
     "loginFailed": "Login failed",
     "accountNotFound": "Account not found",
     "accountSettings": "Account Settings",
     "editName": "Edit Name"
+  },
+  "history": {
+    "title": "Quota history",
+    "weeklyTitle": "Weekly quota history",
+    "monthlyTitle": "Monthly quota history",
+    "description": "Remaining quota, recorded at most once per hour",
+    "empty": "History will appear after the next refresh",
+    "chartLabel": "{{title}} line chart",
+    "pointLabel": "{{series}}: {{value}}% remaining at {{time}}"
   },
   "antigravity": {
     "title": "Antigravity",
@@ -221,6 +264,13 @@
       "monthly": "Monthly quota"
     }
   },
+  "ollamaCloud": {
+    "noQuotaData": "No Ollama Cloud usage data available",
+    "quotaTypes": {
+      "session": "5-hour quota",
+      "weekly": "Weekly quota"
+    }
+  },
   "aiStudio": {
     "rpm": "RPM",
     "tpm": "TPM",
@@ -228,6 +278,14 @@
     "unlimited": "Unlimited",
     "usageHint": "Used / limit",
     "noQuotaData": "No model rate limits were returned for this project and tier",
+    "reauthorization": {
+      "action": "Reauthorize",
+      "expired": "Google authorization expired. Reauthorize to resume quota updates.",
+      "success": "Google authorization renewed",
+      "accountNotFound": "This AI Studio account no longer exists.",
+      "accountMismatch": "You signed in with a different Google account. Sign in as {{email}}; nothing was changed.",
+      "projectUnavailable": "{{project}} no longer exists or this account no longer has access. Nothing was changed."
+    },
     "oauthCredentials": {
       "title": "Google OAuth client",
       "description": "Create a Desktop app OAuth client once. It is shared by every AI Studio account and project.",

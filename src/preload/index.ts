@@ -1,11 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type { UpdateCheckResult, UpdateDownloadStatus, UpdateInfo } from '@shared/types/update'
+import type { StorageUnlockResult } from '@shared/types'
 
 const api = {
   auth: {
     hasPassword: (): Promise<boolean> => ipcRenderer.invoke('auth:has-password'),
-    verifyPassword: (password: string): Promise<boolean> =>
+    verifyPassword: (password: string): Promise<StorageUnlockResult> =>
       ipcRenderer.invoke('auth:verify-password', password),
     setPassword: (password: string): Promise<boolean> =>
       ipcRenderer.invoke('auth:set-password', password),
@@ -15,7 +16,8 @@ const api = {
     clearAllData: (): Promise<void> => ipcRenderer.invoke('auth:clear-all-data'),
     skipPassword: (): Promise<boolean> => ipcRenderer.invoke('auth:skip-password'),
     isPasswordSkipped: (): Promise<boolean> => ipcRenderer.invoke('auth:is-password-skipped'),
-    unlockWithSkippedPassword: (): Promise<boolean> => ipcRenderer.invoke('auth:unlock-with-skipped-password'),
+    unlockWithSkippedPassword: (): Promise<StorageUnlockResult> =>
+      ipcRenderer.invoke('auth:unlock-with-skipped-password'),
     removePassword: (password: string): Promise<boolean> =>
       ipcRenderer.invoke('auth:remove-password', password),
     setPasswordFromSettings: (password: string): Promise<boolean> =>
@@ -38,7 +40,9 @@ const api = {
     getCustomization: (): Promise<unknown> =>
       ipcRenderer.invoke('storage:get-customization'),
     saveCustomization: (data: unknown): Promise<boolean> =>
-      ipcRenderer.invoke('storage:save-customization', data)
+      ipcRenderer.invoke('storage:save-customization', data),
+    getQuotaHistory: (provider: string, accountId: string): Promise<unknown> =>
+      ipcRenderer.invoke('storage:get-quota-history', provider, accountId)
   },
 
   antigravity: {
@@ -119,6 +123,15 @@ const api = {
       ipcRenderer.invoke('opencode-go:fetch-usage', accountId),
     fetchAllUsage: (): Promise<unknown[]> =>
       ipcRenderer.invoke('opencode-go:fetch-all-usage')
+  },
+
+  ollamaCloud: {
+    login: (): Promise<{ success: boolean; account?: unknown; error?: string }> =>
+      ipcRenderer.invoke('ollama-cloud:login'),
+    cancelLogin: (): Promise<boolean> =>
+      ipcRenderer.invoke('ollama-cloud:cancel-login'),
+    fetchAllUsage: (): Promise<unknown[]> =>
+      ipcRenderer.invoke('ollama-cloud:fetch-all-usage')
   },
 
   app: {

@@ -53,4 +53,20 @@ describe('GoogleOAuthService PKCE', () => {
     await expect((service as any).exchangeCode('code', 'http://127.0.0.1/callback', 'verifier'))
       .rejects.toThrow('Token exchange failed: 400 (invalid_client: The OAuth client secret is incorrect.)')
   })
+
+  it('preserves invalid_grant when a refresh token requires reauthorization', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      error: 'invalid_grant',
+      error_subtype: 'invalid_rapt',
+      error_description: 'Token has been expired or revoked.'
+    }), { status: 400 })))
+
+    const service = new GoogleOAuthService('desktop-client-id', 'client-secret')
+    const refresh = service.refreshToken('private-refresh-token')
+
+    await expect(refresh).rejects.toThrow(
+      'Token refresh failed: 400 (invalid_grant: invalid_rapt: Token has been expired or revoked.)'
+    )
+    await expect(refresh).rejects.not.toThrow('private-refresh-token')
+  })
 })

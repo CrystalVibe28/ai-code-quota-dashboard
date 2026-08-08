@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import type { AiStudioAccount, AiStudioAccountUsage } from '@shared/types'
 import { AiStudioService } from '../services/providers/ai-studio'
 import { StorageService } from '../services/storage'
+import { UsageDataService } from '../services/usage-data'
 
 const storageService = new StorageService()
 const REFRESH_THRESHOLD_MS = 5 * 60 * 1000
@@ -31,6 +32,26 @@ async function fetchAccountUsage(account: AiStudioAccount, service: AiStudioServ
     })
   }
   return usage
+}
+
+export async function fetchAllAiStudioUsage(): Promise<AiStudioAccountUsage[]> {
+  try {
+    const accounts = await storageService.getAccounts('aiStudio') as AiStudioAccount[]
+    const service = createAiStudioService()
+    const results = await Promise.all(accounts.map(async (account): Promise<AiStudioAccountUsage> => {
+      try {
+        const usage = await fetchAccountUsage(account, service)
+        return { accountId: account.id, name: account.displayName, usage }
+      } catch (error) {
+        return { accountId: account.id, name: account.displayName, usage: null, error: String(error) }
+      }
+    }))
+    UsageDataService.getInstance().recordProvider('aiStudio', results)
+    return results
+  } catch (error) {
+    console.error('[AI Studio] fetch-all-usage error:', error)
+    return []
+  }
 }
 
 export function registerAiStudioHandlers(): void {
@@ -64,13 +85,17 @@ export function registerAiStudioHandlers(): void {
   ipcMain.handle('ai-studio:cancel-login', () => activeLoginService?.cancelLogin() ?? false)
 
   ipcMain.handle('ai-studio:refresh-token', async (_, accountId: string) => {
-    const accounts = await storageService.getAccounts('aiStudio') as AiStudioAccount[]
-    const account = accounts.find(value => value.id === accountId)
-    if (!account) return false
+    try {
+      const accounts = await storageService.getAccounts('aiStudio') as AiStudioAccount[]
+      const account = accounts.find(value => value.id === accountId)
+      if (!account) return false
 
-    const service = createAiStudioService()
-    const tokens = await service.refreshToken(account.refreshToken)
-    return tokens ? storageService.updateAccount('aiStudio', accountId, tokens) : false
+      const service = createAiStudioService()
+      const tokens = await service.refreshToken(account.refreshToken)
+      return tokens ? storageService.updateAccount('aiStudio', accountId, tokens) : false
+    } catch {
+      return false
+    }
   })
 
   ipcMain.handle('ai-studio:fetch-usage', async (_, accountId: string) => {
@@ -80,16 +105,5 @@ export function registerAiStudioHandlers(): void {
     return fetchAccountUsage(account, createAiStudioService())
   })
 
-  ipcMain.handle('ai-studio:fetch-all-usage', async (): Promise<AiStudioAccountUsage[]> => {
-    const accounts = await storageService.getAccounts('aiStudio') as AiStudioAccount[]
-    const service = createAiStudioService()
-    return Promise.all(accounts.map(async (account): Promise<AiStudioAccountUsage> => {
-      try {
-        const usage = await fetchAccountUsage(account, service)
-        return { accountId: account.id, name: account.displayName, usage }
-      } catch (error) {
-        return { accountId: account.id, name: account.displayName, usage: null, error: String(error) }
-      }
-    }))
-  })
+  ipcMain.handle('ai-studio:fetch-all-usage', fetchAllAiStudioUsage)
 }

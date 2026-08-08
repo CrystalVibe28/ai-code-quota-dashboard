@@ -1,5 +1,6 @@
-import { ipcMain, app } from 'electron'
+import { ipcMain } from 'electron'
 import { StorageService } from '../services/storage'
+import { getAutoLaunch, setAutoLaunch } from '../services/auto-launch'
 import { restartBackgroundRefresh, stopBackgroundRefresh, startBackgroundRefresh } from '../index'
 
 const storageService = new StorageService()
@@ -18,8 +19,6 @@ export function registerAppHandlers(): void {
   ipcMain.handle('app:set-close-to-tray', async (_, value: boolean) => {
     try {
       await storageService.saveSettings({ closeToTray: value })
-
-      restartBackgroundRefresh()
       return true
     } catch (error) {
       console.error('[App IPC] Failed to set closeToTray:', error)
@@ -29,7 +28,7 @@ export function registerAppHandlers(): void {
 
   ipcMain.handle('app:refresh-interval-changed', async () => {
     try {
-      restartBackgroundRefresh()
+      await restartBackgroundRefresh()
       return true
     } catch (error) {
       console.error('[App IPC] Failed to restart background refresh:', error)
@@ -49,7 +48,7 @@ export function registerAppHandlers(): void {
 
   ipcMain.handle('app:start-background-refresh', async () => {
     try {
-      startBackgroundRefresh()
+      await startBackgroundRefresh()
       return true
     } catch (error) {
       console.error('[App IPC] Failed to start background refresh:', error)
@@ -65,44 +64,17 @@ export function registerAppHandlers(): void {
     return true
   })
 
-  // Auto launch (Windows only)
   ipcMain.handle('app:get-platform', () => {
     return process.platform
   })
 
-  ipcMain.handle('app:get-auto-launch', () => {
-    try {
-      const settings = app.getLoginItemSettings()
-      return settings.openAtLogin
-    } catch (error) {
-      console.error('[App IPC] Failed to get auto launch setting:', error)
-      return false
-    }
-  })
+  ipcMain.handle('app:get-auto-launch', () => getAutoLaunch())
 
   ipcMain.handle('app:set-auto-launch', (_, enabled: boolean) => {
+    if (typeof enabled !== 'boolean') return false
+
     try {
-      const platform = process.platform
-
-      if (enabled) {
-        const loginSettings: Electron.Settings = {
-          openAtLogin: true,
-          args: ['--hidden']
-        }
-
-        // macOS: also set openAsHidden for older macOS versions (< 13)
-        if (platform === 'darwin') {
-          loginSettings.openAsHidden = true
-        }
-
-        app.setLoginItemSettings(loginSettings)
-      } else {
-        app.setLoginItemSettings({
-          openAtLogin: false,
-          args: []
-        })
-      }
-      return true
+      return setAutoLaunch(enabled)
     } catch (error) {
       console.error('[App IPC] Failed to set auto launch:', error)
       return false

@@ -31,11 +31,15 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
 
   updateSettings: async (newSettings: Partial<Settings>) => {
-    set((state) => ({ settings: { ...state.settings, ...newSettings } }))
+    const previousSettings = useSettingsStore.getState().settings
+    set({ settings: { ...previousSettings, ...newSettings } })
 
     try {
-      return await window.api.storage.saveSettings(newSettings)
+      const success = await window.api.storage.saveSettings(newSettings)
+      if (!success) set({ settings: previousSettings })
+      return success
     } catch {
+      set({ settings: previousSettings })
       return false
     }
   }

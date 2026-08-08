@@ -154,6 +154,12 @@ npm --version
 
 If the version does not match, please upgrade to the recommended version.
 
+## Local Usage API
+
+While the app is running, `GET http://127.0.0.1:3210/api/v1/usage` returns the latest local usage cache. The endpoint never refreshes provider data; only the configured automatic interval and manual refresh actions can update it. It returns `423` while encrypted storage is locked.
+
+The API binds to loopback by default. In **Settings → Connections & API**, you can allow other devices by binding it to `0.0.0.0`. Requests have no separate authentication while the app is unlocked, so enable this only on trusted networks and connect through the computer's actual network IP address.
+
 ## Acknowledgments
 
 - The Antigravity portion of this project referenced [AntigravityQuotaWatcher](https://github.com/wusimpl/AntigravityQuotaWatcher)

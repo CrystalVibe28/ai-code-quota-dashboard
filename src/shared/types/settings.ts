@@ -24,6 +24,7 @@ export interface Settings {
   notifications: boolean
   language: string
   closeToTray: boolean
+  allowRemoteApiAccess: boolean
   /** @deprecated Replaced by tiered notification system */
   notificationReminderInterval: number
   /**
@@ -43,6 +44,9 @@ export const DEFAULT_NOTIFICATION_THRESHOLDS: NotificationThreshold[] = [
   { value: 5, enabled: true }
 ]
 
+export const MIN_REFRESH_INTERVAL = 30
+export const MAX_REFRESH_INTERVAL = 300
+
 /**
  * Default application settings
  */
@@ -52,6 +56,7 @@ export const DEFAULT_SETTINGS: Settings = {
   notifications: true,
   language: 'en',
   closeToTray: false,
+  allowRemoteApiAccess: false,
   notificationReminderInterval: 0, // deprecated
   notificationThresholds: DEFAULT_NOTIFICATION_THRESHOLDS
 }

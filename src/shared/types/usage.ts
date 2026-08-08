@@ -16,6 +16,7 @@ export interface ModelQuota {
 export interface AntigravityUsage {
   accountId: string
   name: string
+  email?: string
   usage: ModelQuota[] | null
   error?: string
 }
@@ -171,4 +172,70 @@ export interface OpencodeGoAccountUsage {
   workspaceId: string
   usage: OpencodeGoUsage | null
   error?: string
+}
+
+export interface OllamaCloudLimit {
+  type: 'session' | 'weekly'
+  used: number
+  limit: number
+  remaining: number
+  percentage: number
+  resetTime?: string
+  unit: 'percent'
+  unlimited: false
+}
+
+export interface OllamaCloudUsage {
+  plan?: string
+  limits: OllamaCloudLimit[]
+}
+
+export interface OllamaCloudAccountUsage {
+  accountId: string
+  name: string
+  email: string
+  usage: OllamaCloudUsage | null
+  error?: string
+}
+
+export interface UsageSnapshot {
+  updatedAt: number
+  antigravity: AntigravityUsage[]
+  githubCopilot: GithubCopilotAccountUsage[]
+  zaiCoding: ZaiAccountUsage[]
+  codex: CodexAccountUsage[]
+  opencodeGo: OpencodeGoAccountUsage[]
+  ollamaCloud: OllamaCloudAccountUsage[]
+  aiStudio: AiStudioAccountUsage[]
+}
+
+export type QuotaHistoryPeriod = 'weekly' | 'monthly'
+
+export interface QuotaHistoryPoint {
+  seriesKey: string
+  sampledAt: number
+  remaining: number
+  resetAt?: number
+}
+
+export interface QuotaHistory {
+  weekly: QuotaHistoryPoint[]
+  monthly: QuotaHistoryPoint[]
+}
+
+export interface CachedAccountUsage {
+  accountId: string
+  name: string
+  usage: unknown
+  error?: string
+}
+
+export interface LocalUsageCache {
+  updatedAt: number | null
+  providers: Record<import('./accounts').ProviderId, CachedAccountUsage[]>
+}
+
+export interface UsageApiResponse extends LocalUsageCache {
+  version: 1
+  source: 'local-cache'
 }

@@ -1,5 +1,6 @@
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { RefreshCw, ExternalLink, Info } from 'lucide-react'
+import { AlertTriangle, RefreshCw, ExternalLink, Info } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useUpdateStore } from '@/stores/useUpdateStore'
@@ -9,7 +10,11 @@ function formatFixedTime(isoString: string | null): string {
   return new Date(isoString).toLocaleString()
 }
 
-export function UpdateSettings() {
+interface Props {
+  required?: boolean
+}
+
+export function UpdateSettings({ required = false }: Props) {
   const { t } = useTranslation()
   const {
     currentVersion,
@@ -21,20 +26,50 @@ export function UpdateSettings() {
     lastChecked,
     error,
     checkForUpdate,
+    initialize,
     openReleasePage,
     startUpdate
   } = useUpdateStore()
 
+  useEffect(() => {
+    if (!required) return
+
+    let cleanup: (() => void) | undefined
+    let cancelled = false
+    void checkForUpdate().finally(() => {
+      if (!cancelled) cleanup = initialize()
+    })
+    return () => {
+      cancelled = true
+      cleanup?.()
+    }
+  }, [checkForUpdate, initialize, required])
+
+  const UpdateIcon = required ? AlertTriangle : Info
+
   return (
-    <Card>
+    <Card
+      className={required ? 'border-primary/30 shadow-fluent-16' : undefined}
+      role={required ? 'alert' : undefined}
+    >
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Info className="h-5 w-5" />
-          {t('settings.update.title')}
+          <UpdateIcon
+            aria-hidden="true"
+            className={required ? 'h-5 w-5 text-primary' : 'h-5 w-5'}
+          />
+          {t(required ? 'settings.update.requiredTitle' : 'settings.update.title')}
         </CardTitle>
-        <CardDescription>{t('settings.update.description')}</CardDescription>
+        <CardDescription>
+          {t(required ? 'settings.update.requiredDescription' : 'settings.update.description')}
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {required && (
+          <p className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm text-muted-foreground">
+            {t('settings.update.dataSafe')}
+          </p>
+        )}
         <div className="space-y-3 rounded-md bg-secondary/50 p-3">
           {/* Current Version */}
           <div className="flex items-center justify-between">
@@ -89,7 +124,7 @@ export function UpdateSettings() {
                 {t('settings.update.installing')}
               </Button>
             )}
-            {hasUpdate && (downloadState === 'idle' || downloadState === 'error') && (
+            {(hasUpdate || required) && (downloadState === 'idle' || downloadState === 'error') && (
               <Button size="sm" onClick={openReleasePage}>
                 <ExternalLink className="h-4 w-4 mr-2" />
                 {t('settings.update.download')}

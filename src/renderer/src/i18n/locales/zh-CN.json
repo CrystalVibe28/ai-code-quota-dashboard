@@ -29,6 +29,7 @@
     "zaiCoding": "Zai Coding Plan",
     "codex": "Codex",
     "opencodeGo": "Opencode Go",
+    "ollamaCloud": "Ollama Cloud",
     "settings": "设置"
   },
   "branding": {
@@ -110,9 +111,14 @@
     "closeToTrayDesc": "关闭窗口时最小化到托盘而非完全关闭应用程序",
     "autoLaunch": "开机自动启动",
     "autoLaunchDesc": "系统启动时自动运行此应用程序",
+    "autoLaunchError": "无法更新开机自动启动设置",
+    "apiServerSettings": "本地 API 服务器",
+    "apiServerSettingsDesc": "设置本地 API 的网络访问范围",
+    "allowRemoteApiAccess": "允许其他设备连接",
+    "allowRemoteApiAccessDesc": "开启时监听所有网络接口（0.0.0.0）；应用程序解锁时，API 请求无需另行验证。关闭时仅允许本机连接（127.0.0.1）。",
     "sections": {
       "system": "系统与语言",
-      "connections": "供应商连接",
+      "connections": "连接与 API",
       "alerts": "配额警报",
       "appearance": "外观与数据显示",
       "privacy": "安全性与维护"
@@ -120,6 +126,9 @@
     "update": {
       "title": "关于与更新",
       "description": "检查应用程序更新",
+      "requiredTitle": "需要更新应用程序",
+      "requiredDescription": "当前应用程序比已保存的数据旧，请先更新再继续使用。",
+      "dataSafe": "已保存的帐户与设置均未更改。",
       "currentVersion": "当前版本",
       "latestVersion": "最新版本",
       "upToDate": "已是最新版本！",
@@ -158,6 +167,29 @@
       "reset": "重置时间"
     }
   },
+  "trayPopover": {
+    "title": "配额速览",
+    "lastUpdated": "更新于 {{time}}",
+    "neverUpdated": "尚未更新",
+    "localCache": "本地缓存数据",
+    "providers": "供应商",
+    "account": "账户",
+    "resets": "{{time}}后重置",
+    "openDashboard": "打开完整仪表板",
+    "lockedTitle": "仪表板已锁定",
+    "lockedDescription": "请打开完整仪表板，以解锁本地存储的数据。",
+    "noAccountsTitle": "没有缓存账户",
+    "noAccountsDescription": "请打开完整仪表板添加账户并更新配额。",
+    "noQuotaTitle": "没有配额数据",
+    "noQuotaDescription": "下次定时或手动更新后，缓存配额会显示于此。",
+    "unavailableTitle": "无法获取用量",
+    "unavailableDescription": "请打开完整仪表板查看账户详情。",
+    "copilot": {
+      "chat": "聊天消息",
+      "completions": "代码补全",
+      "premiumInteractions": "高级请求"
+    }
+  },
   "provider": {
     "accounts": "账户",
     "usage": "用量",
@@ -167,10 +199,21 @@
     "removeAccount": "移除账户",
     "showInOverview": "在概览中显示",
     "hideFromOverview": "从概览中隐藏",
+    "showAll": "全部显示",
+    "hideAll": "全部隐藏",
     "loginFailed": "登录失败",
     "accountNotFound": "找不到账户",
     "accountSettings": "账户设置",
     "editName": "编辑名称"
+  },
+  "history": {
+    "title": "配额历史",
+    "weeklyTitle": "每周配额历史",
+    "monthlyTitle": "每月配额历史",
+    "description": "剩余配额，每小时最多记录一次",
+    "empty": "下次刷新后会开始显示历史",
+    "chartLabel": "{{title}}折线图",
+    "pointLabel": "{{series}}：{{time}} 剩余 {{value}}%"
   },
   "antigravity": {
     "title": "Antigravity",
@@ -223,6 +266,13 @@
       "monthly": "每月配额"
     }
   },
+  "ollamaCloud": {
+    "noQuotaData": "没有可用的 Ollama Cloud 用量数据",
+    "quotaTypes": {
+      "session": "5 小时配额",
+      "weekly": "每周配额"
+    }
+  },
   "aiStudio": {
     "rpm": "每分钟请求数（RPM）",
     "tpm": "每分钟 Token 数（TPM）",
@@ -230,6 +280,14 @@
     "unlimited": "无限制",
     "usageHint": "已使用 / 限制",
     "noQuotaData": "此项目与 Tier 未返回模型速率限制",
+    "reauthorization": {
+      "action": "重新授权",
+      "expired": "Google 授权已失效。请重新授权以恢复配额更新。",
+      "success": "Google 授权已更新",
+      "accountNotFound": "此 AI Studio 账号已不存在。",
+      "accountMismatch": "登录的 Google 账号不同。请改用 {{email}} 登录；数据未更改。",
+      "projectUnavailable": "{{project}} 已不存在，或此账号已无权访问；数据未更改。"
+    },
     "oauthCredentials": {
       "title": "Google OAuth 客户端",
       "description": "只需创建一次桌面应用 OAuth 客户端，所有 AI Studio 账号与项目都共用此设置。",

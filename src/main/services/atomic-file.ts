@@ -24,13 +24,15 @@ export function atomicWriteFileSync(filePath: string, contents: FileContents): v
 
 export function readFileWithBackupSync<T>(
   filePath: string,
-  parse: (contents: string) => T
+  parse: (contents: string) => T,
+  isRecoverable: (error: unknown) => boolean = () => true
 ): T {
   let primaryError: unknown
 
   try {
     return parse(readFileSync(filePath, 'utf-8'))
   } catch (error) {
+    if (!isRecoverable(error)) throw error
     primaryError = error
   }
 
@@ -45,6 +47,7 @@ export function readFileWithBackupSync<T>(
     replaceFileAtomicallySync(filePath, contents)
     return value
   } catch (backupError) {
+    if (!isRecoverable(backupError)) throw backupError
     throw new AggregateError(
       [primaryError, backupError],
       `Failed to read ${filePath} and its backup`

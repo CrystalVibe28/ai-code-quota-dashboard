@@ -2,11 +2,50 @@ import { ipcMain } from 'electron'
 import { AntigravityService } from '../services/providers/antigravity'
 import { StorageService } from '../services/storage'
 import { TrayService } from '../services/tray'
+import { UsageDataService } from '../services/usage-data'
 import type { AntigravityAccount, AntigravityUsage } from '@shared/types'
 import { withAutoRefresh } from './utils/withAutoRefresh'
 
 const antigravityService = new AntigravityService()
 const storageService = new StorageService()
+
+export async function fetchAllAntigravityUsage(): Promise<AntigravityUsage[]> {
+  try {
+    const accounts = await storageService.getAccounts('antigravity') as AntigravityAccount[]
+    const results = await Promise.all(
+      accounts.map(async (account): Promise<AntigravityUsage> => {
+        try {
+          const usage = await withAutoRefresh(account, async (currentAccount) => {
+            return await antigravityService.fetchUsage(currentAccount)
+          })
+
+          if (usage === null) {
+            return { accountId: account.id, name: account.name, email: account.email, usage: null, error: 'Token refresh failed' }
+          }
+
+          return { accountId: account.id, name: account.name, email: account.email, usage }
+        } catch (error) {
+          console.error('[Antigravity] fetch-all-usage error for', account.email, ':', error)
+          return { accountId: account.id, name: account.name, email: account.email, usage: null, error: String(error) }
+        }
+      })
+    )
+
+    UsageDataService.getInstance().recordProvider('antigravity', results)
+    const trayData = results
+      .filter(r => r.usage && r.usage.length > 0)
+      .map(r => ({
+        name: r.name,
+        percent: Math.round(Math.min(...r.usage!.map(quota => quota.remainingFraction)) * 100)
+      }))
+    TrayService.getInstance().triggerUpdate({ antigravity: trayData })
+
+    return results
+  } catch (error) {
+    console.error('[Antigravity] fetch-all-usage error:', error)
+    return []
+  }
+}
 
 export function registerAntigravityHandlers(): void {
   ipcMain.handle('antigravity:login', async () => {
@@ -62,41 +101,5 @@ export function registerAntigravityHandlers(): void {
     }
   })
 
-  ipcMain.handle('antigravity:fetch-all-usage', async (): Promise<AntigravityUsage[]> => {
-    try {
-      const accounts = await storageService.getAccounts('antigravity') as AntigravityAccount[]
-      const results = await Promise.all(
-        accounts.map(async (account): Promise<AntigravityUsage> => {
-          try {
-            const usage = await withAutoRefresh(account, async (currentAccount) => {
-              return await antigravityService.fetchUsage(currentAccount)
-            })
-
-            if (usage === null) {
-              return { accountId: account.id, name: account.name, usage: null, error: 'Token refresh failed' }
-            }
-
-            return { accountId: account.id, name: account.name, usage }
-          } catch (error) {
-            console.error('[Antigravity] fetch-all-usage error for', account.email, ':', error)
-            return { accountId: account.id, name: account.name, usage: null, error: String(error) }
-          }
-        })
-      )
-
-      const trayService = TrayService.getInstance()
-      const trayData = results
-        .filter(r => r.usage && r.usage.length > 0)
-        .map(r => ({
-          name: r.name,
-          percent: Math.round(Math.min(...r.usage!.map(quota => quota.remainingFraction)) * 100)
-        }))
-      trayService.triggerUpdate({ antigravity: trayData })
-
-      return results
-    } catch (error) {
-      console.error('[Antigravity] fetch-all-usage error:', error)
-      return []
-    }
-  })
+  ipcMain.handle('antigravity:fetch-all-usage', fetchAllAntigravityUsage)
 }

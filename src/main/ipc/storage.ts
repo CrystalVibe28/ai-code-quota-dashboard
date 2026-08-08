@@ -1,17 +1,24 @@
 import { ipcMain, session } from 'electron'
 import { StorageService } from '../services/storage'
+import { UsageDataService } from '../services/usage-data'
 import { OPENCODE_GO_AUTH_PARTITION } from '../services/providers/opencode-go'
+import { OLLAMA_CLOUD_AUTH_PARTITION } from '../services/providers/ollama-cloud'
 import type {
   AntigravityAccount,
   GithubCopilotAccount,
   ZaiCodingAccount,
+  ProviderId,
   Settings,
   CustomizationState
 } from '@shared/types'
 
 const storageService = new StorageService()
+const AUTH_PARTITIONS: Record<string, string> = {
+  opencodeGo: OPENCODE_GO_AUTH_PARTITION,
+  ollamaCloud: OLLAMA_CLOUD_AUTH_PARTITION
+}
 
-export function registerStorageHandlers(): void {
+export function registerStorageHandlers(onRemoteApiAccessChanged?: () => Promise<void>): void {
   ipcMain.handle('storage:get-accounts', async (_, provider: string) => {
     return storageService.getAccounts(provider)
   })
@@ -25,15 +32,18 @@ export function registerStorageHandlers(): void {
   })
 
   ipcMain.handle('storage:delete-account', async (_, provider: string, accountId: string) => {
-    if (provider === 'opencodeGo') {
-      const authSession = session.fromPartition(OPENCODE_GO_AUTH_PARTITION)
+    const partition = AUTH_PARTITIONS[provider]
+    if (partition) {
+      const authSession = session.fromPartition(partition)
       await Promise.all([
         authSession.clearStorageData(),
         authSession.clearCache()
       ])
     }
 
-    return storageService.deleteAccount(provider, accountId)
+    const deleted = await storageService.deleteAccount(provider, accountId)
+    if (deleted) UsageDataService.getInstance().deleteAccount(provider as ProviderId, accountId)
+    return deleted
   })
 
   ipcMain.handle('storage:update-account', async (
@@ -49,8 +59,19 @@ export function registerStorageHandlers(): void {
     return storageService.getSettings()
   })
 
+  ipcMain.handle('storage:get-quota-history', (_, provider: ProviderId, accountId: string) => {
+    if (typeof provider !== 'string' || typeof accountId !== 'string' || !accountId) {
+      return { weekly: [], monthly: [] }
+    }
+    return UsageDataService.getInstance().getQuotaHistory(provider, accountId)
+  })
+
   ipcMain.handle('storage:save-settings', async (_, settings: Partial<Settings>) => {
-    return storageService.saveSettings(settings)
+    const saved = await storageService.saveSettings(settings)
+    if (saved && settings.allowRemoteApiAccess !== undefined) {
+      await onRemoteApiAccessChanged?.()
+    }
+    return saved
   })
 
   ipcMain.handle('storage:get-customization', async () => {
