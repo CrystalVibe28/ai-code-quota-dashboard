@@ -208,9 +208,19 @@
     "title": "Quota history",
     "weeklyTitle": "Weekly quota history",
     "monthlyTitle": "Monthly quota history",
-    "description": "Remaining quota, recorded at most once per hour",
+    "description": "Remaining quota, keeping the latest successful sample each hour",
     "empty": "History will appear after the next refresh",
+    "emptyWithSyncFailures": "Recent sync-affected hours: {{count}}; no successful samples yet",
     "chartLabel": "{{title}} line chart",
+    "chartSummary": "{{series}} series with {{points}} samples. Vertical dashed lines mark hours with sync failures.",
+    "seriesSummary": "{{series}}, {{value}}% remaining, {{count}} samples",
+    "failedSyncHours": "Sync-affected hours: {{count}}",
+    "syncFailurePoint": "{{time}}: {{failures}} of {{attempts}} sync attempts failed",
+    "syncAuditLabel": "Sync failure details",
+    "dataTableCaption": "{{title}} data",
+    "seriesColumn": "Quota series",
+    "timeColumn": "Time",
+    "remainingColumn": "Remaining quota",
     "pointLabel": "{{series}}: {{value}}% remaining at {{time}}"
   },
   "antigravity": {
@@ -258,6 +268,10 @@
   "opencodeGo": {
     "title": "Opencode Go",
     "noQuotaData": "No Opencode Go usage data available",
+    "reauthorization": {
+      "action": "Sign in again",
+      "expired": "The Opencode Go session expired. Sign in again to resume quota updates."
+    },
     "quotaTypes": {
       "rolling": "5-hour quota",
       "weekly": "Weekly quota",

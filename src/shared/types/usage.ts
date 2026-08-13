@@ -218,9 +218,24 @@ export interface QuotaHistoryPoint {
   resetAt?: number
 }
 
+export interface QuotaSyncAuditPoint {
+  sampledAt: number
+  lastAttemptAt: number
+  attempts: number
+  successes: number
+  failures: number
+  lastSuccess: boolean
+}
+
+export interface QuotaSyncAudit {
+  provider: QuotaSyncAuditPoint[]
+  account: QuotaSyncAuditPoint[]
+}
+
 export interface QuotaHistory {
   weekly: QuotaHistoryPoint[]
   monthly: QuotaHistoryPoint[]
+  audit: QuotaSyncAudit
 }
 
 export interface CachedAccountUsage {

@@ -4,11 +4,13 @@ import { StorageService } from '../services/storage'
 import { TrayService } from '../services/tray'
 import { UsageDataService } from '../services/usage-data'
 import type { OllamaCloudAccount, OllamaCloudAccountUsage, OllamaCloudUsage } from '@shared/types'
+import { singleFlight } from './utils/singleFlight'
 
 const ollamaCloudService = new OllamaCloudService()
 const storageService = new StorageService()
 
-export async function fetchAllOllamaCloudUsage(): Promise<OllamaCloudAccountUsage[]> {
+async function fetchAllOllamaCloudUsageInner(): Promise<OllamaCloudAccountUsage[]> {
+  const startedAt = Date.now()
   try {
     const accounts = await storageService.getAccounts('ollamaCloud') as OllamaCloudAccount[]
     const results = await Promise.all(accounts.map(async (account): Promise<OllamaCloudAccountUsage> => {
@@ -30,21 +32,29 @@ export async function fetchAllOllamaCloudUsage(): Promise<OllamaCloudAccountUsag
       }
     }))
 
-    UsageDataService.getInstance().recordProvider('ollamaCloud', results)
-    const trayData = results
-      .filter((result): result is OllamaCloudAccountUsage & { usage: OllamaCloudUsage } => result.usage !== null)
-      .map(result => ({
-        name: result.name,
-        percent: Math.round(Math.min(...result.usage.limits.map(limit => limit.remaining)))
-      }))
-    TrayService.getInstance().triggerUpdate({ ollamaCloud: trayData })
+    const activeResults = UsageDataService.getInstance()
+      .recordProvider('ollamaCloud', results, Date.now(), startedAt)
+    try {
+      const trayData = activeResults
+        .filter((result): result is OllamaCloudAccountUsage & { usage: OllamaCloudUsage } => result.usage !== null)
+        .map(result => ({
+          name: result.name,
+          percent: Math.round(Math.min(...result.usage.limits.map(limit => limit.remaining)))
+        }))
+      TrayService.getInstance().triggerUpdate({ ollamaCloud: trayData })
+    } catch (error) {
+      console.error('[Ollama Cloud] Failed to update tray:', error)
+    }
 
-    return results
+    return activeResults
   } catch (error) {
     console.error('[Ollama Cloud] fetch-all-usage error:', error)
+    UsageDataService.getInstance().recordProviderFailure('ollamaCloud', Date.now(), startedAt)
     return []
   }
 }
+
+export const fetchAllOllamaCloudUsage = singleFlight(fetchAllOllamaCloudUsageInner)
 
 export function registerOllamaCloudHandlers(): void {
   ipcMain.handle('ollama-cloud:login', async () => {

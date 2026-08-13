@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { RefreshCw, Trash2, Edit2, Eye, EyeOff, Info, Settings2 } from 'lucide-react'
+import { AlertTriangle, RefreshCw, Trash2, Edit2, Eye, EyeOff, Info, Settings2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { UsageCard } from '@/components/common/UsageCard'
@@ -18,6 +18,7 @@ import { useCodexStore } from '@/stores/useCodexStore'
 import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
 import { useOllamaCloudStore } from '@/stores/useOllamaCloudStore'
 import { useAiStudioStore } from '@/stores/useAiStudioStore'
+import { useErrorStore } from '@/stores/useErrorStore'
 import { useCustomization } from '@/contexts/CustomizationContext'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
 import { getQuotaGridClassName } from '@/constants/customization'
@@ -29,9 +30,11 @@ import type {
   AiStudioUsage,
   QuotaHistory,
   QuotaHistoryPeriod,
+  QuotaSyncAuditPoint,
   ZaiLimit,
   ZaiUsage
 } from '@shared/types'
+import { ErrorCode } from '@shared/types'
 import { getAntigravityQuotaType } from '@shared/antigravityQuota'
 import { getZaiCardId, getZaiQuotaType } from '@shared/zaiQuota'
 import { getCodexWindowLabel } from '@/lib/codexQuota'
@@ -46,6 +49,24 @@ const HISTORY_PERIODS: Partial<Record<ProviderId, QuotaHistoryPeriod[]>> = {
   ollamaCloud: ['weekly']
 }
 
+function emptyHistory(): QuotaHistory {
+  return { weekly: [], monthly: [], audit: { provider: [], account: [] } }
+}
+
+function mergeAuditPoints(
+  providerPoints: QuotaSyncAuditPoint[],
+  accountPoints: QuotaSyncAuditPoint[]
+): QuotaSyncAuditPoint[] {
+  const points = new Map(providerPoints.map(point => [point.sampledAt, point]))
+  for (const point of accountPoints) {
+    const providerPoint = points.get(point.sampledAt)
+    if (!providerPoint || point.lastAttemptAt >= providerPoint.lastAttemptAt) {
+      points.set(point.sampledAt, point)
+    }
+  }
+  return Array.from(points.values()).sort((left, right) => left.sampledAt - right.sampledAt)
+}
+
 export function ProviderAccount() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -53,7 +74,17 @@ export function ProviderAccount() {
   
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showTierDialog, setShowTierDialog] = useState(false)
-  const [history, setHistory] = useState<QuotaHistory>({ weekly: [], monthly: [] })
+  const historyIdentity = `${providerId ?? ''}:${accountId ?? ''}`
+  const [historyState, setHistoryState] = useState<{
+    identity: string
+    value: QuotaHistory
+  }>({ identity: '', value: emptyHistory() })
+  const history = historyState.identity === historyIdentity
+    ? historyState.value
+    : emptyHistory()
+  const historyReadFailed = useRef(false)
+  const [historyReadError, setHistoryReadError] = useState(false)
+  const [historyRetry, setHistoryRetry] = useState(0)
   
   // Stores
   const { 
@@ -102,6 +133,7 @@ export function ProviderAccount() {
     isLoading: opencodeGoLoading,
     fetchAccounts: fetchOpencodeGoAccounts,
     fetchUsage: fetchOpencodeGoUsage,
+    login: loginOpencodeGo,
     deleteAccount: deleteOpencodeGoAccount,
     updateAccount: updateOpencodeGoAccount
   } = useOpencodeGoStore()
@@ -183,9 +215,14 @@ export function ProviderAccount() {
   }, [aiStudioTier])
 
   useEffect(() => {
+    setHistoryState({ identity: historyIdentity, value: emptyHistory() })
+    historyReadFailed.current = false
+    setHistoryReadError(false)
+  }, [historyIdentity])
+
+  useEffect(() => {
     const periods = HISTORY_PERIODS[providerId as ProviderId]
     if (!providerId || !accountId || !periods) {
-      setHistory({ weekly: [], monthly: [] })
       return
     }
 
@@ -193,23 +230,41 @@ export function ProviderAccount() {
     void window.api.storage
       .getQuotaHistory(providerId as ProviderId, accountId)
       .then(value => {
-        if (!cancelled) setHistory(value)
+        if (!cancelled) {
+          setHistoryState({ identity: historyIdentity, value })
+          historyReadFailed.current = false
+          setHistoryReadError(false)
+        }
       })
-      .catch(() => {
-        if (!cancelled) setHistory({ weekly: [], monthly: [] })
+      .catch(error => {
+        if (!cancelled) {
+          setHistoryReadError(true)
+          if (!historyReadFailed.current) {
+            historyReadFailed.current = true
+            useErrorStore.getState().showError(
+              ErrorCode.STORAGE_READ_FAILED,
+              t('errors.storage.readFailed'),
+              { details: String(error) }
+            )
+          }
+        }
       })
     return () => {
       cancelled = true
     }
-  }, [providerId, accountId, usage])
+  }, [providerId, accountId, historyIdentity, usage, historyRetry, t])
 
   const fallbackCardVisibility = (account as any)?.showInOverview ?? true
   const currentCardIds = useMemo(() => {
     if (!providerId || !accountId) return []
     return getAccountCardIds(providerId as ProviderId, accountId, usage?.usage, global.hideUnlimitedQuota)
   }, [providerId, accountId, usage?.usage, global.hideUnlimitedQuota])
+  const historyAuditPoints = mergeAuditPoints(history.audit.provider, history.audit.account)
+  const hasSyncFailures = historyAuditPoints.some(point => point.failures > 0)
   const historyPeriods = (HISTORY_PERIODS[providerId as ProviderId] ?? [])
-    .filter(period => providerId !== 'codex' || history[period].length > 0)
+    .filter(period => providerId !== 'codex'
+      || history[period].length > 0
+      || (period === 'weekly' && hasSyncFailures))
 
   useEffect(() => {
     if (!isLoaded || !provider || !providerId || !accountId) return
@@ -603,20 +658,32 @@ export function ProviderAccount() {
   const renderErrorCard = () => {
     if (!usage?.error || usage?.usage) return null
 
-    const requiresReauthorization = providerId === 'aiStudio' &&
+    const requiresAiStudioReauthorization = providerId === 'aiStudio' &&
       isGoogleOAuthReauthorizationRequired(usage.error)
+    const requiresOpencodeReauthorization = providerId === 'opencodeGo' &&
+      /session expired|401|unauthorized/i.test(usage.error)
+    const requiresReauthorization = requiresAiStudioReauthorization || requiresOpencodeReauthorization
     return (
       <ErrorCard
         title={provider?.name || ''}
         subtitle={displayName}
-        errorMessage={requiresReauthorization
+        errorMessage={requiresAiStudioReauthorization
           ? t('aiStudio.reauthorization.expired')
-          : usage.error}
-        actionLabel={requiresReauthorization ? t('aiStudio.reauthorization.action') : undefined}
-        isActionPending={requiresReauthorization && aiStudioLoading}
-        onAction={requiresReauthorization
+          : requiresOpencodeReauthorization
+            ? t('opencodeGo.reauthorization.expired')
+            : usage.error}
+        actionLabel={requiresAiStudioReauthorization
+          ? t('aiStudio.reauthorization.action')
+          : requiresOpencodeReauthorization
+            ? t('opencodeGo.reauthorization.action')
+            : undefined}
+        isActionPending={(requiresAiStudioReauthorization && aiStudioLoading)
+          || (requiresOpencodeReauthorization && opencodeGoLoading)}
+        onAction={requiresAiStudioReauthorization
           ? () => void reauthorizeAiStudioAccount(accountId!)
-          : undefined}
+          : requiresOpencodeReauthorization
+            ? () => void loginOpencodeGo()
+            : undefined}
         onRetry={requiresReauthorization ? undefined : handleRefresh}
       />
     )
@@ -717,21 +784,46 @@ export function ProviderAccount() {
         </section>
       )}
 
-      {historyPeriods.length > 0 && (
+      {(historyPeriods.length > 0 || historyReadError) && (
         <section aria-labelledby="provider-history-title">
           <h2 id="provider-history-title" className="mb-3 text-xl font-semibold leading-[26px]">
             {t('history.title')}
           </h2>
+          {historyReadError && (
+            <div
+              role="alert"
+              className="mb-4 flex min-h-11 items-center gap-3 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+            >
+              <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
+              <span className="flex-1">{t('errors.storage.readFailed')}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-destructive shadow-none"
+                onClick={() => {
+                  historyReadFailed.current = false
+                  setHistoryRetry(value => value + 1)
+                }}
+              >
+                <RefreshCw className="size-4" aria-hidden="true" />
+                {t('common.retry')}
+              </Button>
+            </div>
+          )}
+          {historyPeriods.length > 0 && (
           <div className={`grid gap-4 ${historyPeriods.length > 1 ? 'xl:grid-cols-2' : ''}`}>
             {historyPeriods.map(period => (
               <QuotaHistoryChart
-                key={period}
+                key={`${accountId}:${period}`}
                 providerId={providerId as ProviderId}
                 period={period}
                 points={history[period]}
+                auditPoints={historyAuditPoints}
               />
             ))}
           </div>
+          )}
         </section>
       )}
       

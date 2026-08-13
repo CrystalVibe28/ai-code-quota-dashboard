@@ -181,18 +181,6 @@ export class OpencodeGoService {
     })
   }
 
-  async refreshCookies(_account: OpencodeGoAccount): Promise<Pick<OpencodeGoAccount, 'cookieHeader' | 'expiresAt'> | null> {
-    const cookieData = await this.getCookieData()
-    if (!cookieData.hasAuthCookie) {
-      return null
-    }
-
-    return {
-      cookieHeader: cookieData.cookieHeader,
-      expiresAt: cookieData.expiresAt
-    }
-  }
-
   async fetchUsage(account: Pick<OpencodeGoAccount, 'cookieHeader' | 'workspaceId' | 'workspaceName'>): Promise<OpencodeGoUsage> {
     let response = await this.requestUsage(account.cookieHeader, account.workspaceId, this.serverId)
     let rawUsage = response.ok ? this.parseUsage(response.text) : null

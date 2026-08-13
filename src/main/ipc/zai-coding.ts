@@ -4,11 +4,13 @@ import { StorageService } from '../services/storage'
 import { TrayService } from '../services/tray'
 import { UsageDataService } from '../services/usage-data'
 import type { ZaiCodingAccount, ZaiAccountUsage } from '@shared/types'
+import { singleFlight } from './utils/singleFlight'
 
 const zaiCodingService = new ZaiCodingService()
 const storageService = new StorageService()
 
-export async function fetchAllZaiCodingUsage(): Promise<ZaiAccountUsage[]> {
+async function fetchAllZaiCodingUsageInner(): Promise<ZaiAccountUsage[]> {
+  const startedAt = Date.now()
   try {
     const accounts = await storageService.getAccounts('zaiCoding') as ZaiCodingAccount[]
     const results = await Promise.all(
@@ -23,18 +25,26 @@ export async function fetchAllZaiCodingUsage(): Promise<ZaiAccountUsage[]> {
       })
     )
 
-    UsageDataService.getInstance().recordProvider('zaiCoding', results)
-    const trayData = results
-      .filter(r => r.usage !== null)
-      .map(r => ({ name: r.name, percent: 0 }))
-    TrayService.getInstance().triggerUpdate({ zaiCoding: trayData })
+    const activeResults = UsageDataService.getInstance()
+      .recordProvider('zaiCoding', results, Date.now(), startedAt)
+    try {
+      const trayData = activeResults
+        .filter(r => r.usage !== null)
+        .map(r => ({ name: r.name, percent: 0 }))
+      TrayService.getInstance().triggerUpdate({ zaiCoding: trayData })
+    } catch (error) {
+      console.error('[Zai Coding Plan] Failed to update tray:', error)
+    }
 
-    return results
+    return activeResults
   } catch (error) {
     console.error('[Zai Coding Plan IPC] Failed to fetch all usage:', error)
+    UsageDataService.getInstance().recordProviderFailure('zaiCoding', Date.now(), startedAt)
     return []
   }
 }
+
+export const fetchAllZaiCodingUsage = singleFlight(fetchAllZaiCodingUsageInner)
 
 export function registerZaiCodingHandlers(): void {
   ipcMain.handle('zai-coding:validate-api-key', async (_, apiKey: string) => {

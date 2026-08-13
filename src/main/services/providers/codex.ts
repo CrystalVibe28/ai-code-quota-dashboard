@@ -271,7 +271,7 @@ export class CodexService {
       code_verifier: codeVerifier
     })
 
-    const response = await fetch(TOKEN_URL, {
+    const response = await fetchWithTimeout(TOKEN_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString()
@@ -300,7 +300,7 @@ export class CodexService {
         client_id: CLIENT_ID
       })
 
-      const response = await fetch(TOKEN_URL, {
+      const response = await fetchWithTimeout(TOKEN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: body.toString()

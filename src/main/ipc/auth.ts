@@ -100,12 +100,15 @@ export function registerAuthHandlers(onStorageStateChanged?: () => Promise<void>
   })
 
   ipcMain.handle('auth:clear-all-data', async (event) => {
+    const usageData = UsageDataService.getInstance()
+    usageData.invalidateAll()
     await Promise.all([
       clearSessionData(event.sender.session),
       ...PROVIDER_AUTH_PARTITIONS.map(partition => clearSessionData(session.fromPartition(partition)))
     ])
     storageService.clearAllData()
-    UsageDataService.getInstance().clearMemoryCache()
+    // Reject refreshes that started while session/storage cleanup was running.
+    usageData.invalidateAll()
     await onStorageStateChanged?.()
   })
 

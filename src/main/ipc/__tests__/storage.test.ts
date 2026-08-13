@@ -11,8 +11,12 @@ const mocks = vi.hoisted(() => {
     handlers,
     providerSession,
     deleteAccount: vi.fn().mockResolvedValue(true),
-    deleteHistory: vi.fn(),
-    getHistory: vi.fn().mockReturnValue({ weekly: [], monthly: [] }),
+    deleteHistory: vi.fn().mockReturnValue(true),
+    getHistory: vi.fn().mockReturnValue({
+      weekly: [],
+      monthly: [],
+      audit: { provider: [], account: [] }
+    }),
     handle: vi.fn((channel: string, handler: (...args: any[]) => any) => {
       handlers.set(channel, handler)
     }),
@@ -92,6 +96,23 @@ describe('storage:delete-account', () => {
 
     expect(mocks.fromPartition).toHaveBeenCalledWith('persist:ollama-cloud-auth')
     expect(mocks.deleteAccount).toHaveBeenCalledWith('ollamaCloud', 'account-id')
+  })
+
+  it('should reject an empty account id before clearing or deleting data', async () => {
+    const handler = mocks.handlers.get('storage:delete-account')
+
+    await expect(handler?.({}, 'opencodeGo', '')).resolves.toBe(false)
+
+    expect(mocks.fromPartition).not.toHaveBeenCalled()
+    expect(mocks.deleteAccount).not.toHaveBeenCalled()
+    expect(mocks.deleteHistory).not.toHaveBeenCalled()
+  })
+
+  it('should report a history cleanup failure', async () => {
+    const handler = mocks.handlers.get('storage:delete-account')
+    mocks.deleteHistory.mockReturnValueOnce(false)
+
+    await expect(handler?.({}, 'codex', 'account-id')).resolves.toBe(false)
   })
 
   it('should return quota history without calling a provider', async () => {

@@ -66,12 +66,7 @@ export function getAutoLaunch(): boolean {
 
   if (process.platform === 'win32') {
     const settings = app.getLoginItemSettings(WINDOWS_LOGIN_ITEM)
-    const loginItem = settings.launchItems.find(item =>
-      item.path.toLowerCase() === WINDOWS_LOGIN_ITEM.path.toLowerCase() &&
-      item.args.length === WINDOWS_LOGIN_ITEM.args.length &&
-      item.args.every((arg, index) => arg === WINDOWS_LOGIN_ITEM.args[index])
-    )
-    return settings.openAtLogin && loginItem?.enabled === true
+    return settings.openAtLogin && settings.executableWillLaunchAtLogin
   }
 
   if (process.platform === 'darwin') return app.getLoginItemSettings().openAtLogin

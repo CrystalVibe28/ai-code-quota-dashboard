@@ -208,9 +208,19 @@
     "title": "配額歷史",
     "weeklyTitle": "每週配額歷史",
     "monthlyTitle": "每月配額歷史",
-    "description": "剩餘配額，每小時最多記錄一次",
+    "description": "剩餘配額，每小時保留最新成功紀錄",
     "empty": "下次重新整理後會開始顯示歷史",
+    "emptyWithSyncFailures": "尚無成功紀錄；最近有 {{count}} 個時段同步失敗",
     "chartLabel": "{{title}}折線圖",
+    "chartSummary": "{{series}} 個序列，共 {{points}} 筆紀錄；垂直虛線表示該時段曾同步失敗。",
+    "seriesSummary": "{{series}}，目前剩餘 {{value}}%，共 {{count}} 筆",
+    "failedSyncHours": "{{count}} 個時段曾同步失敗",
+    "syncFailurePoint": "{{time}}：{{attempts}} 次同步中有 {{failures}} 次失敗",
+    "syncAuditLabel": "同步失敗明細",
+    "dataTableCaption": "{{title}}資料",
+    "seriesColumn": "配額序列",
+    "timeColumn": "時間",
+    "remainingColumn": "剩餘配額",
     "pointLabel": "{{series}}：{{time}} 剩餘 {{value}}%"
   },
   "antigravity": {
@@ -258,6 +268,10 @@
   "opencodeGo": {
     "title": "Opencode Go",
     "noQuotaData": "沒有可用的 Opencode Go 使用量資料",
+    "reauthorization": {
+      "action": "重新登入",
+      "expired": "Opencode Go 工作階段已過期。請重新登入以恢復配額更新。"
+    },
     "quotaTypes": {
       "rolling": "5 小時配額",
       "weekly": "每週配額",

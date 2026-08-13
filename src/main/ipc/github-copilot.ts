@@ -4,11 +4,13 @@ import { StorageService } from '../services/storage'
 import { TrayService } from '../services/tray'
 import { UsageDataService } from '../services/usage-data'
 import type { GithubCopilotAccount, GithubCopilotAccountUsage } from '@shared/types'
+import { singleFlight } from './utils/singleFlight'
 
 const githubCopilotService = new GithubCopilotService()
 const storageService = new StorageService()
 
-export async function fetchAllGithubCopilotUsage(): Promise<GithubCopilotAccountUsage[]> {
+async function fetchAllGithubCopilotUsageInner(): Promise<GithubCopilotAccountUsage[]> {
+  const startedAt = Date.now()
   try {
     const accounts = await storageService.getAccounts('githubCopilot') as GithubCopilotAccount[]
 
@@ -24,18 +26,26 @@ export async function fetchAllGithubCopilotUsage(): Promise<GithubCopilotAccount
       })
     )
 
-    UsageDataService.getInstance().recordProvider('githubCopilot', results)
-    const trayData = results
-      .filter(r => r.usage !== null)
-      .map(r => ({ name: r.name, percent: 0 }))
-    TrayService.getInstance().triggerUpdate({ githubCopilot: trayData })
+    const activeResults = UsageDataService.getInstance()
+      .recordProvider('githubCopilot', results, Date.now(), startedAt)
+    try {
+      const trayData = activeResults
+        .filter(r => r.usage !== null)
+        .map(r => ({ name: r.name, percent: 0 }))
+      TrayService.getInstance().triggerUpdate({ githubCopilot: trayData })
+    } catch (error) {
+      console.error('[GitHub Copilot] Failed to update tray:', error)
+    }
 
-    return results
+    return activeResults
   } catch (error) {
     console.error('[GitHub Copilot IPC] Failed to fetch all usage:', error)
+    UsageDataService.getInstance().recordProviderFailure('githubCopilot', Date.now(), startedAt)
     return []
   }
 }
+
+export const fetchAllGithubCopilotUsage = singleFlight(fetchAllGithubCopilotUsageInner)
 
 export function registerGithubCopilotHandlers(): void {
   ipcMain.handle('github-copilot:login', async () => {

@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { mkdtempSync, rmSync } from 'fs'
+import { existsSync, mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { DatabaseSync } from 'node:sqlite'
 
 vi.mock('electron', () => ({ app: { getPath: vi.fn(() => '') } }))
 
@@ -106,7 +107,7 @@ describe('UsageDataService', () => {
     ])
   })
 
-  it('deduplicates unchanged values and limits each series to one sample per hour', () => {
+  it('stores one sample per hour and keeps the last value within that hour', () => {
     const usage = (remainingFraction: number) => [{
       accountId: 'anti',
       name: 'Anti',
@@ -119,11 +120,61 @@ describe('UsageDataService', () => {
 
     service.recordProvider('antigravity', usage(0.8), now)
     service.recordProvider('antigravity', usage(0.7), now + 1000)
-    service.recordProvider('antigravity', usage(0.8), now + 3600000)
-    service.recordProvider('antigravity', usage(0.7), now + 7200000)
+    service.recordProvider('antigravity', usage(0.7), now + 3600000)
+    service.recordProvider('antigravity', usage(0.6), now + 3601000)
+    service.recordProvider('antigravity', usage(0.6), now + 7200000)
 
     expect(service.getQuotaHistory('antigravity', 'anti', now + 7200000).weekly)
-      .toMatchObject([{ remaining: 80 }, { remaining: 70 }])
+      .toMatchObject([{ remaining: 70 }, { remaining: 60 }, { remaining: 60 }])
+  })
+
+  it('audits provider and account attempts without persisting error details', () => {
+    const success = {
+      accountId: 'success',
+      name: 'Success',
+      usage: [{ modelName: 'Gemini weekly', remainingFraction: 0.8 }]
+    }
+    const failure = {
+      accountId: 'failure',
+      name: 'Failure',
+      usage: null,
+      error: 'private upstream response'
+    }
+
+    service.recordProvider('antigravity', [success, failure], now)
+    service.recordProvider('antigravity', [success], now + 1000)
+    service.recordProviderFailure('antigravity', now + 2000)
+    service.recordProvider('antigravity', [success], now + 3600000)
+
+    const successHistory = service.getQuotaHistory('antigravity', 'success', now + 3600000)
+    expect(successHistory.audit.provider).toMatchObject([
+      { attempts: 3, successes: 1, failures: 2, lastSuccess: false },
+      { attempts: 1, successes: 1, failures: 0, lastSuccess: true }
+    ])
+    expect(successHistory.audit.account).toMatchObject([
+      { attempts: 2, successes: 2, failures: 0, lastSuccess: true },
+      { attempts: 1, successes: 1, failures: 0, lastSuccess: true }
+    ])
+    expect(service.getQuotaHistory('antigravity', 'failure', now).audit.account)
+      .toMatchObject([{ attempts: 1, successes: 0, failures: 1, lastSuccess: false }])
+    expect(JSON.stringify(successHistory.audit)).not.toContain('private upstream response')
+  })
+
+  it('audits a successful provider response even when it has no history series', () => {
+    service.recordProvider('githubCopilot', [{
+      accountId: 'copilot',
+      name: 'Copilot',
+      usage: { quotaSnapshots: {} }
+    }], now)
+
+    expect(service.getQuotaHistory('githubCopilot', 'copilot', now)).toMatchObject({
+      weekly: [],
+      monthly: [],
+      audit: {
+        provider: [{ lastSuccess: true }],
+        account: [{ lastSuccess: true }]
+      }
+    })
   })
 
   it('deletes an account history without affecting another account', () => {
@@ -138,7 +189,56 @@ describe('UsageDataService', () => {
     service.deleteAccount('antigravity', 'first')
 
     expect(service.getQuotaHistory('antigravity', 'first', now).weekly).toEqual([])
+    expect(service.getQuotaHistory('antigravity', 'first', now).audit.account).toEqual([])
     expect(service.getQuotaHistory('antigravity', 'second', now).weekly).toHaveLength(1)
+    expect(service.getQuotaHistory('antigravity', 'second', now).audit.account).toHaveLength(1)
+  })
+
+  it('does not let an in-flight refresh recreate a deleted account', () => {
+    const result = [{
+      accountId: 'deleted',
+      name: 'Deleted',
+      usage: [{ modelName: 'Gemini weekly', remainingFraction: 0.8 }]
+    }]
+    const startedAt = Date.now() - 1000
+    service.recordProvider('antigravity', result, now, startedAt)
+
+    expect(service.deleteAccount('antigravity', 'deleted')).toBe(true)
+    expect(service.recordProvider('antigravity', result, now + 1000, startedAt)).toEqual([])
+    expect(service.getQuotaHistory('antigravity', 'deleted', now + 1000)).toMatchObject({
+      weekly: [],
+      audit: { account: [] }
+    })
+  })
+
+  it('ignores refreshes that started before all data was invalidated', () => {
+    const result = [{
+      accountId: 'old',
+      name: 'Old',
+      usage: [{ modelName: 'Gemini weekly', remainingFraction: 0.8 }]
+    }]
+    const startedAt = Date.now() - 1000
+
+    service.invalidateAll()
+
+    expect(service.recordProvider('antigravity', result, now, startedAt)).toEqual([])
+    service.recordProviderFailure('antigravity', now, startedAt)
+    expect(service.getCachedUsage().providers.antigravity).toEqual([])
+    expect(existsSync(join(directory, 'usage-history.db'))).toBe(false)
+  })
+
+  it('propagates a SQLite write failure instead of publishing an unpersisted result', () => {
+    const broken = new UsageDataService(directory)
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    expect(() => broken.recordProvider('antigravity', [{
+      accountId: 'account',
+      name: 'Account',
+      usage: [{ modelName: 'Gemini weekly', remainingFraction: 0.8 }]
+    }], now)).toThrow()
+    expect(broken.getCachedUsage().providers.antigravity).toEqual([])
+
+    consoleError.mockRestore()
   })
 
   it('persists a credential-free local cache and skips identical rewrites', () => {
@@ -166,5 +266,43 @@ describe('UsageDataService', () => {
     expect(JSON.stringify(service.getCachedUsage())).not.toContain('private@example.com')
     expect(new UsageDataService(join(directory, 'usage-history.db')).getCachedUsage().updatedAt)
       .toBe(now)
+  })
+
+  it('adds sync auditing to an existing history database without changing old rows', () => {
+    const databasePath = join(directory, 'legacy.db')
+    const database = new DatabaseSync(databasePath)
+    database.exec(`
+      CREATE TABLE quota_history (
+        provider TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        period TEXT NOT NULL,
+        series_key TEXT NOT NULL,
+        sample_hour INTEGER NOT NULL,
+        remaining_bps INTEGER NOT NULL,
+        reset_at INTEGER,
+        PRIMARY KEY (provider, account_id, period, series_key, sample_hour)
+      ) WITHOUT ROWID;
+      CREATE TABLE usage_cache (
+        provider TEXT PRIMARY KEY,
+        updated_at INTEGER NOT NULL,
+        payload TEXT NOT NULL
+      ) WITHOUT ROWID;
+    `)
+    database.prepare(`
+      INSERT INTO quota_history VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run('antigravity', 'legacy', 'weekly', 'geminiWeekly', now / 3600000, 8000, null)
+    database.close()
+
+    const migrated = new UsageDataService(databasePath)
+    migrated.recordProvider('antigravity', [{
+      accountId: 'legacy',
+      name: 'Legacy',
+      usage: [{ modelName: 'Gemini weekly', remainingFraction: 0.8 }]
+    }], now + 3600000)
+
+    expect(migrated.getQuotaHistory('antigravity', 'legacy', now + 3600000)).toMatchObject({
+      weekly: [{ remaining: 80 }, { remaining: 80 }],
+      audit: { account: [{ lastSuccess: true }] }
+    })
   })
 })

@@ -137,4 +137,60 @@ describe('AntigravityService.fetchUsage', () => {
       }
     ])
   })
+
+  it('merges partial quota summaries from both endpoints', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({
+        groups: [{
+          buckets: [{ bucketId: 'gemini-5h', remainingFraction: 0.9 }]
+        }]
+      }))
+      .mockResolvedValueOnce(jsonResponse({
+        groups: [{
+          buckets: [{ bucketId: 'gemini-weekly', remainingFraction: 0.8 }]
+        }]
+      }))
+
+    const usage = await new AntigravityService().fetchUsage({
+      accessToken: 'access-token',
+      projectId: 'project-id'
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(usage).toMatchObject([
+      { modelName: 'Gemini 5-hour', remainingFraction: 0.9 },
+      { modelName: 'Gemini weekly', remainingFraction: 0.8 }
+    ])
+  })
+
+  it('does not replace an authoritative daily bucket with a fallback value', async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({
+        groups: [{
+          buckets: [{
+            bucketId: 'gemini-weekly',
+            remainingFraction: 0.9,
+            resetTime: '2026-06-19T08:45:39Z'
+          }]
+        }]
+      }))
+      .mockResolvedValueOnce(jsonResponse({
+        groups: [{
+          buckets: [{
+            bucketId: 'gemini-weekly',
+            remainingFraction: 0.2,
+            resetTime: '2026-06-20T08:45:39Z'
+          }]
+        }]
+      }))
+
+    await expect(new AntigravityService().fetchUsage({
+      accessToken: 'access-token',
+      projectId: 'project-id'
+    })).resolves.toMatchObject([{
+      modelName: 'Gemini weekly',
+      remainingFraction: 0.9,
+      resetTime: '2026-06-19T08:45:39Z'
+    }])
+  })
 })

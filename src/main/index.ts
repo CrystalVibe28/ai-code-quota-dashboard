@@ -307,6 +307,7 @@ async function startBackgroundRefresh(): Promise<void> {
     }
 
     refreshTimer = setInterval(performBackgroundRefresh, intervalMs)
+    void performBackgroundRefresh()
   } catch (error) {
     console.error('[Auto Refresh] Failed to start refresh timer:', error)
   }

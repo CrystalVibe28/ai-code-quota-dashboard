@@ -3,6 +3,7 @@ import type { AiStudioAccount, AiStudioAccountUsage } from '@shared/types'
 import { AiStudioService } from '../services/providers/ai-studio'
 import { StorageService } from '../services/storage'
 import { UsageDataService } from '../services/usage-data'
+import { singleFlight } from './utils/singleFlight'
 
 const storageService = new StorageService()
 const REFRESH_THRESHOLD_MS = 5 * 60 * 1000
@@ -34,7 +35,8 @@ async function fetchAccountUsage(account: AiStudioAccount, service: AiStudioServ
   return usage
 }
 
-export async function fetchAllAiStudioUsage(): Promise<AiStudioAccountUsage[]> {
+async function fetchAllAiStudioUsageInner(): Promise<AiStudioAccountUsage[]> {
+  const startedAt = Date.now()
   try {
     const accounts = await storageService.getAccounts('aiStudio') as AiStudioAccount[]
     const service = createAiStudioService()
@@ -46,13 +48,16 @@ export async function fetchAllAiStudioUsage(): Promise<AiStudioAccountUsage[]> {
         return { accountId: account.id, name: account.displayName, usage: null, error: String(error) }
       }
     }))
-    UsageDataService.getInstance().recordProvider('aiStudio', results)
-    return results
+    return UsageDataService.getInstance()
+      .recordProvider('aiStudio', results, Date.now(), startedAt)
   } catch (error) {
     console.error('[AI Studio] fetch-all-usage error:', error)
+    UsageDataService.getInstance().recordProviderFailure('aiStudio', Date.now(), startedAt)
     return []
   }
 }
+
+export const fetchAllAiStudioUsage = singleFlight(fetchAllAiStudioUsageInner)
 
 export function registerAiStudioHandlers(): void {
   ipcMain.handle('ai-studio:has-oauth-credentials', () => storageService.hasAiStudioOAuthCredentials())

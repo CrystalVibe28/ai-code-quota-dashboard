@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => {
     rendererSession,
     providerSession,
     clearAllData: vi.fn(),
-    clearMemoryCache: vi.fn(),
+    invalidateAll: vi.fn(),
     verifyPassword: vi.fn(),
     changePassword: vi.fn(),
     beginPasswordChange: vi.fn(),
@@ -70,7 +70,7 @@ vi.mock('../../services/providers/opencode-go', () => ({
 
 vi.mock('../../services/usage-data', () => ({
   UsageDataService: {
-    getInstance: () => ({ clearMemoryCache: mocks.clearMemoryCache })
+    getInstance: () => ({ invalidateAll: mocks.invalidateAll })
   }
 }))
 
@@ -94,7 +94,7 @@ describe('auth:clear-all-data', () => {
     await handler?.({ sender: { session: mocks.rendererSession } })
 
     expect(mocks.clearAllData).toHaveBeenCalledTimes(1)
-    expect(mocks.clearMemoryCache).toHaveBeenCalledTimes(1)
+    expect(mocks.invalidateAll).toHaveBeenCalledTimes(2)
     expect(mocks.fromPartition).toHaveBeenCalledWith('persist:opencode-go-auth')
     expect(mocks.fromPartition).toHaveBeenCalledWith('persist:ollama-cloud-auth')
     expect(mocks.rendererSession.clearStorageData).toHaveBeenCalledTimes(1)

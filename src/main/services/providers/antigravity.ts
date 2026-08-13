@@ -19,6 +19,7 @@ const QUOTA_BUCKETS = [
 
 const QUOTA_BUCKET_LABELS = new Map<string, string>(QUOTA_BUCKETS.map(({ id, label }) => [id, label]))
 const QUOTA_BUCKET_ORDER = new Map<string, number>(QUOTA_BUCKETS.map(({ id }, index) => [id, index]))
+const QUOTA_LABEL_ORDER = new Map<string, number>(QUOTA_BUCKETS.map(({ label }, index) => [label, index]))
 
 interface LoginResult {
   success: boolean
@@ -139,7 +140,7 @@ export class AntigravityService {
   }
 
   private async getProjectId(accessToken: string): Promise<string> {
-    const response = await fetch(`${API_BASE}/v1internal:loadCodeAssist`, {
+    const response = await fetchWithTimeout(`${API_BASE}/v1internal:loadCodeAssist`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -169,16 +170,32 @@ export class AntigravityService {
       body
     }
 
+    const summaryQuotas = new Map<string, ModelQuota>()
     for (const baseUrl of [QUOTA_API_BASE, API_BASE]) {
       try {
         const response = await fetchWithTimeout(`${baseUrl}/v1internal:retrieveUserQuotaSummary`, summaryRequest)
         if (!response.ok) continue
 
         const quotas = parseQuotaSummary(await response.json())
-        if (quotas.length > 0) return quotas
+        for (const quota of quotas) {
+          // The daily endpoint is authoritative. The second endpoint only fills
+          // buckets that were missing from the first response.
+          if (!summaryQuotas.has(quota.modelName)) {
+            summaryQuotas.set(quota.modelName, quota)
+          }
+        }
+        if (QUOTA_BUCKETS.every(bucket => summaryQuotas.has(bucket.label))) break
       } catch {
         // Fall back to the legacy per-model quota response below.
       }
+    }
+
+    if (summaryQuotas.size > 0) {
+      return Array.from(summaryQuotas.values()).sort((left, right) => (
+        (QUOTA_LABEL_ORDER.get(left.modelName) ?? Number.MAX_SAFE_INTEGER)
+        - (QUOTA_LABEL_ORDER.get(right.modelName) ?? Number.MAX_SAFE_INTEGER)
+        || left.modelName.localeCompare(right.modelName)
+      ))
     }
 
     return this.fetchLegacyUsage(account, body)

@@ -63,6 +63,8 @@ export type {
   UsageSnapshot,
   QuotaHistoryPeriod,
   QuotaHistoryPoint,
+  QuotaSyncAuditPoint,
+  QuotaSyncAudit,
   QuotaHistory,
   CachedAccountUsage,
   LocalUsageCache,

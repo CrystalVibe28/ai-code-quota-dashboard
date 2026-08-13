@@ -4,12 +4,14 @@ import { StorageService } from '../services/storage'
 import { TrayService } from '../services/tray'
 import { UsageDataService } from '../services/usage-data'
 import type { AntigravityAccount, AntigravityUsage } from '@shared/types'
-import { withAutoRefresh } from './utils/withAutoRefresh'
+import { refreshAntigravityTokens, withAutoRefresh } from './utils/withAutoRefresh'
+import { singleFlight } from './utils/singleFlight'
 
 const antigravityService = new AntigravityService()
 const storageService = new StorageService()
 
-export async function fetchAllAntigravityUsage(): Promise<AntigravityUsage[]> {
+async function fetchAllAntigravityUsageInner(): Promise<AntigravityUsage[]> {
+  const startedAt = Date.now()
   try {
     const accounts = await storageService.getAccounts('antigravity') as AntigravityAccount[]
     const results = await Promise.all(
@@ -31,21 +33,29 @@ export async function fetchAllAntigravityUsage(): Promise<AntigravityUsage[]> {
       })
     )
 
-    UsageDataService.getInstance().recordProvider('antigravity', results)
-    const trayData = results
-      .filter(r => r.usage && r.usage.length > 0)
-      .map(r => ({
-        name: r.name,
-        percent: Math.round(Math.min(...r.usage!.map(quota => quota.remainingFraction)) * 100)
-      }))
-    TrayService.getInstance().triggerUpdate({ antigravity: trayData })
+    const activeResults = UsageDataService.getInstance()
+      .recordProvider('antigravity', results, Date.now(), startedAt)
+    try {
+      const trayData = activeResults
+        .filter(r => r.usage && r.usage.length > 0)
+        .map(r => ({
+          name: r.name,
+          percent: Math.round(Math.min(...r.usage!.map(quota => quota.remainingFraction)) * 100)
+        }))
+      TrayService.getInstance().triggerUpdate({ antigravity: trayData })
+    } catch (error) {
+      console.error('[Antigravity] Failed to update tray:', error)
+    }
 
-    return results
+    return activeResults
   } catch (error) {
     console.error('[Antigravity] fetch-all-usage error:', error)
+    UsageDataService.getInstance().recordProviderFailure('antigravity', Date.now(), startedAt)
     return []
   }
 }
+
+export const fetchAllAntigravityUsage = singleFlight(fetchAllAntigravityUsageInner)
 
 export function registerAntigravityHandlers(): void {
   ipcMain.handle('antigravity:login', async () => {
@@ -70,16 +80,7 @@ export function registerAntigravityHandlers(): void {
       const account = accounts.find(a => a.id === accountId)
       if (!account) return false
 
-      const newTokens = await antigravityService.refreshToken(account.refreshToken)
-      if (newTokens) {
-        await storageService.updateAccount('antigravity', accountId, {
-          accessToken: newTokens.accessToken,
-          refreshToken: newTokens.refreshToken,
-          expiresAt: newTokens.expiresAt
-        })
-        return true
-      }
-      return false
+      return Boolean(await refreshAntigravityTokens(account))
     } catch (error) {
       console.error('[Antigravity IPC] Failed to refresh token:', error)
       return false

@@ -32,6 +32,10 @@ export function registerStorageHandlers(onRemoteApiAccessChanged?: () => Promise
   })
 
   ipcMain.handle('storage:delete-account', async (_, provider: string, accountId: string) => {
+    if (typeof provider !== 'string' || typeof accountId !== 'string' || !accountId.trim()) {
+      return false
+    }
+
     const partition = AUTH_PARTITIONS[provider]
     if (partition) {
       const authSession = session.fromPartition(partition)
@@ -42,8 +46,8 @@ export function registerStorageHandlers(onRemoteApiAccessChanged?: () => Promise
     }
 
     const deleted = await storageService.deleteAccount(provider, accountId)
-    if (deleted) UsageDataService.getInstance().deleteAccount(provider as ProviderId, accountId)
-    return deleted
+    if (!deleted) return false
+    return UsageDataService.getInstance().deleteAccount(provider as ProviderId, accountId)
   })
 
   ipcMain.handle('storage:update-account', async (
@@ -61,7 +65,7 @@ export function registerStorageHandlers(onRemoteApiAccessChanged?: () => Promise
 
   ipcMain.handle('storage:get-quota-history', (_, provider: ProviderId, accountId: string) => {
     if (typeof provider !== 'string' || typeof accountId !== 'string' || !accountId) {
-      return { weekly: [], monthly: [] }
+      return { weekly: [], monthly: [], audit: { provider: [], account: [] } }
     }
     return UsageDataService.getInstance().getQuotaHistory(provider, accountId)
   })

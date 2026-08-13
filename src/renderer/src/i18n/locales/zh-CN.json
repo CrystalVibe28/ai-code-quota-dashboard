@@ -210,9 +210,19 @@
     "title": "配额历史",
     "weeklyTitle": "每周配额历史",
     "monthlyTitle": "每月配额历史",
-    "description": "剩余配额，每小时最多记录一次",
+    "description": "剩余配额，每小时保留最新成功记录",
     "empty": "下次刷新后会开始显示历史",
+    "emptyWithSyncFailures": "尚无成功记录；最近有 {{count}} 个时段同步失败",
     "chartLabel": "{{title}}折线图",
+    "chartSummary": "{{series}} 个序列，共 {{points}} 条记录；垂直虚线表示该时段曾同步失败。",
+    "seriesSummary": "{{series}}，当前剩余 {{value}}%，共 {{count}} 条",
+    "failedSyncHours": "{{count}} 个时段曾同步失败",
+    "syncFailurePoint": "{{time}}：{{attempts}} 次同步中有 {{failures}} 次失败",
+    "syncAuditLabel": "同步失败明细",
+    "dataTableCaption": "{{title}}数据",
+    "seriesColumn": "配额序列",
+    "timeColumn": "时间",
+    "remainingColumn": "剩余配额",
     "pointLabel": "{{series}}：{{time}} 剩余 {{value}}%"
   },
   "antigravity": {
@@ -260,6 +270,10 @@
   "opencodeGo": {
     "title": "Opencode Go",
     "noQuotaData": "没有可用的 Opencode Go 用量数据",
+    "reauthorization": {
+      "action": "重新登录",
+      "expired": "Opencode Go 会话已过期。请重新登录以恢复配额更新。"
+    },
     "quotaTypes": {
       "rolling": "5 小时配额",
       "weekly": "每周配额",
@@ -493,6 +507,9 @@
     "googleApi": {
       "disabledDesc": "请打开 Google Cloud 设置页启用 API，等待几分钟后再重试。",
       "openSettings": "打开 API 设置"
+    },
+    "storage": {
+      "readFailed": "无法读取数据"
     },
     "provider": {
       "codexTokenExpired": "Codex 访问令牌已过期",

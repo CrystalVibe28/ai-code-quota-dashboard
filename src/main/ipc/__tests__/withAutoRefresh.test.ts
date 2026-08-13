@@ -30,6 +30,7 @@ describe('withAutoRefresh', () => {
 
     mockAntigravityService = new AntigravityService()
     mockStorageService = new StorageService()
+    vi.spyOn(mockStorageService, 'getAccounts').mockResolvedValue([mockAccount])
     setServices(mockAntigravityService, mockStorageService)
   })
 
@@ -136,6 +137,72 @@ describe('withAutoRefresh', () => {
 
     expect(operation).toHaveBeenCalledWith(mockAccount)
     expect(result).toEqual({ models: ['model-a', 'model-b'], total: 100 })
+  })
+
+  it('should share a concurrent refresh for the same account and token', async () => {
+    const newTokens = {
+      accessToken: 'new-access-token',
+      refreshToken: 'new-refresh-token',
+      expiresAt: Date.now() + 60 * 60 * 1000
+    }
+    let resolveRefresh!: (tokens: typeof newTokens) => void
+    const refreshTokenSpy = vi.spyOn(mockAntigravityService, 'refreshToken')
+      .mockReturnValue(new Promise(resolve => {
+        resolveRefresh = resolve
+      }))
+    const updateAccountSpy = vi.spyOn(mockStorageService, 'updateAccount').mockResolvedValue(true)
+    mockAccount.expiresAt = Date.now() + 2 * 60 * 1000
+    const firstOperation = vi.fn().mockResolvedValue('first')
+    const secondOperation = vi.fn().mockResolvedValue('second')
+
+    const first = withAutoRefresh(mockAccount, firstOperation)
+    const second = withAutoRefresh(mockAccount, secondOperation)
+    await vi.waitFor(() => expect(refreshTokenSpy).toHaveBeenCalledTimes(1))
+    resolveRefresh(newTokens)
+
+    await expect(Promise.all([first, second])).resolves.toEqual(['first', 'second'])
+    expect(updateAccountSpy).toHaveBeenCalledTimes(1)
+    expect(firstOperation).toHaveBeenCalledWith(expect.objectContaining(newTokens))
+    expect(secondOperation).toHaveBeenCalledWith(expect.objectContaining(newTokens))
+  })
+
+  it('should use newer stored tokens instead of refreshing a stale account copy', async () => {
+    const storedAccount = {
+      ...mockAccount,
+      accessToken: 'stored-access-token',
+      refreshToken: 'stored-refresh-token',
+      expiresAt: Date.now() + 60 * 60 * 1000
+    }
+    vi.mocked(mockStorageService.getAccounts).mockResolvedValue([storedAccount])
+    const refreshTokenSpy = vi.spyOn(mockAntigravityService, 'refreshToken')
+    const operation = vi.fn().mockResolvedValue('ok')
+    mockAccount.expiresAt = Date.now() + 2 * 60 * 1000
+
+    await expect(withAutoRefresh(mockAccount, operation)).resolves.toBe('ok')
+
+    expect(refreshTokenSpy).not.toHaveBeenCalled()
+    expect(operation).toHaveBeenCalledWith(expect.objectContaining({
+      accessToken: storedAccount.accessToken,
+      refreshToken: storedAccount.refreshToken
+    }))
+  })
+
+  it('should refresh once and retry when a nominally valid token gets a 401', async () => {
+    const newTokens = {
+      accessToken: 'new-access-token',
+      refreshToken: 'new-refresh-token',
+      expiresAt: Date.now() + 60 * 60 * 1000
+    }
+    vi.spyOn(mockAntigravityService, 'refreshToken').mockResolvedValue(newTokens)
+    vi.spyOn(mockStorageService, 'updateAccount').mockResolvedValue(true)
+    const operation = vi.fn()
+      .mockRejectedValueOnce(new Error('401 Unauthorized'))
+      .mockResolvedValueOnce('ok')
+
+    await expect(withAutoRefresh(mockAccount, operation)).resolves.toBe('ok')
+
+    expect(operation).toHaveBeenCalledTimes(2)
+    expect(operation).toHaveBeenLastCalledWith(expect.objectContaining(newTokens))
   })
 
   it('should export REFRESH_THRESHOLD_MS constant as 5 minutes', () => {

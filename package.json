@@ -1,6 +1,6 @@
 {
   "name": "ai-code-quota-dashboard",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "AI Usage Dashboard - Multi-provider usage monitoring",
   "main": "./out/main/index.js",
   "author": "CrystalVibe28 <CrystalVibe28@users.noreply.github.com>",

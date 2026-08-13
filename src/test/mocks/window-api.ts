@@ -34,7 +34,11 @@ export const mockWindowApi: Record<string, Record<string, Mock>> = {
     saveSettings: vi.fn().mockResolvedValue(true),
     getCustomization: vi.fn().mockResolvedValue(null),
     saveCustomization: vi.fn().mockResolvedValue(true),
-    getQuotaHistory: vi.fn().mockResolvedValue({ weekly: [], monthly: [] })
+    getQuotaHistory: vi.fn().mockResolvedValue({
+      weekly: [],
+      monthly: [],
+      audit: { provider: [], account: [] }
+    })
   },
   antigravity: {
     getAccounts: vi.fn().mockResolvedValue([]),

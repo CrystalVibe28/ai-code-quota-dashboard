@@ -4,44 +4,15 @@ import { StorageService } from '../services/storage'
 import { TrayService } from '../services/tray'
 import { UsageDataService } from '../services/usage-data'
 import type { OpencodeGoAccount, OpencodeGoAccountUsage, OpencodeGoUsage } from '@shared/types'
+import { singleFlight } from './utils/singleFlight'
 
 const opencodeGoService = new OpencodeGoService()
 const storageService = new StorageService()
-const REFRESH_THRESHOLD_MS = 5 * 60 * 1000
 
-async function getFreshAccount(account: OpencodeGoAccount): Promise<OpencodeGoAccount> {
-  if (Date.now() <= account.expiresAt - REFRESH_THRESHOLD_MS) {
-    return account
-  }
-
-  const refreshed = await opencodeGoService.refreshCookies(account)
-  if (!refreshed) {
-    return account
-  }
-
-  await storageService.updateAccount('opencodeGo', account.id, refreshed)
-  return { ...account, ...refreshed }
-}
-
-async function fetchUsageWithRefresh(account: OpencodeGoAccount): Promise<OpencodeGoUsage> {
-  let currentAccount = await getFreshAccount(account)
-
-  try {
-    return await opencodeGoService.fetchUsage(currentAccount)
-  } catch (error) {
-    if (!String(error).toLowerCase().includes('session expired')) {
-      throw error
-    }
-
-    const refreshed = await opencodeGoService.refreshCookies(account)
-    if (!refreshed) {
-      throw error
-    }
-
-    await storageService.updateAccount('opencodeGo', account.id, refreshed)
-    currentAccount = { ...account, ...refreshed }
-    return await opencodeGoService.fetchUsage(currentAccount)
-  }
+async function fetchAccountUsage(account: OpencodeGoAccount): Promise<OpencodeGoUsage> {
+  // The Electron partition is provider-wide, so it cannot safely refresh one account.
+  // Keep the stored account cookie isolated and require login again after it expires.
+  return opencodeGoService.fetchUsage(account)
 }
 
 function getTrayPercent(usage: OpencodeGoUsage): number {
@@ -52,13 +23,14 @@ function getTrayPercent(usage: OpencodeGoUsage): number {
   return Math.round(Math.min(...usage.limits.map(limit => limit.remaining)))
 }
 
-export async function fetchAllOpencodeGoUsage(): Promise<OpencodeGoAccountUsage[]> {
+async function fetchAllOpencodeGoUsageInner(): Promise<OpencodeGoAccountUsage[]> {
+  const startedAt = Date.now()
   try {
     const accounts = await storageService.getAccounts('opencodeGo') as OpencodeGoAccount[]
     const results = await Promise.all(
       accounts.map(async (account): Promise<OpencodeGoAccountUsage> => {
         try {
-          const usage = await fetchUsageWithRefresh(account)
+          const usage = await fetchAccountUsage(account)
           return {
             accountId: account.id,
             name: account.displayName,
@@ -78,18 +50,26 @@ export async function fetchAllOpencodeGoUsage(): Promise<OpencodeGoAccountUsage[
       })
     )
 
-    UsageDataService.getInstance().recordProvider('opencodeGo', results)
-    const trayData = results
-      .filter((result): result is OpencodeGoAccountUsage & { usage: OpencodeGoUsage } => result.usage !== null)
-      .map(result => ({ name: result.name, percent: getTrayPercent(result.usage) }))
-    TrayService.getInstance().triggerUpdate({ opencodeGo: trayData })
+    const activeResults = UsageDataService.getInstance()
+      .recordProvider('opencodeGo', results, Date.now(), startedAt)
+    try {
+      const trayData = activeResults
+        .filter((result): result is OpencodeGoAccountUsage & { usage: OpencodeGoUsage } => result.usage !== null)
+        .map(result => ({ name: result.name, percent: getTrayPercent(result.usage) }))
+      TrayService.getInstance().triggerUpdate({ opencodeGo: trayData })
+    } catch (error) {
+      console.error('[Opencode Go] Failed to update tray:', error)
+    }
 
-    return results
+    return activeResults
   } catch (error) {
     console.error('[Opencode Go] fetch-all-usage error:', error)
+    UsageDataService.getInstance().recordProviderFailure('opencodeGo', Date.now(), startedAt)
     return []
   }
 }
+
+export const fetchAllOpencodeGoUsage = singleFlight(fetchAllOpencodeGoUsageInner)
 
 export function registerOpencodeGoHandlers(): void {
   ipcMain.handle('opencode-go:login', async () => {
@@ -108,22 +88,7 @@ export function registerOpencodeGoHandlers(): void {
     return opencodeGoService.cancelLogin()
   })
 
-  ipcMain.handle('opencode-go:refresh-token', async (_, accountId: string) => {
-    try {
-      const accounts = await storageService.getAccounts('opencodeGo') as OpencodeGoAccount[]
-      const account = accounts.find(a => a.id === accountId)
-      if (!account) return false
-
-      const refreshed = await opencodeGoService.refreshCookies(account)
-      if (!refreshed) return false
-
-      await storageService.updateAccount('opencodeGo', accountId, refreshed)
-      return true
-    } catch (error) {
-      console.error('[Opencode Go IPC] Failed to refresh cookies:', error)
-      return false
-    }
-  })
+  ipcMain.handle('opencode-go:refresh-token', () => false)
 
   ipcMain.handle('opencode-go:fetch-usage', async (_, accountId: string) => {
     try {
@@ -131,7 +96,7 @@ export function registerOpencodeGoHandlers(): void {
       const account = accounts.find(a => a.id === accountId)
       if (!account) return null
 
-      return await fetchUsageWithRefresh(account)
+      return await fetchAccountUsage(account)
     } catch (error) {
       console.error('[Opencode Go] fetch-usage error:', error)
       return null

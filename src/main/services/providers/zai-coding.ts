@@ -45,46 +45,45 @@ export class ZaiCodingService {
     }
   }
 
-  async fetchUsage(apiKey: string): Promise<ZaiUsage | null> {
-    try {
-      const response = await fetchWithTimeout(API_URL, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Accept-Language': 'en-US,en',
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (!response.ok) {
-        return null
+  async fetchUsage(apiKey: string): Promise<ZaiUsage> {
+    const response = await fetchWithTimeout(API_URL, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Accept-Language': 'en-US,en',
+        'Content-Type': 'application/json'
       }
+    })
 
-      // Get response text first to handle empty responses
-      const responseText = await response.text()
-      if (!responseText || responseText.trim() === '') {
-        console.warn('[Zai Coding Plan] Empty response body received')
-        return null
-      }
-
-      let data: { success: boolean; data?: { limits?: ZaiLimit[] }; msg?: string }
-      try {
-        data = JSON.parse(responseText)
-      } catch (parseError) {
-        console.error('[Zai Coding Plan] Failed to parse response JSON:', parseError)
-        return null
-      }
-
-      if (!data.success) {
-        return null
-      }
-
-      return {
-        limits: data.data?.limits || []
-      }
-    } catch (error) {
-      console.error('[Zai Coding Plan] Failed to fetch usage:', error)
-      return null
+    if (!response.ok) {
+      throw new Error(`Usage request failed: HTTP ${response.status}`)
     }
+
+    const responseText = await response.text()
+    if (!responseText.trim()) throw new Error('Usage response was empty')
+
+    let data: { success?: unknown; data?: { limits?: unknown } }
+    try {
+      data = JSON.parse(responseText)
+    } catch {
+      throw new Error('Usage response was not valid JSON')
+    }
+
+    if (data.success !== true) throw new Error('Usage API rejected the request')
+    if (!Array.isArray(data.data?.limits)) throw new Error('Usage response did not include limits')
+    if (!data.data.limits.every(isValidLimit)) throw new Error('Usage response included an invalid limit')
+
+    return { limits: data.data.limits as ZaiLimit[] }
   }
+}
+
+function isValidLimit(value: unknown): value is ZaiLimit {
+  if (!value || typeof value !== 'object') return false
+  const limit = value as Record<string, unknown>
+  if (typeof limit.type !== 'string' || !limit.type.trim()) return false
+  if (typeof limit.percentage !== 'number' || !Number.isFinite(limit.percentage)) return false
+
+  return ['unit', 'number', 'usage', 'currentValue', 'remaining', 'nextResetTime']
+    .every(key => limit[key] === undefined
+      || (typeof limit[key] === 'number' && Number.isFinite(limit[key])))
 }

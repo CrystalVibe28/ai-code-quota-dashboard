@@ -46,7 +46,7 @@ describe('auto launch', () => {
       executableWillLaunchAtLogin: true,
       launchItems: [{
         path: process.execPath,
-        args: ['--hidden'],
+        args: [],
         enabled: true
       }]
     })
@@ -65,10 +65,9 @@ describe('auto launch', () => {
 
     mocks.getLoginItemSettings.mockReturnValue({
       openAtLogin: true,
-      executableWillLaunchAtLogin: true,
+      executableWillLaunchAtLogin: false,
       launchItems: [
-        { path: process.execPath, args: ['--hidden'], enabled: false },
-        { path: process.execPath, args: [], enabled: true }
+        { path: process.execPath, args: [], enabled: false }
       ]
     })
     expect(getAutoLaunch()).toBe(false)

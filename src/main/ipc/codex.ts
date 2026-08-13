@@ -4,12 +4,14 @@ import { StorageService } from '../services/storage'
 import { TrayService } from '../services/tray'
 import { UsageDataService } from '../services/usage-data'
 import type { CodexAccount, CodexAccountUsage } from '@shared/types'
-import { withAutoRefreshCodex } from './utils/withAutoRefreshCodex'
+import { refreshCodexTokens, withAutoRefreshCodex } from './utils/withAutoRefreshCodex'
+import { singleFlight } from './utils/singleFlight'
 
 const codexService = new CodexService()
 const storageService = new StorageService()
 
-export async function fetchAllCodexUsage(): Promise<CodexAccountUsage[]> {
+async function fetchAllCodexUsageInner(): Promise<CodexAccountUsage[]> {
+  const startedAt = Date.now()
   try {
     const accounts = await storageService.getAccounts('codex') as CodexAccount[]
     const results = await Promise.all(
@@ -31,18 +33,26 @@ export async function fetchAllCodexUsage(): Promise<CodexAccountUsage[]> {
       })
     )
 
-    UsageDataService.getInstance().recordProvider('codex', results)
-    const trayData = results
-      .filter(r => r.usage !== null)
-      .map(r => ({ name: r.name, percent: 0 }))
-    TrayService.getInstance().triggerUpdate({ codex: trayData })
+    const activeResults = UsageDataService.getInstance()
+      .recordProvider('codex', results, Date.now(), startedAt)
+    try {
+      const trayData = activeResults
+        .filter(r => r.usage !== null)
+        .map(r => ({ name: r.name, percent: 0 }))
+      TrayService.getInstance().triggerUpdate({ codex: trayData })
+    } catch (error) {
+      console.error('[Codex] Failed to update tray:', error)
+    }
 
-    return results
+    return activeResults
   } catch (error) {
     console.error('[Codex] fetch-all-usage error:', error)
+    UsageDataService.getInstance().recordProviderFailure('codex', Date.now(), startedAt)
     return []
   }
 }
+
+export const fetchAllCodexUsage = singleFlight(fetchAllCodexUsageInner)
 
 export function registerCodexHandlers(): void {
   ipcMain.handle('codex:login', async () => {
@@ -67,20 +77,7 @@ export function registerCodexHandlers(): void {
       const account = accounts.find(a => a.id === accountId)
       if (!account) return false
 
-      const newTokens = await codexService.refreshToken(account.refreshToken)
-      if (newTokens) {
-        await storageService.updateAccount('codex', accountId, {
-          accessToken: newTokens.accessToken,
-          refreshToken: newTokens.refreshToken,
-          idToken: newTokens.idToken,
-          expiresAt: newTokens.expiresAt,
-          accountId: newTokens.accountId,
-          organizationId: newTokens.organizationId,
-          planType: newTokens.planType
-        })
-        return true
-      }
-      return false
+      return Boolean(await refreshCodexTokens(account))
     } catch (error) {
       console.error('[Codex IPC] Failed to refresh token:', error)
       return false
