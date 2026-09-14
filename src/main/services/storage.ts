@@ -9,6 +9,7 @@ import type {
   ZaiCodingAccount,
   CodexAccount,
   OpencodeGoAccount,
+  CommandCodeAccount,
   OllamaCloudAccount,
   AiStudioAccount,
   Settings,
@@ -27,6 +28,7 @@ interface StorageData {
   zaiCoding: ZaiCodingAccount[]
   codex: CodexAccount[]
   opencodeGo: OpencodeGoAccount[]
+  commandCode: CommandCodeAccount[]
   ollamaCloud: OllamaCloudAccount[]
   aiStudio: AiStudioAccount[]
   aiStudioOAuth?: {
@@ -37,7 +39,7 @@ interface StorageData {
   customization?: CustomizationState
 }
 
-const CURRENT_DATA_VERSION = 6
+const CURRENT_DATA_VERSION = 7
 
 export class StorageVersionTooNewError extends Error {
   constructor(dataVersion: number) {
@@ -52,6 +54,7 @@ const DEFAULT_DATA: StorageData = {
   zaiCoding: [],
   codex: [],
   opencodeGo: [],
+  commandCode: [],
   ollamaCloud: [],
   aiStudio: [],
   settings: DEFAULT_SETTINGS
@@ -200,6 +203,7 @@ export class StorageService {
       !Array.isArray(data.zaiCoding) ||
       !Array.isArray(data.codex) ||
       !Array.isArray(data.opencodeGo) ||
+      !Array.isArray(data.commandCode) ||
       !Array.isArray(data.ollamaCloud) ||
       !Array.isArray(data.aiStudio) ||
       (data.aiStudioOAuth !== undefined && (
@@ -274,6 +278,12 @@ export class StorageService {
       data._version = 6
     }
 
+    if (version < 7) {
+      console.log('[Storage] Migrating data from v6 to v7: Adding commandCode provider')
+      if (!data.commandCode) data.commandCode = []
+      data._version = 7
+    }
+
     return data
   }
 
@@ -294,7 +304,7 @@ export class StorageService {
     return this.cachedData
   }
 
-  async getAccounts(provider: string): Promise<AntigravityAccount[] | GithubCopilotAccount[] | ZaiCodingAccount[] | CodexAccount[] | OpencodeGoAccount[] | OllamaCloudAccount[] | AiStudioAccount[]> {
+  async getAccounts(provider: string): Promise<AntigravityAccount[] | GithubCopilotAccount[] | ZaiCodingAccount[] | CodexAccount[] | OpencodeGoAccount[] | CommandCodeAccount[] | OllamaCloudAccount[] | AiStudioAccount[]> {
     const data = this.getData()
     switch (provider) {
       case 'antigravity':
@@ -307,6 +317,8 @@ export class StorageService {
         return data.codex || []
       case 'opencodeGo':
         return data.opencodeGo || []
+      case 'commandCode':
+        return data.commandCode || []
       case 'ollamaCloud':
         return data.ollamaCloud || []
       case 'aiStudio':
@@ -316,7 +328,7 @@ export class StorageService {
     }
   }
 
-  async saveAccount(provider: string, account: AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | OllamaCloudAccount | AiStudioAccount): Promise<boolean> {
+  async saveAccount(provider: string, account: AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | CommandCodeAccount | OllamaCloudAccount | AiStudioAccount): Promise<boolean> {
     const data = this.getData()
 
     switch (provider) {
@@ -372,6 +384,16 @@ export class StorageService {
         }
         break
       }
+      case 'commandCode': {
+        const acc = account as CommandCodeAccount
+        const existingIdx = data.commandCode.findIndex(a => a.id === acc.id)
+        if (existingIdx >= 0) {
+          data.commandCode[existingIdx] = acc
+        } else {
+          data.commandCode.push(acc)
+        }
+        break
+      }
       case 'ollamaCloud': {
         const acc = account as OllamaCloudAccount
         const existingIdx = data.ollamaCloud.findIndex(a => a.id === acc.id)
@@ -423,6 +445,9 @@ export class StorageService {
           data.opencodeGo = data.opencodeGo.filter(a => a.id !== accountId)
         }
         break
+      case 'commandCode':
+        data.commandCode = data.commandCode.filter(a => a.id !== accountId)
+        break
       case 'ollamaCloud':
         data.ollamaCloud = data.ollamaCloud.filter(a => a.id !== accountId)
         break
@@ -440,7 +465,7 @@ export class StorageService {
   async updateAccount(
     provider: string,
     accountId: string,
-    updates: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount> | Partial<CodexAccount> | Partial<OpencodeGoAccount> | Partial<OllamaCloudAccount> | Partial<AiStudioAccount>
+    updates: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount> | Partial<CodexAccount> | Partial<OpencodeGoAccount> | Partial<CommandCodeAccount> | Partial<OllamaCloudAccount> | Partial<AiStudioAccount>
   ): Promise<boolean> {
     const data = this.getData()
 
@@ -479,6 +504,13 @@ export class StorageService {
         const idx = data.opencodeGo.findIndex(a => a.id === accountId)
         if (idx >= 0) {
           data.opencodeGo[idx] = { ...data.opencodeGo[idx], ...updates as Partial<OpencodeGoAccount> }
+        }
+        break
+      }
+      case 'commandCode': {
+        const idx = data.commandCode.findIndex(a => a.id === accountId)
+        if (idx >= 0) {
+          data.commandCode[idx] = { ...data.commandCode[idx], ...updates as Partial<CommandCodeAccount> }
         }
         break
       }

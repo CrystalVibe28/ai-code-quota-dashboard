@@ -9,7 +9,7 @@ describe('useCustomizationStore', () => {
     overviewLayout: 'compact',
     gridColumns: 'auto',
     cardSize: 'default',
-    providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'ollamaCloud', 'aiStudio'],
+    providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'commandCode', 'ollamaCloud', 'aiStudio'],
     theme: 'system',
     accentColor: 'blue',
     progressStyle: 'solid',
@@ -35,6 +35,7 @@ describe('useCustomizationStore', () => {
         zaiCoding: {},
         codex: {},
         opencodeGo: {},
+        commandCode: {},
         ollamaCloud: {},
         aiStudio: {}
       },
@@ -57,6 +58,7 @@ describe('useCustomizationStore', () => {
         zaiCoding: {},
         codex: {},
         opencodeGo: {},
+        commandCode: {},
         ollamaCloud: {},
         aiStudio: {}
       })
@@ -291,6 +293,7 @@ describe('useCustomizationStore', () => {
           zaiCoding: {},
           codex: {},
           opencodeGo: {},
+          commandCode: {},
           ollamaCloud: {},
           aiStudio: {}
         },
@@ -372,6 +375,7 @@ describe('useCustomizationStore', () => {
         zaiCoding: {},
         codex: {},
         opencodeGo: {},
+        commandCode: {},
         ollamaCloud: {},
         aiStudio: {}
       })

@@ -125,6 +125,15 @@ const api = {
       ipcRenderer.invoke('opencode-go:fetch-all-usage')
   },
 
+  commandCode: {
+    validateApiKey: (apiKey: string): Promise<{ valid: boolean; error?: string }> =>
+      ipcRenderer.invoke('command-code:validate-api-key', apiKey),
+    fetchUsage: (accountId: string): Promise<unknown> =>
+      ipcRenderer.invoke('command-code:fetch-usage', accountId),
+    fetchAllUsage: (): Promise<unknown[]> =>
+      ipcRenderer.invoke('command-code:fetch-all-usage')
+  },
+
   ollamaCloud: {
     login: (): Promise<{ success: boolean; account?: unknown; error?: string }> =>
       ipcRenderer.invoke('ollama-cloud:login'),
@@ -151,7 +160,7 @@ const api = {
       ipcRenderer.invoke('app:start-background-refresh'),
     getPlatform: (): Promise<string> =>
       ipcRenderer.invoke('app:get-platform'),
-    getAutoLaunch: (): Promise<boolean> =>
+    getAutoLaunch: (): Promise<boolean | null> =>
       ipcRenderer.invoke('app:get-auto-launch'),
     setAutoLaunch: (enabled: boolean): Promise<boolean> =>
       ipcRenderer.invoke('app:set-auto-launch', enabled)
@@ -168,6 +177,7 @@ const api = {
       zai: unknown[]
       codex: unknown[]
       opencodeGo?: unknown[]
+      commandCode?: unknown[]
     }): Promise<boolean> =>
       ipcRenderer.invoke('notification:check-and-notify', data)
   },

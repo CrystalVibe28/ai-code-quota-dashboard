@@ -19,6 +19,7 @@ import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
 import { useCodexStore } from '@/stores/useCodexStore'
 import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
+import { useCommandCodeStore } from '@/stores/useCommandCodeStore'
 import { useOllamaCloudStore } from '@/stores/useOllamaCloudStore'
 import { useAiStudioStore } from '@/stores/useAiStudioStore'
 import { getGoogleApiEnableUrl } from '@/lib/googleApiError'
@@ -186,6 +187,10 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
     updateAccount: updateOpencodeGo,
     fetchAccounts: fetchOpencodeGo
   } = useOpencodeGoStore()
+  const {
+    addAccount: addCommandCodeAccount,
+    fetchAccounts: fetchCommandCode
+  } = useCommandCodeStore()
   const {
     login: ollamaCloudLogin,
     cancelLogin: cancelOllamaCloudLogin,
@@ -377,17 +382,18 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
     
     try {
       if (selectedProvider.mode === 'apiKey') {
-        // API Key mode (Zai Coding Plan)
         if (!apiKey.trim()) {
           setError(t('addAccount.pleaseEnterApiKey'))
           setIsLoading(false)
           return
         }
         
-        const result = await addZaiAccount(finalDisplayName, apiKey.trim())
+        const result = selectedProviderId === 'commandCode'
+          ? await addCommandCodeAccount(finalDisplayName, apiKey.trim())
+          : await addZaiAccount(finalDisplayName, apiKey.trim())
         
         if (result.success) {
-          await fetchZai()
+          await (selectedProviderId === 'commandCode' ? fetchCommandCode() : fetchZai())
           onClose()
         } else {
           setError(result.error || t('addAccount.failedToAddAccount'))

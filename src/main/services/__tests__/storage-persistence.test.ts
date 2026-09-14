@@ -82,12 +82,13 @@ describe('StorageService persistence', () => {
       zaiCoding: [],
       codex: [],
       opencodeGo: [],
+      commandCode: [],
       ollamaCloud: [],
       aiStudio: [],
       settings: {}
     }
-    const primary = crypto.encrypt(JSON.stringify({ ...currentData, _version: 7 }), 'password')
-    const backup = crypto.encrypt(JSON.stringify({ ...currentData, _version: 6 }), 'password')
+    const primary = crypto.encrypt(JSON.stringify({ ...currentData, _version: 8 }), 'password')
+    const backup = crypto.encrypt(JSON.stringify({ ...currentData, _version: 7 }), 'password')
     writeFileSync(storagePath, primary)
     writeFileSync(`${storagePath}.bak`, backup)
 
@@ -95,6 +96,28 @@ describe('StorageService persistence', () => {
     expect(storage.isUnlocked()).toBe(false)
     expect(readFileSync(storagePath, 'utf-8')).toBe(primary)
     expect(readFileSync(`${storagePath}.bak`, 'utf-8')).toBe(backup)
+  })
+
+  it('migrates v6 data with an empty Command Code account list', async () => {
+    const crypto = new CryptoService()
+    const storage = new StorageService()
+    const storagePath = join(electronMock.userDataPath, 'data', 'credentials.enc')
+    const data = {
+      _version: 6,
+      antigravity: [],
+      githubCopilot: [],
+      zaiCoding: [],
+      codex: [],
+      opencodeGo: [],
+      ollamaCloud: [],
+      aiStudio: [],
+      settings: {}
+    }
+    writeFileSync(storagePath, crypto.encrypt(JSON.stringify(data), 'password'))
+
+    storage.unlock('password')
+
+    await expect(storage.getAccounts('commandCode')).resolves.toEqual([])
   })
 
   it('rolls back both files after an interrupted password change', async () => {

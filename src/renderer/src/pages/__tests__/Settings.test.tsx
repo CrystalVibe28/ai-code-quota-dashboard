@@ -114,6 +114,17 @@ describe('Settings', () => {
     })
   })
 
+  it('disables launch at login in development without reporting an error', async () => {
+    mockWindowApi.app.getAutoLaunch.mockResolvedValueOnce(null)
+    render(<Settings />)
+    await screen.findByText('Launch at login is available in the installed application. It is disabled in development mode.')
+    const autoLaunch = screen.getByRole('switch', { name: 'Launch at Login' })
+    expect(autoLaunch).toBeDisabled()
+    fireEvent.click(autoLaunch)
+    expect(mockWindowApi.app.setAutoLaunch).not.toHaveBeenCalled()
+    expect(useErrorStore.getState().lastError).toBeNull()
+  })
+
   it('should keep the launch-at-login state and report a failed update', async () => {
     mockWindowApi.app.setAutoLaunch.mockResolvedValueOnce(false)
     render(<Settings />)

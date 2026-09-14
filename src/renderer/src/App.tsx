@@ -7,6 +7,7 @@ import { useGithubCopilotStore } from './stores/useGithubCopilotStore'
 import { useZaiCodingStore } from './stores/useZaiCodingStore'
 import { useCodexStore } from './stores/useCodexStore'
 import { useOpencodeGoStore } from './stores/useOpencodeGoStore'
+import { useCommandCodeStore } from './stores/useCommandCodeStore'
 import { useOllamaCloudStore } from './stores/useOllamaCloudStore'
 import { useAiStudioStore } from './stores/useAiStudioStore'
 import { MainLayout } from './components/layout/MainLayout'
@@ -30,6 +31,7 @@ function App() {
   const { fetchAccounts: fetchZaiAccounts, fetchUsage: fetchZaiUsage } = useZaiCodingStore()
   const { fetchAccounts: fetchCodexAccounts, fetchUsage: fetchCodexUsage } = useCodexStore()
   const { fetchAccounts: fetchOpencodeGoAccounts, fetchUsage: fetchOpencodeGoUsage } = useOpencodeGoStore()
+  const { fetchAccounts: fetchCommandCodeAccounts, fetchUsage: fetchCommandCodeUsage } = useCommandCodeStore()
   const { fetchAccounts: fetchOllamaCloudAccounts, fetchUsage: fetchOllamaCloudUsage } = useOllamaCloudStore()
   const { fetchAccounts: fetchAiStudioAccounts, fetchUsage: fetchAiStudioUsage } = useAiStudioStore()
 
@@ -49,25 +51,27 @@ function App() {
         fetchZaiAccounts(),
         fetchCodexAccounts(),
         fetchOpencodeGoAccounts(),
+        fetchCommandCodeAccounts(),
         fetchOllamaCloudAccounts(),
         fetchAiStudioAccounts()
       ])
-      const [antigravity, copilot, zai, codex, opencodeGo] = await Promise.all([
+      const [antigravity, copilot, zai, codex, opencodeGo, commandCode] = await Promise.all([
         fetchAntiUsage(),
         fetchGhUsage(),
         fetchZaiUsage(),
         fetchCodexUsage(),
         fetchOpencodeGoUsage(),
+        fetchCommandCodeUsage(),
         fetchOllamaCloudUsage(),
         fetchAiStudioUsage()
       ])
-      await window.api.notification.checkAndNotify({ antigravity, copilot, zai, codex, opencodeGo }).catch(() => {})
+      await window.api.notification.checkAndNotify({ antigravity, copilot, zai, codex, opencodeGo, commandCode }).catch(() => {})
     })().finally(() => {
       refreshPromiseRef.current = null
     })
 
     return refreshPromiseRef.current
-  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchOllamaCloudAccounts, fetchAiStudioAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage, fetchOllamaCloudUsage, fetchAiStudioUsage])
+  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchCommandCodeAccounts, fetchOllamaCloudAccounts, fetchAiStudioAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage, fetchCommandCodeUsage, fetchOllamaCloudUsage, fetchAiStudioUsage])
 
   useEffect(() => {
     checkAuth()
@@ -116,6 +120,7 @@ function App() {
       useZaiCodingStore.setState({ usageData: snapshot.zaiCoding })
       useCodexStore.setState({ usageData: snapshot.codex })
       useOpencodeGoStore.setState({ usageData: snapshot.opencodeGo })
+      useCommandCodeStore.setState({ usageData: snapshot.commandCode })
       useOllamaCloudStore.setState({ usageData: snapshot.ollamaCloud })
       useAiStudioStore.setState({ usageData: snapshot.aiStudio })
     })

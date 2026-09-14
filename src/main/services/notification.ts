@@ -1,6 +1,12 @@
 import { BrowserWindow, Notification } from 'electron'
 import type { NotificationThreshold } from '../../shared/types/settings'
-import type { CardConfig, ProviderConfig, ProviderId, ZaiAccountUsage } from '@shared/types'
+import type {
+  CardConfig,
+  CommandCodeAccountUsage,
+  ProviderConfig,
+  ProviderId,
+  ZaiAccountUsage
+} from '@shared/types'
 import { getAntigravityQuotaType } from '@shared/antigravityQuota'
 import { getZaiCardId, getZaiQuotaType } from '@shared/zaiQuota'
 import { formatCodexQuotaLabel } from '../../shared/codexQuota'
@@ -202,6 +208,7 @@ export class NotificationService {
     zaiData: ZaiAccountUsage[],
     codexData: CodexUsageResult[],
     opencodeGoData: OpencodeGoUsageResult[],
+    commandCodeData: CommandCodeAccountUsage[],
     settings: AppSettings,
     filters: DisplayFilters
   ): void {
@@ -238,6 +245,7 @@ export class NotificationService {
     this.processZaiData(zaiData, thresholds, itemsToNotify, filters, activeCardIds)
     this.processCodexData(codexData, thresholds, itemsToNotify, filters, activeCardIds)
     this.processOpencodeGoData(opencodeGoData, thresholds, itemsToNotify, filters, activeCardIds)
+    this.processCommandCodeData(commandCodeData, thresholds, itemsToNotify, filters, activeCardIds)
     this.state.items.forEach((_, cardId) => {
       if (!activeCardIds.has(cardId)) this.state.items.delete(cardId)
     })
@@ -455,6 +463,43 @@ export class NotificationService {
             provider: 'Opencode Go',
             accountName: account.name,
             itemName: displayType,
+            percentage,
+            severity: this.getSeverity(crossedThreshold, thresholds),
+            cardId
+          })
+        }
+      }
+    }
+  }
+
+  private processCommandCodeData(
+    data: CommandCodeAccountUsage[],
+    thresholds: number[],
+    itemsToNotify: LowQuotaItem[],
+    filters: DisplayFilters,
+    activeCardIds: Set<string>
+  ): void {
+    for (const account of data) {
+      if (!account.usage) continue
+      const cardIds = account.usage.limits.map(limit => `commandCode-${account.accountId}-${limit.type}`)
+
+      for (const limit of account.usage.limits) {
+        const percentage = Math.round(100 - limit.percentage)
+        const cardId = `commandCode-${account.accountId}-${limit.type}`
+        activeCardIds.add(cardId)
+
+        if (this.isCardHidden(filters, 'commandCode', account.accountId, cardId, cardIds)) continue
+
+        const crossedThreshold = this.checkThresholdCrossing(cardId, percentage, thresholds)
+        if (crossedThreshold) {
+          itemsToNotify.push({
+            provider: 'Command Code',
+            accountName: account.name,
+            itemName: limit.type === 'fiveHour'
+              ? '5-hour quota'
+              : limit.type === 'weekly'
+                ? 'Weekly quota'
+                : 'Monthly quota',
             percentage,
             severity: this.getSeverity(crossedThreshold, thresholds),
             cardId

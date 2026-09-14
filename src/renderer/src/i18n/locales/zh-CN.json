@@ -29,6 +29,7 @@
     "zaiCoding": "Zai Coding Plan",
     "codex": "Codex",
     "opencodeGo": "Opencode Go",
+    "commandCode": "Command Code",
     "ollamaCloud": "Ollama Cloud",
     "settings": "设置"
   },
@@ -112,6 +113,7 @@
     "autoLaunch": "开机自动启动",
     "autoLaunchDesc": "系统启动时自动运行此应用程序",
     "autoLaunchError": "无法更新开机自动启动设置",
+    "autoLaunchUnavailable": "请使用安装版设置开机自动启动；开发模式不支持此功能。",
     "apiServerSettings": "本地 API 服务器",
     "apiServerSettingsDesc": "设置本地 API 的网络访问范围",
     "allowRemoteApiAccess": "允许其他设备连接",
@@ -280,11 +282,20 @@
       "monthly": "每月配额"
     }
   },
+  "commandCode": {
+    "noQuotaData": "没有可用的 Command Code 用量数据",
+    "quotaTypes": {
+      "fiveHour": "5 小时配额",
+      "weekly": "每周配额",
+      "monthly": "每月配额"
+    }
+  },
   "ollamaCloud": {
     "noQuotaData": "没有可用的 Ollama Cloud 用量数据",
     "quotaTypes": {
       "session": "5 小时配额",
-      "weekly": "每周配额"
+      "weekly": "每周配额",
+      "monthly": "每月配额"
     }
   },
   "aiStudio": {

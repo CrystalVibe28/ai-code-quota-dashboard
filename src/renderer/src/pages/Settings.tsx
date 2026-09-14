@@ -53,6 +53,7 @@ export function Settings() {
     settings.notificationThresholds || DEFAULT_NOTIFICATION_THRESHOLDS
   )
   const [autoLaunch, setAutoLaunch] = useState(false)
+  const [isAutoLaunchSupported, setIsAutoLaunchSupported] = useState(true)
   const [isAutoLaunchLoading, setIsAutoLaunchLoading] = useState(true)
 
   const handleSettingChange = useCallback(async (newSettings: Partial<typeof settings>) => {
@@ -83,7 +84,9 @@ export function Settings() {
   useEffect(() => {
     const initAutoLaunch = async () => {
       try {
-        setAutoLaunch(await window.api.app.getAutoLaunch())
+        const enabled = await window.api.app.getAutoLaunch()
+        setIsAutoLaunchSupported(enabled !== null)
+        setAutoLaunch(enabled ?? false)
       } catch {
         useErrorStore.getState().showError(ErrorCode.UNKNOWN, t('settings.autoLaunchError'))
       } finally {
@@ -219,13 +222,13 @@ export function Settings() {
                 <div>
                   <Label htmlFor="autoLaunch">{t('settings.autoLaunch')}</Label>
                   <p id="auto-launch-description" className="text-sm leading-5 text-muted-foreground">
-                    {t('settings.autoLaunchDesc')}
+                    {t(isAutoLaunchSupported ? 'settings.autoLaunchDesc' : 'settings.autoLaunchUnavailable')}
                   </p>
                 </div>
                 <Switch
                   id="autoLaunch"
                   checked={autoLaunch}
-                  disabled={isAutoLaunchLoading}
+                  disabled={isAutoLaunchLoading || !isAutoLaunchSupported}
                   aria-describedby="auto-launch-description"
                   onCheckedChange={handleAutoLaunchChange}
                 />

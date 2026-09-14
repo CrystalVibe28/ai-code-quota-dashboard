@@ -50,7 +50,11 @@ function textContent(html: string): string {
     .trim()
 }
 
-function extractLimit(html: string, label: 'Session' | 'Weekly', type: OllamaCloudLimit['type']): OllamaCloudLimit | null {
+function extractLimit(
+  html: string,
+  label: string,
+  type: OllamaCloudLimit['type']
+): OllamaCloudLimit | null {
   const start = html.indexOf(`${label} usage`)
   if (start < 0) return null
 
@@ -76,12 +80,13 @@ function extractLimit(html: string, label: 'Session' | 'Weekly', type: OllamaClo
 export function parseOllamaCloudUsage(html: string): OllamaCloudUsage | null {
   const limits = [
     extractLimit(html, 'Session', 'session'),
-    extractLimit(html, 'Weekly', 'weekly')
+    extractLimit(html, 'Weekly', 'weekly'),
+    extractLimit(html, 'Free', 'monthly')
   ].filter((limit): limit is OllamaCloudLimit => limit !== null)
 
   if (limits.length === 0) return null
 
-  const plan = /<span[^>]*>\s*Cloud usage\s*<\/span>\s*<span[^>]*>([^<]+)<\/span>/i.exec(html)?.[1]
+  const plan = /<span[^>]*>\s*(?:Cloud|Included) usage\s*<\/span\s*>\s*<span[^>]*>([^<]+)<\/span\s*>/i.exec(html)?.[1]
   return {
     plan: plan ? textContent(plan) : undefined,
     limits

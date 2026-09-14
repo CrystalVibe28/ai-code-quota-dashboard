@@ -6,7 +6,7 @@ export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   overviewLayout: 'compact',
   gridColumns: 'auto',
   cardSize: 'default',
-  providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'ollamaCloud', 'aiStudio'],
+  providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'commandCode', 'ollamaCloud', 'aiStudio'],
   
   theme: 'system',
   accentColor: 'blue',
@@ -32,6 +32,7 @@ export const PROVIDER_LABELS: Record<ProviderId, string> = {
   zaiCoding: 'nav.zaiCoding',
   codex: 'nav.codex',
   opencodeGo: 'nav.opencodeGo',
+  commandCode: 'nav.commandCode',
   ollamaCloud: 'nav.ollamaCloud'
 }
 

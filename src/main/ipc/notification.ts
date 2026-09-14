@@ -32,6 +32,7 @@ export function registerNotificationHandlers(): void {
     zai: unknown[]
     codex: unknown[]
     opencodeGo?: unknown[]
+    commandCode?: unknown[]
   }) => {
     try {
       const storageService = new StorageService()
@@ -48,6 +49,7 @@ export function registerNotificationHandlers(): void {
         data.zai as any[],
         data.codex as any[],
         (data.opencodeGo ?? []) as any[],
+        (data.commandCode ?? []) as any[],
         settings,
         {
           hideUnlimitedQuota: customization?.global?.hideUnlimitedQuota ?? false,

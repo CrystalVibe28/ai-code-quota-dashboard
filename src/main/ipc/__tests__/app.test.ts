@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => {
   const handlers = new Map<string, (...args: any[]) => any>()
   return {
+    app: { isPackaged: true },
     handlers,
     handle: vi.fn((channel: string, handler: (...args: any[]) => any) => {
       handlers.set(channel, handler)
@@ -12,7 +13,7 @@ const mocks = vi.hoisted(() => {
   }
 })
 
-vi.mock('electron', () => ({ ipcMain: { handle: mocks.handle } }))
+vi.mock('electron', () => ({ app: mocks.app, ipcMain: { handle: mocks.handle } }))
 vi.mock('../../services/storage', () => ({
   StorageService: class StorageService {}
 }))
@@ -31,6 +32,7 @@ import { registerAppHandlers } from '../app'
 describe('app auto launch IPC', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.app.isPackaged = true
     mocks.handlers.clear()
     registerAppHandlers()
   })
@@ -48,5 +50,11 @@ describe('app auto launch IPC', () => {
     const handler = mocks.handlers.get('app:get-auto-launch')
 
     expect(() => handler?.({})).toThrow(error)
+  })
+
+  it('reports launch at login as unavailable in development', () => {
+    mocks.app.isPackaged = false
+    expect(mocks.handlers.get('app:get-auto-launch')?.({})).toBeNull()
+    expect(mocks.getAutoLaunch).not.toHaveBeenCalled()
   })
 })

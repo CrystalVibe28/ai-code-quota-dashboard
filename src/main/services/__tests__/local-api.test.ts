@@ -20,6 +20,7 @@ describe('LocalApiService', () => {
       zaiCoding: [],
       codex: [],
       opencodeGo: [],
+      commandCode: [],
       ollamaCloud: [],
       aiStudio: []
     }
@@ -53,6 +54,7 @@ describe('LocalApiService', () => {
         zaiCoding: [],
         codex: [],
         opencodeGo: [],
+        commandCode: [],
         ollamaCloud: [],
         aiStudio: []
       }

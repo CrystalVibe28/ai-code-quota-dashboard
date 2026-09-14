@@ -53,13 +53,13 @@ describe('auto launch', () => {
 
     expect(setAutoLaunch(true)).toBe(true)
     expect(mocks.setLoginItemSettings).toHaveBeenCalledWith({
-      path: process.execPath,
+      path: `"${process.execPath}"`,
       args: ['--hidden'],
       openAtLogin: true,
       enabled: true
     })
     expect(mocks.getLoginItemSettings).toHaveBeenCalledWith({
-      path: process.execPath,
+      path: `"${process.execPath}"`,
       args: ['--hidden']
     })
 
@@ -79,7 +79,7 @@ describe('auto launch', () => {
     })
     expect(setAutoLaunch(false)).toBe(true)
     expect(mocks.setLoginItemSettings).toHaveBeenLastCalledWith({
-      path: process.execPath,
+      path: `"${process.execPath}"`,
       args: ['--hidden'],
       openAtLogin: false
     })

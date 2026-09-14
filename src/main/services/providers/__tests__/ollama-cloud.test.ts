@@ -98,4 +98,37 @@ describe('parseOllamaCloudUsage', () => {
       ]
     })
   })
+
+  it('parses the free plan monthly quota from the redesigned page', () => {
+    const usage = parseOllamaCloudUsage(`
+      <h2 class="text-xl font-medium flex items-center space-x-2">
+        <span>Included usage</span>
+        <span
+          class="text-xs font-normal px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 capitalize"
+          >free</span
+        >
+      </h2>
+      <div>
+        <span class="text-sm">Free usage</span><span class="text-sm">0% used</span>
+        <div aria-label="Free usage 0% used"></div>
+        <div data-time="2026-10-09T12:33:46Z">Resets on Oct 9.</div>
+      </div>
+    `)
+
+    expect(usage).toEqual({
+      plan: 'free',
+      limits: [
+        {
+          type: 'monthly',
+          used: 0,
+          limit: 100,
+          remaining: 100,
+          percentage: 0,
+          resetTime: '2026-10-09T12:33:46Z',
+          unit: 'percent',
+          unlimited: false
+        }
+      ]
+    })
+  })
 })

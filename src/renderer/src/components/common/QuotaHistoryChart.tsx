@@ -92,7 +92,7 @@ export function QuotaHistoryChart({ providerId, period, points, auditPoints = []
         <CardTitle id={titleId}>{title}</CardTitle>
         <CardDescription>{t('history.description')}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="relative">
         <div className="mb-3 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
           {series.map(item => {
             const latest = item.points.at(-1)
@@ -298,25 +298,27 @@ export function QuotaHistoryChart({ providerId, period, points, auditPoints = []
             )
           })}
         </svg>
-        <table className="sr-only">
-          <caption>{t('history.dataTableCaption', { title })}</caption>
-          <thead>
-            <tr>
-              <th scope="col">{t('history.seriesColumn')}</th>
-              <th scope="col">{t('history.timeColumn')}</th>
-              <th scope="col">{t('history.remainingColumn')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {series.flatMap(item => item.points.map(point => (
-              <tr key={`${item.key}:${point.sampledAt}`}>
-                <th scope="row">{item.label}</th>
-                <td>{new Date(point.sampledAt).toLocaleString()}</td>
-                <td>{point.remaining}%</td>
+        <div className="sr-only">
+          <table>
+            <caption>{t('history.dataTableCaption', { title })}</caption>
+            <thead>
+              <tr>
+                <th scope="col">{t('history.seriesColumn')}</th>
+                <th scope="col">{t('history.timeColumn')}</th>
+                <th scope="col">{t('history.remainingColumn')}</th>
               </tr>
-            )))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {series.flatMap(item => item.points.map(point => (
+                <tr key={`${item.key}:${point.sampledAt}`}>
+                  <th scope="row">{item.label}</th>
+                  <td>{new Date(point.sampledAt).toLocaleString()}</td>
+                  <td>{point.remaining}%</td>
+                </tr>
+              )))}
+            </tbody>
+          </table>
+        </div>
         {failedAuditPoints.length > 0 && (
           <ul className="sr-only" aria-label={t('history.syncAuditLabel')}>
             {failedAuditPoints.map(point => (
@@ -344,7 +346,8 @@ function getSeriesLabel(
   if (providerId === 'antigravity') return t(`antigravity.quotaTypes.${seriesKey}`)
   if (providerId === 'zaiCoding') return t('zaiCoding.limits.weekly')
   if (providerId === 'opencodeGo') return t(`opencodeGo.quotaTypes.${period}`)
-  if (providerId === 'ollamaCloud') return t('ollamaCloud.quotaTypes.weekly')
+  if (providerId === 'commandCode') return t(`commandCode.quotaTypes.${period}`)
+  if (providerId === 'ollamaCloud') return t(`ollamaCloud.quotaTypes.${period}`)
   if (providerId === 'codex') {
     const suffix = seriesKey.endsWith('primary') ? 'Primary' : 'Secondary'
     return t(`codex.quotaTypes.${seriesKey.startsWith('codeReview') ? 'codeReview' : 'rateLimit'}${suffix}`)

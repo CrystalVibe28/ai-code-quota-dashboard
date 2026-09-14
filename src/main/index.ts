@@ -17,6 +17,7 @@ import { fetchAllZaiCodingUsage, registerZaiCodingHandlers } from './ipc/zai-cod
 import { fetchAllAiStudioUsage, registerAiStudioHandlers } from './ipc/ai-studio'
 import { fetchAllCodexUsage, registerCodexHandlers } from './ipc/codex'
 import { fetchAllOpencodeGoUsage, registerOpencodeGoHandlers } from './ipc/opencode-go'
+import { fetchAllCommandCodeUsage, registerCommandCodeHandlers } from './ipc/command-code'
 import { fetchAllOllamaCloudUsage, registerOllamaCloudHandlers } from './ipc/ollama-cloud'
 import { registerAppHandlers } from './ipc/app'
 import { registerNotificationHandlers } from './ipc/notification'
@@ -135,6 +136,7 @@ function registerAllIpcHandlers(): void {
   registerAiStudioHandlers()
   registerCodexHandlers()
   registerOpencodeGoHandlers()
+  registerCommandCodeHandlers()
   registerOllamaCloudHandlers()
   registerAppHandlers()
   registerNotificationHandlers()
@@ -249,6 +251,7 @@ async function performBackgroundRefreshInner(): Promise<void> {
       zaiCoding,
       codex,
       opencodeGo,
+      commandCode,
       ollamaCloud,
       aiStudio
     ] = await Promise.all([
@@ -257,6 +260,7 @@ async function performBackgroundRefreshInner(): Promise<void> {
       fetchAllZaiCodingUsage(),
       fetchAllCodexUsage(),
       fetchAllOpencodeGoUsage(),
+      fetchAllCommandCodeUsage(),
       fetchAllOllamaCloudUsage(),
       fetchAllAiStudioUsage()
     ])
@@ -267,6 +271,7 @@ async function performBackgroundRefreshInner(): Promise<void> {
       zaiCoding,
       codex,
       opencodeGo,
+      commandCode,
       ollamaCloud,
       aiStudio
     }
@@ -280,6 +285,7 @@ async function performBackgroundRefreshInner(): Promise<void> {
       zaiCoding,
       codex,
       opencodeGo,
+      commandCode,
       refreshSettings,
       {
         hideUnlimitedQuota: customization?.global?.hideUnlimitedQuota ?? false,

@@ -6,6 +6,7 @@ import GithubCopilot from '@lobehub/icons/es/GithubCopilot/components/Mono'
 import OpenCode from '@lobehub/icons/es/OpenCode/components/Mono'
 import Ollama from '@lobehub/icons/es/Ollama/components/Mono'
 import ZAI from '@lobehub/icons/es/ZAI/components/Mono'
+import { SquareTerminal } from 'lucide-react'
 import type { ProviderId } from '@/types/customization'
 
 type ProviderIcon = JSXElementConstructor<SVGProps<SVGSVGElement>>
@@ -58,6 +59,13 @@ const PROVIDERS_UNSORTED: ProviderDefinition[] = [
     icon: Codex,
     mode: 'oauth' as const,
     oauthProvider: 'OpenAI'
+  },
+  {
+    id: 'commandCode' as const,
+    name: 'Command Code',
+    labelKey: 'nav.commandCode',
+    icon: SquareTerminal,
+    mode: 'apiKey' as const
   },
   {
     id: 'opencodeGo' as const,

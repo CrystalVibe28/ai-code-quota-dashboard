@@ -24,6 +24,7 @@ export interface TrayTooltipData {
   zaiCoding?: Array<{ name: string; percent: number }>
   codex?: Array<{ name: string; percent: number }>
   opencodeGo?: Array<{ name: string; percent: number }>
+  commandCode?: Array<{ name: string; percent: number }>
   ollamaCloud?: Array<{ name: string; percent: number }>
 }
 
@@ -69,6 +70,7 @@ function createEmptyCache(): LocalUsageCache {
       zaiCoding: [],
       codex: [],
       opencodeGo: [],
+      commandCode: [],
       ollamaCloud: [],
       aiStudio: []
     }

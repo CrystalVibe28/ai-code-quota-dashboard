@@ -55,6 +55,7 @@ describe('ProviderAccount', () => {
         zaiCoding: {},
         codex: {},
         opencodeGo: {},
+        commandCode: {},
         ollamaCloud: {},
         aiStudio: {}
       },

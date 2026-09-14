@@ -171,6 +171,7 @@ describe('TrayService', () => {
         zaiCoding: [],
         codex: [{ accountId: 'hidden-codex', name: 'Codex', usage: null }],
         opencodeGo: [],
+        commandCode: [],
         ollamaCloud: [],
         aiStudio: []
       }

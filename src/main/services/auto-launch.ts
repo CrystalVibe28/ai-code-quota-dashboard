@@ -6,7 +6,8 @@ import { replaceFileAtomicallySync } from './atomic-file'
 const AUTO_LAUNCH_ARG = '--hidden'
 const LINUX_AUTOSTART_FILE = 'ai-code-quota-dashboard.desktop'
 const WINDOWS_LOGIN_ITEM = {
-  path: process.execPath,
+  // Electron parses this as a command line when checking StartupApproved.
+  path: `"${process.execPath}"`,
   args: [AUTO_LAUNCH_ARG]
 }
 

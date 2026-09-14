@@ -1,6 +1,7 @@
 import type {
   AiStudioUsage,
   AntigravityUsage,
+  CommandCodeUsage,
   CodexRateWindow,
   CodexUsageData,
   CopilotUsage,
@@ -99,6 +100,15 @@ export function getTrayQuotaItems(
         label: t(`opencodeGo.quotaTypes.${limit.type.replace(/Usage$/, '')}`),
         percentage: clampPercentage(limit.unlimited ? 100 : limit.remaining),
         detail: limit.unlimited ? '∞' : undefined,
+        resetTime: limit.resetTime
+      }))
+
+    case 'commandCode':
+      return ((usage as CommandCodeUsage).limits ?? []).map(limit => ({
+        id: limit.type,
+        label: t(`commandCode.quotaTypes.${limit.type}`),
+        percentage: clampPercentage(100 - limit.percentage),
+        detail: `$${limit.remaining.toLocaleString()} / $${limit.limit.toLocaleString()}`,
         resetTime: limit.resetTime
       }))
 

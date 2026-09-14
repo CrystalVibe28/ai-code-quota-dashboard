@@ -14,6 +14,7 @@ import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
 import { useCodexStore } from '@/stores/useCodexStore'
 import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
+import { useCommandCodeStore } from '@/stores/useCommandCodeStore'
 import { useOllamaCloudStore } from '@/stores/useOllamaCloudStore'
 import { useAiStudioStore } from '@/stores/useAiStudioStore'
 import { useCustomization } from '@/contexts/CustomizationContext'
@@ -58,6 +59,7 @@ export function Overview() {
   const { accounts: zaiAccounts, usageData: zaiUsage, fetchAccounts: fetchZaiAccounts, fetchUsage: fetchZaiUsage } = useZaiCodingStore()
   const { accounts: codexAccounts, usageData: codexUsage, fetchAccounts: fetchCodexAccounts, fetchUsage: fetchCodexUsage } = useCodexStore()
   const { accounts: opencodeGoAccounts, usageData: opencodeGoUsage, fetchAccounts: fetchOpencodeGoAccounts, fetchUsage: fetchOpencodeGoUsage } = useOpencodeGoStore()
+  const { accounts: commandCodeAccounts, usageData: commandCodeUsage, fetchAccounts: fetchCommandCodeAccounts, fetchUsage: fetchCommandCodeUsage } = useCommandCodeStore()
   const { accounts: ollamaCloudAccounts, usageData: ollamaCloudUsage, fetchAccounts: fetchOllamaCloudAccounts, fetchUsage: fetchOllamaCloudUsage } = useOllamaCloudStore()
   const {
     accounts: aiStudioAccounts,
@@ -76,22 +78,23 @@ export function Overview() {
   const refreshAll = useCallback(async () => {
     setIsRefreshing(true)
     try {
-      await Promise.all([fetchAntiAccounts(), fetchGhAccounts(), fetchZaiAccounts(), fetchCodexAccounts(), fetchOpencodeGoAccounts(), fetchOllamaCloudAccounts(), fetchAiStudioAccounts()])
-      const [antigravity, copilot, zai, codex, opencodeGo] = await Promise.all([
+      await Promise.all([fetchAntiAccounts(), fetchGhAccounts(), fetchZaiAccounts(), fetchCodexAccounts(), fetchOpencodeGoAccounts(), fetchCommandCodeAccounts(), fetchOllamaCloudAccounts(), fetchAiStudioAccounts()])
+      const [antigravity, copilot, zai, codex, opencodeGo, commandCode] = await Promise.all([
         fetchAntiUsage(),
         fetchGhUsage(),
         fetchZaiUsage(),
         fetchCodexUsage(),
         fetchOpencodeGoUsage(),
+        fetchCommandCodeUsage(),
         fetchOllamaCloudUsage(),
         fetchAiStudioUsage()
       ])
-      await window.api.notification.checkAndNotify({ antigravity, copilot, zai, codex, opencodeGo }).catch(() => {})
+      await window.api.notification.checkAndNotify({ antigravity, copilot, zai, codex, opencodeGo, commandCode }).catch(() => {})
       setRefreshKey(prev => prev + 1)
     } finally {
       setIsRefreshing(false)
     }
-  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchOllamaCloudAccounts, fetchAiStudioAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage, fetchOllamaCloudUsage, fetchAiStudioUsage])
+  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchCommandCodeAccounts, fetchOllamaCloudAccounts, fetchAiStudioAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage, fetchCommandCodeUsage, fetchOllamaCloudUsage, fetchAiStudioUsage])
 
   useEffect(() => {
     if (!isLoaded) return
@@ -124,16 +127,18 @@ export function Overview() {
     addGroups('zaiCoding', zaiAccounts, zaiUsage)
     addGroups('codex', codexAccounts, codexUsage)
     addGroups('opencodeGo', opencodeGoAccounts, opencodeGoUsage)
+    addGroups('commandCode', commandCodeAccounts, commandCodeUsage)
     addGroups('ollamaCloud', ollamaCloudAccounts, ollamaCloudUsage)
     addGroups('aiStudio', aiStudioAccounts, aiStudioUsage)
     syncAccountCards(groups)
-  }, [isLoaded, global.hideUnlimitedQuota, antiAccounts, antiUsage, ghAccounts, ghUsage, zaiAccounts, zaiUsage, codexAccounts, codexUsage, opencodeGoAccounts, opencodeGoUsage, ollamaCloudAccounts, ollamaCloudUsage, aiStudioAccounts, aiStudioUsage, syncAccountCards])
+  }, [isLoaded, global.hideUnlimitedQuota, antiAccounts, antiUsage, ghAccounts, ghUsage, zaiAccounts, zaiUsage, codexAccounts, codexUsage, opencodeGoAccounts, opencodeGoUsage, commandCodeAccounts, commandCodeUsage, ollamaCloudAccounts, ollamaCloudUsage, aiStudioAccounts, aiStudioUsage, syncAccountCards])
 
   const visibleAntiAccounts = antiAccounts.filter(a => providers.antigravity.accountCardVisibility?.[a.id] ?? a.showInOverview)
   const visibleGhAccounts = ghAccounts.filter(a => providers.githubCopilot.accountCardVisibility?.[a.id] ?? a.showInOverview)
   const visibleZaiAccounts = zaiAccounts.filter(a => providers.zaiCoding.accountCardVisibility?.[a.id] ?? a.showInOverview)
   const visibleCodexAccounts = codexAccounts.filter(a => providers.codex.accountCardVisibility?.[a.id] ?? a.showInOverview)
   const visibleOpencodeGoAccounts = opencodeGoAccounts.filter(a => providers.opencodeGo.accountCardVisibility?.[a.id] ?? a.showInOverview)
+  const visibleCommandCodeAccounts = commandCodeAccounts.filter(a => providers.commandCode.accountCardVisibility?.[a.id] ?? a.showInOverview)
   const visibleOllamaCloudAccounts = ollamaCloudAccounts.filter(a => providers.ollamaCloud.accountCardVisibility?.[a.id] ?? a.showInOverview)
   const visibleAiStudioAccounts = aiStudioAccounts.filter(a => providers.aiStudio.accountCardVisibility?.[a.id] ?? a.showInOverview)
 
@@ -392,22 +397,29 @@ export function Overview() {
     })
   }
 
-  const getPercentLimitLabel = (providerId: 'opencodeGo' | 'ollamaCloud', key: string) => {
+  const getPercentLimitLabel = (providerId: 'opencodeGo' | 'commandCode' | 'ollamaCloud', key: string) => {
     const mapping: Record<string, string> = providerId === 'opencodeGo'
       ? {
           rollingUsage: t('opencodeGo.quotaTypes.rolling'),
           weeklyUsage: t('opencodeGo.quotaTypes.weekly'),
           monthlyUsage: t('opencodeGo.quotaTypes.monthly')
         }
-      : {
+      : providerId === 'commandCode'
+        ? {
+            fiveHour: t('commandCode.quotaTypes.fiveHour'),
+            weekly: t('commandCode.quotaTypes.weekly'),
+            monthly: t('commandCode.quotaTypes.monthly')
+          }
+        : {
           session: t('ollamaCloud.quotaTypes.session'),
-          weekly: t('ollamaCloud.quotaTypes.weekly')
+          weekly: t('ollamaCloud.quotaTypes.weekly'),
+          monthly: t('ollamaCloud.quotaTypes.monthly')
         }
     return mapping[key] ?? key.replace(/([A-Z])/g, ' $1').replace(/Usage$/, '').trim()
   }
 
   const renderPercentUsageCards = (
-    providerId: 'opencodeGo' | 'ollamaCloud',
+    providerId: 'opencodeGo' | 'commandCode' | 'ollamaCloud',
     accounts: Array<{ id: string; displayName: string; showInOverview: boolean }>,
     usageData: Array<{ accountId: string; name: string; usage: { limits: any[] } | null; error?: string }>
   ) => {
@@ -447,7 +459,11 @@ export function Overview() {
 
       return accountUsage.usage.limits.map((limit: any) => {
         const cardId = `${providerId}-${accountUsage.accountId}-${limit.type}`
-        const percentage = limit.unlimited ? 100 : limit.remaining
+        const percentage = limit.unlimited
+          ? 100
+          : providerId === 'commandCode'
+            ? 100 - limit.percentage
+            : limit.remaining
         if (!isCardVisible(providerId, cardId, accountUsage.accountId, account.showInOverview)) return null
         if (!shouldShowCard(percentage, Boolean(limit.unlimited))) return null
 
@@ -478,6 +494,7 @@ export function Overview() {
   }
 
   const renderOpencodeGoCards = () => renderPercentUsageCards('opencodeGo', visibleOpencodeGoAccounts, opencodeGoUsage)
+  const renderCommandCodeCards = () => renderPercentUsageCards('commandCode', visibleCommandCodeAccounts, commandCodeUsage)
   const renderOllamaCloudCards = () => renderPercentUsageCards('ollamaCloud', visibleOllamaCloudAccounts, ollamaCloudUsage)
 
   const renderAiStudioCards = () => {
@@ -560,6 +577,11 @@ export function Overview() {
       title: t('nav.opencodeGo'),
       hasAccounts: visibleOpencodeGoAccounts.length > 0,
       render: renderOpencodeGoCards
+    },
+    commandCode: {
+      title: t('nav.commandCode'),
+      hasAccounts: visibleCommandCodeAccounts.length > 0,
+      render: renderCommandCodeCards
     },
     ollamaCloud: {
       title: t('nav.ollamaCloud'),
@@ -645,6 +667,7 @@ export function Overview() {
        visibleZaiAccounts.length === 0 && 
        visibleCodexAccounts.length === 0 &&
        visibleOpencodeGoAccounts.length === 0 &&
+       visibleCommandCodeAccounts.length === 0 &&
        visibleOllamaCloudAccounts.length === 0 &&
        visibleAiStudioAccounts.length === 0 && (
         <Card className="border-dashed shadow-none">

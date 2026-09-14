@@ -34,6 +34,31 @@ describe('AddAccountDialog', () => {
     })
   })
 
+  it('should validate and save a Command Code API key', async () => {
+    const onClose = vi.fn()
+    render(<AddAccountDialog isOpen={true} onClose={onClose} />)
+
+    const providerSelect = screen.getByRole('combobox', { name: 'addAccount.selectProvider' })
+    fireEvent.keyDown(providerSelect, { key: 'ArrowDown' })
+    fireEvent.click(await screen.findByRole('option', { name: /Command Code/ }))
+    fireEvent.change(screen.getByLabelText('addAccount.apiKey'), {
+      target: { value: 'command-code-key' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'common.add' }))
+
+    await waitFor(() => {
+      expect(mockWindowApi.commandCode.validateApiKey).toHaveBeenCalledWith('command-code-key')
+      expect(mockWindowApi.storage.saveAccount).toHaveBeenCalledWith(
+        'commandCode',
+        expect.objectContaining({
+          displayName: 'Command Code',
+          apiKey: 'command-code-key'
+        })
+      )
+      expect(onClose).toHaveBeenCalledTimes(1)
+    })
+  })
+
   it('should preserve a custom name during login and reset it only when the provider changes', async () => {
     mockWindowApi.antigravity.login.mockResolvedValue({
       success: true,

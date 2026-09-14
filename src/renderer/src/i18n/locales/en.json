@@ -29,6 +29,7 @@
     "zaiCoding": "Zai Coding Plan",
     "codex": "Codex",
     "opencodeGo": "Opencode Go",
+    "commandCode": "Command Code",
     "ollamaCloud": "Ollama Cloud",
     "settings": "Settings"
   },
@@ -112,6 +113,7 @@
     "autoLaunch": "Launch at Login",
     "autoLaunchDesc": "Automatically start the application when the system starts",
     "autoLaunchError": "Could not update the launch-at-login setting",
+    "autoLaunchUnavailable": "Launch at login is available in the installed application. It is disabled in development mode.",
     "apiServerSettings": "Local API Server",
     "apiServerSettingsDesc": "Configure the network access scope of the local API",
     "allowRemoteApiAccess": "Allow access from other devices",
@@ -278,11 +280,20 @@
       "monthly": "Monthly quota"
     }
   },
+  "commandCode": {
+    "noQuotaData": "No Command Code usage data available",
+    "quotaTypes": {
+      "fiveHour": "5-hour quota",
+      "weekly": "Weekly quota",
+      "monthly": "Monthly quota"
+    }
+  },
   "ollamaCloud": {
     "noQuotaData": "No Ollama Cloud usage data available",
     "quotaTypes": {
       "session": "5-hour quota",
-      "weekly": "Weekly quota"
+      "weekly": "Weekly quota",
+      "monthly": "Monthly quota"
     }
   },
   "aiStudio": {

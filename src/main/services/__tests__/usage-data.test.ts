@@ -80,6 +80,18 @@ describe('UsageDataService', () => {
         ]
       }
     }], now)
+    service.recordProvider('commandCode', [{
+      accountId: 'command-code',
+      name: 'Command Code',
+      usage: {
+        credits: { monthlyRemaining: 14, purchased: 0, free: 0, planId: 'individual-goat' },
+        limits: [
+          { type: 'weekly', used: 7, limit: 35, remaining: 28, percentage: 20, unit: 'usd', unlimited: false },
+          { type: 'monthly', used: 56, limit: 70, remaining: 14, percentage: 80, unit: 'usd', unlimited: false },
+          { type: 'fiveHour', used: 7, limit: 14, remaining: 7, percentage: 50, unit: 'usd', unlimited: false }
+        ]
+      }
+    }], now)
     service.recordProvider('ollamaCloud', [{
       accountId: 'ollama',
       name: 'Ollama',
@@ -87,7 +99,8 @@ describe('UsageDataService', () => {
       usage: {
         limits: [
           { type: 'weekly', used: 35, limit: 100, remaining: 65, percentage: 35, unit: 'percent', unlimited: false },
-          { type: 'session', used: 45, limit: 100, remaining: 55, percentage: 45, unit: 'percent', unlimited: false }
+          { type: 'session', used: 45, limit: 100, remaining: 55, percentage: 45, unit: 'percent', unlimited: false },
+          { type: 'monthly', used: 10, limit: 100, remaining: 90, percentage: 10, unit: 'percent', unlimited: false }
         ]
       }
     }], now)
@@ -102,9 +115,14 @@ describe('UsageDataService', () => {
       weekly: [{ remaining: 90 }],
       monthly: [{ remaining: 80 }]
     })
-    expect(service.getQuotaHistory('ollamaCloud', 'ollama', now).weekly).toMatchObject([
-      { remaining: 65 }
-    ])
+    expect(service.getQuotaHistory('commandCode', 'command-code', now)).toMatchObject({
+      weekly: [{ remaining: 80 }],
+      monthly: [{ remaining: 20 }]
+    })
+    expect(service.getQuotaHistory('ollamaCloud', 'ollama', now)).toMatchObject({
+      weekly: [{ remaining: 65 }],
+      monthly: [{ remaining: 90 }]
+    })
   })
 
   it('stores one sample per hour and keeps the last value within that hour', () => {

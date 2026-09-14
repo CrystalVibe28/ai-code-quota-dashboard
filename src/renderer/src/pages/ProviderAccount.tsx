@@ -16,6 +16,7 @@ import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
 import { useCodexStore } from '@/stores/useCodexStore'
 import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
+import { useCommandCodeStore } from '@/stores/useCommandCodeStore'
 import { useOllamaCloudStore } from '@/stores/useOllamaCloudStore'
 import { useAiStudioStore } from '@/stores/useAiStudioStore'
 import { useErrorStore } from '@/stores/useErrorStore'
@@ -46,7 +47,8 @@ const HISTORY_PERIODS: Partial<Record<ProviderId, QuotaHistoryPeriod[]>> = {
   zaiCoding: ['weekly'],
   codex: ['weekly', 'monthly'],
   opencodeGo: ['weekly', 'monthly'],
-  ollamaCloud: ['weekly']
+  commandCode: ['weekly', 'monthly'],
+  ollamaCloud: ['weekly', 'monthly']
 }
 
 function emptyHistory(): QuotaHistory {
@@ -139,6 +141,16 @@ export function ProviderAccount() {
   } = useOpencodeGoStore()
 
   const {
+    accounts: commandCodeAccounts,
+    usageData: commandCodeUsage,
+    isLoading: commandCodeLoading,
+    fetchAccounts: fetchCommandCodeAccounts,
+    fetchUsage: fetchCommandCodeUsage,
+    deleteAccount: deleteCommandCodeAccount,
+    updateAccount: updateCommandCodeAccount
+  } = useCommandCodeStore()
+
+  const {
     accounts: ollamaCloudAccounts,
     usageData: ollamaCloudUsage,
     isLoading: ollamaCloudLoading,
@@ -193,6 +205,10 @@ export function ProviderAccount() {
       const acc = opencodeGoAccounts.find(a => a.id === accountId)
       const usageItem = opencodeGoUsage.find(u => u.accountId === accountId)
       return { account: acc, usage: usageItem, isLoading: opencodeGoLoading }
+    } else if (providerId === 'commandCode') {
+      const acc = commandCodeAccounts.find(a => a.id === accountId)
+      const usageItem = commandCodeUsage.find(u => u.accountId === accountId)
+      return { account: acc, usage: usageItem, isLoading: commandCodeLoading }
     } else if (providerId === 'ollamaCloud') {
       const acc = ollamaCloudAccounts.find(a => a.id === accountId)
       const usageItem = ollamaCloudUsage.find(u => u.accountId === accountId)
@@ -203,7 +219,7 @@ export function ProviderAccount() {
       return { account: acc, usage: usageItem, isLoading: aiStudioLoading }
     }
     return { account: undefined, usage: undefined, isLoading: false }
-  }, [providerId, accountId, antiAccounts, antiUsage, antiLoading, ghAccounts, ghUsage, ghLoading, zaiAccounts, zaiUsage, zaiLoading, codexAccounts, codexUsage, codexLoading, opencodeGoAccounts, opencodeGoUsage, opencodeGoLoading, ollamaCloudAccounts, ollamaCloudUsage, ollamaCloudLoading, aiStudioAccounts, aiStudioUsage, aiStudioLoading])
+  }, [providerId, accountId, antiAccounts, antiUsage, antiLoading, ghAccounts, ghUsage, ghLoading, zaiAccounts, zaiUsage, zaiLoading, codexAccounts, codexUsage, codexLoading, opencodeGoAccounts, opencodeGoUsage, opencodeGoLoading, commandCodeAccounts, commandCodeUsage, commandCodeLoading, ollamaCloudAccounts, ollamaCloudUsage, ollamaCloudLoading, aiStudioAccounts, aiStudioUsage, aiStudioLoading])
 
   const aiStudioAccount = providerId === 'aiStudio' ? account as AiStudioAccount | undefined : undefined
   const currentAiStudioUsage = providerId === 'aiStudio' && usage?.usage ? usage.usage as AiStudioUsage : null
@@ -294,16 +310,23 @@ export function ProviderAccount() {
     return quotaType ? t(`zaiCoding.limits.${quotaType}`) : limit.type.replace(/_/g, ' ')
   }
 
-  const getPercentLimitLabel = (percentProviderId: 'opencodeGo' | 'ollamaCloud', key: string) => {
+  const getPercentLimitLabel = (percentProviderId: 'opencodeGo' | 'commandCode' | 'ollamaCloud', key: string) => {
     const mapping: Record<string, string> = percentProviderId === 'opencodeGo'
       ? {
           rollingUsage: t('opencodeGo.quotaTypes.rolling'),
           weeklyUsage: t('opencodeGo.quotaTypes.weekly'),
           monthlyUsage: t('opencodeGo.quotaTypes.monthly')
         }
-      : {
+      : percentProviderId === 'commandCode'
+        ? {
+            fiveHour: t('commandCode.quotaTypes.fiveHour'),
+            weekly: t('commandCode.quotaTypes.weekly'),
+            monthly: t('commandCode.quotaTypes.monthly')
+          }
+        : {
           session: t('ollamaCloud.quotaTypes.session'),
-          weekly: t('ollamaCloud.quotaTypes.weekly')
+          weekly: t('ollamaCloud.quotaTypes.weekly'),
+          monthly: t('ollamaCloud.quotaTypes.monthly')
         }
     return mapping[key] ?? key.replace(/([A-Z])/g, ' $1').replace(/Usage$/, '').trim()
   }
@@ -353,6 +376,9 @@ export function ProviderAccount() {
     } else if (providerId === 'opencodeGo') {
       await fetchOpencodeGoAccounts()
       await fetchOpencodeGoUsage()
+    } else if (providerId === 'commandCode') {
+      await fetchCommandCodeAccounts()
+      await fetchCommandCodeUsage()
     } else if (providerId === 'ollamaCloud') {
       await fetchOllamaCloudAccounts()
       await fetchOllamaCloudUsage()
@@ -376,6 +402,8 @@ export function ProviderAccount() {
       success = await deleteCodexAccount(accountId!)
     } else if (providerId === 'opencodeGo') {
       success = await deleteOpencodeGoAccount(accountId!)
+    } else if (providerId === 'commandCode') {
+      success = await deleteCommandCodeAccount(accountId!)
     } else if (providerId === 'ollamaCloud') {
       success = await deleteOllamaCloudAccount(accountId!)
     } else if (providerId === 'aiStudio') {
@@ -414,6 +442,8 @@ export function ProviderAccount() {
       success = await updateCodexAccount(accountId!, { displayName: newName })
     } else if (providerId === 'opencodeGo') {
       success = await updateOpencodeGoAccount(accountId!, { displayName: newName })
+    } else if (providerId === 'commandCode') {
+      success = await updateCommandCodeAccount(accountId!, { displayName: newName })
     } else if (providerId === 'ollamaCloud') {
       success = await updateOllamaCloudAccount(accountId!, { displayName: newName })
     } else if (providerId === 'aiStudio') {
@@ -608,11 +638,15 @@ export function ProviderAccount() {
       return cards
     }
 
-    if (providerId === 'opencodeGo' || providerId === 'ollamaCloud') {
+    if (providerId === 'opencodeGo' || providerId === 'commandCode' || providerId === 'ollamaCloud') {
       const usageData = usage.usage as any
       const cards = (usageData.limits || []).map((limit: any) => {
         const cardId = `${providerId}-${accountId}-${limit.type}`
-        const percentage = limit.unlimited ? 100 : limit.remaining
+        const percentage = limit.unlimited
+          ? 100
+          : providerId === 'commandCode'
+            ? 100 - limit.percentage
+            : limit.remaining
         const config = getCardConfig(providerId, cardId, accountId, fallbackCardVisibility)
         return (
           <UsageCard

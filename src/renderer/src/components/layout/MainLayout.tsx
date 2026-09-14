@@ -18,6 +18,7 @@ import { useGithubCopilotStore } from '@/stores/useGithubCopilotStore'
 import { useZaiCodingStore } from '@/stores/useZaiCodingStore'
 import { useCodexStore } from '@/stores/useCodexStore'
 import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
+import { useCommandCodeStore } from '@/stores/useCommandCodeStore'
 import { useOllamaCloudStore } from '@/stores/useOllamaCloudStore'
 import { useAiStudioStore } from '@/stores/useAiStudioStore'
 import { getProviderById } from '@/constants/providers'
@@ -48,6 +49,7 @@ export function MainLayout() {
   const { accounts: zaiAccounts } = useZaiCodingStore()
   const { accounts: codexAccounts } = useCodexStore()
   const { accounts: opencodeGoAccounts } = useOpencodeGoStore()
+  const { accounts: commandCodeAccounts } = useCommandCodeStore()
   const { accounts: ollamaCloudAccounts } = useOllamaCloudStore()
   const { accounts: aiStudioAccounts } = useAiStudioStore()
   
@@ -90,6 +92,11 @@ export function MainLayout() {
       id: a.id,
       displayName: a.displayName || a.workspaceName || a.workspaceId,
       providerId: 'opencodeGo' as const
+    })),
+    ...commandCodeAccounts.map(a => ({
+      id: a.id,
+      displayName: a.displayName || a.name,
+      providerId: 'commandCode' as const
     })),
     ...ollamaCloudAccounts.map(a => ({
       id: a.id,

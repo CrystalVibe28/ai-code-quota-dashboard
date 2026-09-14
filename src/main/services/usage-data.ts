@@ -8,6 +8,7 @@ import { getZaiQuotaType } from '@shared/zaiQuota'
 import type {
   AntigravityUsage,
   CachedAccountUsage,
+  CommandCodeAccountUsage,
   CodexAccountUsage,
   LocalUsageCache,
   OllamaCloudAccountUsage,
@@ -64,6 +65,7 @@ const PROVIDER_IDS: ProviderId[] = [
   'zaiCoding',
   'codex',
   'opencodeGo',
+  'commandCode',
   'ollamaCloud',
   'aiStudio'
 ]
@@ -410,6 +412,8 @@ export class UsageDataService {
         return this.extractCodex(results as CodexAccountUsage[])
       case 'opencodeGo':
         return this.extractOpencodeGo(results as OpencodeGoAccountUsage[])
+      case 'commandCode':
+        return this.extractCommandCode(results as CommandCodeAccountUsage[])
       case 'ollamaCloud':
         return this.extractOllamaCloud(results as OllamaCloudAccountUsage[])
       default:
@@ -583,12 +587,29 @@ export class UsageDataService {
     }) ?? [])
   }
 
-  private extractOllamaCloud(results: OllamaCloudAccountUsage[]): HistorySample[] {
-    return results.flatMap(account => account.usage?.limits.flatMap(limit => (
-      limit.type === 'weekly'
+  private extractCommandCode(results: CommandCodeAccountUsage[]): HistorySample[] {
+    return results.flatMap(account => account.usage?.limits.flatMap(limit => {
+      const period = limit.type === 'weekly' || limit.type === 'monthly'
+        ? limit.type
+        : null
+      return period
         ? [this.sample(
             account.accountId,
-            'weekly',
+            period,
+            limit.type,
+            100 - limit.percentage,
+            limit.resetTime
+          )]
+        : []
+    }) ?? [])
+  }
+
+  private extractOllamaCloud(results: OllamaCloudAccountUsage[]): HistorySample[] {
+    return results.flatMap(account => account.usage?.limits.flatMap(limit => (
+      limit.type === 'weekly' || limit.type === 'monthly'
+        ? [this.sample(
+            account.accountId,
+            limit.type,
             limit.type,
             limit.remaining,
             limit.resetTime

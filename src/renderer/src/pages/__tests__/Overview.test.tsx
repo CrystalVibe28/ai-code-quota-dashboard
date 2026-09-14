@@ -65,6 +65,7 @@ describe('Overview', () => {
         zaiCoding: {},
         codex: {},
         opencodeGo: {},
+        commandCode: {},
         ollamaCloud: {},
         aiStudio: {}
       },

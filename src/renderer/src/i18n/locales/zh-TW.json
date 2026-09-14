@@ -29,6 +29,7 @@
     "zaiCoding": "Zai Coding Plan",
     "codex": "Codex",
     "opencodeGo": "Opencode Go",
+    "commandCode": "Command Code",
     "ollamaCloud": "Ollama Cloud",
     "settings": "設定"
   },
@@ -112,6 +113,7 @@
     "autoLaunch": "開機自動啟動",
     "autoLaunchDesc": "系統啟動時自動執行此應用程式",
     "autoLaunchError": "無法更新開機自動啟動設定",
+    "autoLaunchUnavailable": "請使用安裝版設定開機自動啟動；開發模式不支援此功能。",
     "apiServerSettings": "本機 API 伺服器",
     "apiServerSettingsDesc": "設定本機 API 的網路存取範圍",
     "allowRemoteApiAccess": "允許其他裝置連線",
@@ -278,11 +280,20 @@
       "monthly": "每月配額"
     }
   },
+  "commandCode": {
+    "noQuotaData": "沒有可用的 Command Code 使用量資料",
+    "quotaTypes": {
+      "fiveHour": "5 小時配額",
+      "weekly": "每週配額",
+      "monthly": "每月配額"
+    }
+  },
   "ollamaCloud": {
     "noQuotaData": "沒有可用的 Ollama Cloud 使用量資料",
     "quotaTypes": {
       "session": "5 小時配額",
-      "weekly": "每週配額"
+      "weekly": "每週配額",
+      "monthly": "每月配額"
     }
   },
   "aiStudio": {

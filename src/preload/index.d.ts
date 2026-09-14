@@ -4,6 +4,7 @@ import type {
   CodexAccount,
   GithubCopilotAccount,
   OpencodeGoAccount,
+  CommandCodeAccount,
   OllamaCloudAccount,
   ZaiCodingAccount,
   AiStudioAccount,
@@ -14,6 +15,8 @@ import type {
   CodexAccountUsage,
   GithubCopilotAccountUsage,
   OpencodeGoAccountUsage,
+  CommandCodeUsage,
+  CommandCodeAccountUsage,
   OllamaCloudAccountUsage,
   ZaiAccountUsage,
   Settings,
@@ -40,10 +43,10 @@ interface AuthAPI {
 }
 
 interface StorageAPI {
-  getAccounts: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | OllamaCloudAccount | AiStudioAccount>(
+  getAccounts: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | CommandCodeAccount | OllamaCloudAccount | AiStudioAccount>(
     provider: string
   ) => Promise<T[]>
-  saveAccount: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | OllamaCloudAccount | AiStudioAccount>(
+  saveAccount: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | CommandCodeAccount | OllamaCloudAccount | AiStudioAccount>(
     provider: string,
     account: T
   ) => Promise<boolean>
@@ -51,7 +54,7 @@ interface StorageAPI {
   updateAccount: (
     provider: string,
     accountId: string,
-    data: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount> | Partial<CodexAccount> | Partial<OpencodeGoAccount> | Partial<OllamaCloudAccount> | Partial<AiStudioAccount>
+    data: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount> | Partial<CodexAccount> | Partial<OpencodeGoAccount> | Partial<CommandCodeAccount> | Partial<OllamaCloudAccount> | Partial<AiStudioAccount>
   ) => Promise<boolean>
   getSettings: () => Promise<Settings>
   saveSettings: (settings: Partial<Settings>) => Promise<boolean>
@@ -107,7 +110,7 @@ interface AppAPI {
   stopBackgroundRefresh: () => Promise<boolean>
   startBackgroundRefresh: () => Promise<boolean>
   getPlatform: () => Promise<string>
-  getAutoLaunch: () => Promise<boolean>
+  getAutoLaunch: () => Promise<boolean | null>
   setAutoLaunch: (enabled: boolean) => Promise<boolean>
 }
 
@@ -120,6 +123,7 @@ interface NotificationAPI {
     zai: unknown[]
     codex: unknown[]
     opencodeGo?: unknown[]
+    commandCode?: unknown[]
   }) => Promise<boolean>
 }
 
@@ -136,6 +140,12 @@ interface UpdateAPI {
   openReleasePage: (url?: string) => Promise<boolean>
   onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void
   onStatusChange: (callback: (status: UpdateDownloadStatus) => void) => () => void
+}
+
+interface CommandCodeAPI {
+  validateApiKey: (apiKey: string) => Promise<{ valid: boolean; error?: string }>
+  fetchUsage: (accountId: string) => Promise<CommandCodeUsage | null>
+  fetchAllUsage: () => Promise<CommandCodeAccountUsage[]>
 }
 
 interface OllamaCloudAPI {
@@ -164,6 +174,7 @@ interface CustomAPI {
   aiStudio: AiStudioAPI
   codex: CodexAPI
   opencodeGo: OpencodeGoAPI
+  commandCode: CommandCodeAPI
   ollamaCloud: OllamaCloudAPI
   app: AppAPI
   notification: NotificationAPI

@@ -57,6 +57,21 @@ describe('QuotaHistoryChart', () => {
     expect(container.querySelectorAll('circle[data-series-endpoint]')).toHaveLength(1)
   })
 
+  it('clips the visually hidden data table inside the chart', () => {
+    const { container } = render(
+      <QuotaHistoryChart
+        providerId="codex"
+        period="weekly"
+        points={[{ seriesKey: 'rateLimit:primary', sampledAt: now, remaining: 70 }]}
+      />
+    )
+
+    const table = container.querySelector('table')
+    expect(table).not.toHaveClass('sr-only')
+    expect(table?.parentElement).toHaveClass('sr-only')
+    expect(table?.parentElement?.parentElement).toHaveClass('relative')
+  })
+
   it('breaks the line across a long collection gap', () => {
     const { container } = render(
       <QuotaHistoryChart

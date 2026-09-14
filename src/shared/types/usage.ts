@@ -174,8 +174,38 @@ export interface OpencodeGoAccountUsage {
   error?: string
 }
 
+export interface CommandCodeLimit {
+  type: 'fiveHour' | 'weekly' | 'monthly'
+  used: number
+  limit: number
+  remaining: number
+  percentage: number
+  resetTime?: string | number
+  unit: 'usd'
+  unlimited: false
+}
+
+export interface CommandCodeCredits {
+  monthlyRemaining: number
+  purchased: number
+  free: number
+  planId?: string
+}
+
+export interface CommandCodeUsage {
+  limits: CommandCodeLimit[]
+  credits: CommandCodeCredits
+}
+
+export interface CommandCodeAccountUsage {
+  accountId: string
+  name: string
+  usage: CommandCodeUsage | null
+  error?: string
+}
+
 export interface OllamaCloudLimit {
-  type: 'session' | 'weekly'
+  type: 'session' | 'weekly' | 'monthly'
   used: number
   limit: number
   remaining: number
@@ -205,6 +235,7 @@ export interface UsageSnapshot {
   zaiCoding: ZaiAccountUsage[]
   codex: CodexAccountUsage[]
   opencodeGo: OpencodeGoAccountUsage[]
+  commandCode: CommandCodeAccountUsage[]
   ollamaCloud: OllamaCloudAccountUsage[]
   aiStudio: AiStudioAccountUsage[]
 }

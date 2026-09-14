@@ -4,7 +4,7 @@
 /**
  * Provider identifiers
  */
-export type ProviderId = 'antigravity' | 'githubCopilot' | 'zaiCoding' | 'codex' | 'opencodeGo' | 'ollamaCloud' | 'aiStudio'
+export type ProviderId = 'antigravity' | 'githubCopilot' | 'zaiCoding' | 'codex' | 'opencodeGo' | 'commandCode' | 'ollamaCloud' | 'aiStudio'
 
 /**
  * Base account interface with common fields
@@ -115,6 +115,14 @@ export interface OpencodeGoAccount extends BaseAccount {
 }
 
 /**
+ * Command Code account
+ */
+export interface CommandCodeAccount extends BaseAccount {
+  name: string
+  apiKey: string
+}
+
+/**
  * Ollama Cloud account
  */
 export interface OllamaCloudAccount extends BaseAccount {
@@ -126,7 +134,7 @@ export interface OllamaCloudAccount extends BaseAccount {
 /**
  * Union type for all account types
  */
-export type Account = AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | OllamaCloudAccount | AiStudioAccount
+export type Account = AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | CommandCodeAccount | OllamaCloudAccount | AiStudioAccount
 
 /**
  * Partial types for account updates
@@ -136,6 +144,7 @@ export type GithubCopilotAccountUpdate = Partial<Omit<GithubCopilotAccount, 'id'
 export type ZaiCodingAccountUpdate = Partial<Omit<ZaiCodingAccount, 'id'>>
 export type CodexAccountUpdate = Partial<Omit<CodexAccount, 'id'>>
 export type OpencodeGoAccountUpdate = Partial<Omit<OpencodeGoAccount, 'id'>>
+export type CommandCodeAccountUpdate = Partial<Omit<CommandCodeAccount, 'id'>>
 export type OllamaCloudAccountUpdate = Partial<Omit<OllamaCloudAccount, 'id'>>
 export type AiStudioAccountUpdate = Partial<Omit<AiStudioAccount, 'id'>>
 

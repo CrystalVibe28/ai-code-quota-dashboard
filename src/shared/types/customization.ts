@@ -112,7 +112,7 @@ export const DEFAULT_GLOBAL_CONFIG: GlobalConfig = {
   overviewLayout: 'compact',
   gridColumns: 'auto',
   cardSize: 'default',
-  providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'ollamaCloud', 'aiStudio'],
+  providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'commandCode', 'ollamaCloud', 'aiStudio'],
   
   // Visual
   theme: 'system',

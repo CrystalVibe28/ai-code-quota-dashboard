@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { app, ipcMain } from 'electron'
 import { StorageService } from '../services/storage'
 import { getAutoLaunch, setAutoLaunch } from '../services/auto-launch'
 import { restartBackgroundRefresh, stopBackgroundRefresh, startBackgroundRefresh } from '../index'
@@ -68,7 +68,7 @@ export function registerAppHandlers(): void {
     return process.platform
   })
 
-  ipcMain.handle('app:get-auto-launch', () => getAutoLaunch())
+  ipcMain.handle('app:get-auto-launch', () => app.isPackaged ? getAutoLaunch() : null)
 
   ipcMain.handle('app:set-auto-launch', (_, enabled: boolean) => {
     if (typeof enabled !== 'boolean') return false

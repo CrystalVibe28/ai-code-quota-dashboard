@@ -83,6 +83,11 @@ export const mockWindowApi: Record<string, Record<string, Mock>> = {
     fetchUsage: vi.fn().mockResolvedValue(null),
     fetchAllUsage: vi.fn().mockResolvedValue([])
   },
+  commandCode: {
+    validateApiKey: vi.fn().mockResolvedValue({ valid: true }),
+    fetchUsage: vi.fn().mockResolvedValue(null),
+    fetchAllUsage: vi.fn().mockResolvedValue([])
+  },
   ollamaCloud: {
     login: vi.fn().mockResolvedValue({ success: true }),
     cancelLogin: vi.fn().mockResolvedValue(true),
