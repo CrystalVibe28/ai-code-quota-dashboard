@@ -59,6 +59,28 @@ describe('AddAccountDialog', () => {
     })
   })
 
+  it('should add an Opencode Go account with an API key', async () => {
+    const onClose = vi.fn()
+    render(<AddAccountDialog isOpen={true} onClose={onClose} />)
+
+    const providerSelect = screen.getByRole('combobox', { name: 'addAccount.selectProvider' })
+    fireEvent.keyDown(providerSelect, { key: 'ArrowDown' })
+    fireEvent.click(await screen.findByRole('option', { name: /Opencode Go/ }))
+    fireEvent.change(screen.getByLabelText('addAccount.apiKey'), {
+      target: { value: 'opencode-go-key' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'common.add' }))
+
+    await waitFor(() => {
+      expect(mockWindowApi.opencodeGo.validateApiKey).toHaveBeenCalledWith('opencode-go-key')
+      expect(mockWindowApi.storage.saveAccount).toHaveBeenCalledWith(
+        'opencodeGo',
+        expect.objectContaining({ displayName: 'Opencode Go', apiKey: 'opencode-go-key' })
+      )
+      expect(onClose).toHaveBeenCalledTimes(1)
+    })
+  })
+
   it('should preserve a custom name during login and reset it only when the provider changes', async () => {
     mockWindowApi.antigravity.login.mockResolvedValue({
       success: true,

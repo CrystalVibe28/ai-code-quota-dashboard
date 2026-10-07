@@ -21,10 +21,10 @@ describe('NotificationService', () => {
   it('removes state for cards absent from the latest quota data', () => {
     service.checkAndNotify(
       [{ accountId: 'removed', email: 'test@example.com', usage: [{ modelName: 'model', remainingFraction: 0.2 }] }] as never,
-      [], [], [], [], [], settings, filters
+      [], [], [], [], [], [], settings, filters
     )
 
-    service.checkAndNotify([], [], [], [], [], [], settings, filters)
+    service.checkAndNotify([], [], [], [], [], [], [], settings, filters)
 
     expect(service.getState()).toEqual(new Map())
   })
@@ -40,7 +40,7 @@ describe('NotificationService', () => {
             { type: 'TOKENS_LIMIT', unit: 6, number: 1, percentage: 80 }
           ]
         }
-      }], [], [], [], settings, filters
+      }], [], [], [], [], settings, filters
     )
 
     expect([...service.getState().keys()]).toEqual([
@@ -67,7 +67,7 @@ describe('NotificationService', () => {
           ]
         }
       ] as never,
-      [], [], [], [], [], settings,
+      [], [], [], [], [], [], settings,
       {
         hideUnlimitedQuota: false,
         cards: {

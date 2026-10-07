@@ -38,6 +38,10 @@ describe('getTrayQuotaItems', () => {
     expect(getTrayQuotaItems('ollamaCloud', {
       limits: [{ type: 'weekly', remaining: 55 }]
     }, t)[0]).toMatchObject({ percentage: 55 })
+
+    expect(getTrayQuotaItems('claude', {
+      limits: [{ type: 'weeklyModel:Opus', remaining: 45 }]
+    }, t)[0]).toMatchObject({ id: 'weeklyModel:Opus', percentage: 45 })
   })
 
   it('converts AI Studio limits to remaining percentages without hiding unlimited quotas', () => {

@@ -17,6 +17,7 @@ import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
 import { useCommandCodeStore } from '@/stores/useCommandCodeStore'
 import { useOllamaCloudStore } from '@/stores/useOllamaCloudStore'
 import { useAiStudioStore } from '@/stores/useAiStudioStore'
+import { useClaudeStore } from '@/stores/useClaudeStore'
 import { useCustomization } from '@/contexts/CustomizationContext'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
 import { getQuotaGridClassName } from '@/constants/customization'
@@ -26,6 +27,7 @@ import type { ZaiLimit } from '@shared/types'
 import { getAntigravityQuotaType } from '@shared/antigravityQuota'
 import { getZaiCardId, getZaiQuotaType } from '@shared/zaiQuota'
 import { getCodexWindowLabel } from '@/lib/codexQuota'
+import { getClaudeLimitLabel } from '@/lib/claudeQuota'
 import { getAccountCardIds } from '@/lib/cardVisibility'
 import { isGoogleOAuthReauthorizationRequired } from '@/lib/googleApiError'
 import { cn } from '@/lib/utils'
@@ -61,6 +63,7 @@ export function Overview() {
   const { accounts: opencodeGoAccounts, usageData: opencodeGoUsage, fetchAccounts: fetchOpencodeGoAccounts, fetchUsage: fetchOpencodeGoUsage } = useOpencodeGoStore()
   const { accounts: commandCodeAccounts, usageData: commandCodeUsage, fetchAccounts: fetchCommandCodeAccounts, fetchUsage: fetchCommandCodeUsage } = useCommandCodeStore()
   const { accounts: ollamaCloudAccounts, usageData: ollamaCloudUsage, fetchAccounts: fetchOllamaCloudAccounts, fetchUsage: fetchOllamaCloudUsage } = useOllamaCloudStore()
+  const { accounts: claudeAccounts, usageData: claudeUsage, fetchAccounts: fetchClaudeAccounts, fetchUsage: fetchClaudeUsage } = useClaudeStore()
   const {
     accounts: aiStudioAccounts,
     usageData: aiStudioUsage,
@@ -78,8 +81,8 @@ export function Overview() {
   const refreshAll = useCallback(async () => {
     setIsRefreshing(true)
     try {
-      await Promise.all([fetchAntiAccounts(), fetchGhAccounts(), fetchZaiAccounts(), fetchCodexAccounts(), fetchOpencodeGoAccounts(), fetchCommandCodeAccounts(), fetchOllamaCloudAccounts(), fetchAiStudioAccounts()])
-      const [antigravity, copilot, zai, codex, opencodeGo, commandCode] = await Promise.all([
+      await Promise.all([fetchAntiAccounts(), fetchGhAccounts(), fetchZaiAccounts(), fetchCodexAccounts(), fetchOpencodeGoAccounts(), fetchCommandCodeAccounts(), fetchOllamaCloudAccounts(), fetchAiStudioAccounts(), fetchClaudeAccounts()])
+      const [antigravity, copilot, zai, codex, opencodeGo, commandCode, , , claude] = await Promise.all([
         fetchAntiUsage(),
         fetchGhUsage(),
         fetchZaiUsage(),
@@ -87,14 +90,15 @@ export function Overview() {
         fetchOpencodeGoUsage(),
         fetchCommandCodeUsage(),
         fetchOllamaCloudUsage(),
-        fetchAiStudioUsage()
+        fetchAiStudioUsage(),
+        fetchClaudeUsage()
       ])
-      await window.api.notification.checkAndNotify({ antigravity, copilot, zai, codex, opencodeGo, commandCode }).catch(() => {})
+      await window.api.notification.checkAndNotify({ antigravity, copilot, zai, codex, opencodeGo, commandCode, claude }).catch(() => {})
       setRefreshKey(prev => prev + 1)
     } finally {
       setIsRefreshing(false)
     }
-  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchCommandCodeAccounts, fetchOllamaCloudAccounts, fetchAiStudioAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage, fetchCommandCodeUsage, fetchOllamaCloudUsage, fetchAiStudioUsage])
+  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchCommandCodeAccounts, fetchOllamaCloudAccounts, fetchAiStudioAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage, fetchCommandCodeUsage, fetchOllamaCloudUsage, fetchAiStudioUsage, fetchClaudeAccounts, fetchClaudeUsage])
 
   useEffect(() => {
     if (!isLoaded) return
@@ -130,8 +134,9 @@ export function Overview() {
     addGroups('commandCode', commandCodeAccounts, commandCodeUsage)
     addGroups('ollamaCloud', ollamaCloudAccounts, ollamaCloudUsage)
     addGroups('aiStudio', aiStudioAccounts, aiStudioUsage)
+    addGroups('claude', claudeAccounts, claudeUsage)
     syncAccountCards(groups)
-  }, [isLoaded, global.hideUnlimitedQuota, antiAccounts, antiUsage, ghAccounts, ghUsage, zaiAccounts, zaiUsage, codexAccounts, codexUsage, opencodeGoAccounts, opencodeGoUsage, commandCodeAccounts, commandCodeUsage, ollamaCloudAccounts, ollamaCloudUsage, aiStudioAccounts, aiStudioUsage, syncAccountCards])
+  }, [isLoaded, global.hideUnlimitedQuota, antiAccounts, antiUsage, ghAccounts, ghUsage, zaiAccounts, zaiUsage, codexAccounts, codexUsage, opencodeGoAccounts, opencodeGoUsage, commandCodeAccounts, commandCodeUsage, ollamaCloudAccounts, ollamaCloudUsage, aiStudioAccounts, aiStudioUsage, claudeAccounts, claudeUsage, syncAccountCards])
 
   const visibleAntiAccounts = antiAccounts.filter(a => providers.antigravity.accountCardVisibility?.[a.id] ?? a.showInOverview)
   const visibleGhAccounts = ghAccounts.filter(a => providers.githubCopilot.accountCardVisibility?.[a.id] ?? a.showInOverview)
@@ -141,6 +146,7 @@ export function Overview() {
   const visibleCommandCodeAccounts = commandCodeAccounts.filter(a => providers.commandCode.accountCardVisibility?.[a.id] ?? a.showInOverview)
   const visibleOllamaCloudAccounts = ollamaCloudAccounts.filter(a => providers.ollamaCloud.accountCardVisibility?.[a.id] ?? a.showInOverview)
   const visibleAiStudioAccounts = aiStudioAccounts.filter(a => providers.aiStudio.accountCardVisibility?.[a.id] ?? a.showInOverview)
+  const visibleClaudeAccounts = claudeAccounts.filter(a => providers.claude?.accountCardVisibility?.[a.id] ?? a.showInOverview)
 
   const hasLowQuota = (percentage: number) => percentage <= global.lowQuotaThreshold
   
@@ -397,7 +403,8 @@ export function Overview() {
     })
   }
 
-  const getPercentLimitLabel = (providerId: 'opencodeGo' | 'commandCode' | 'ollamaCloud', key: string) => {
+  const getPercentLimitLabel = (providerId: 'opencodeGo' | 'commandCode' | 'ollamaCloud' | 'claude', key: string) => {
+    if (providerId === 'claude') return getClaudeLimitLabel(key, t)
     const mapping: Record<string, string> = providerId === 'opencodeGo'
       ? {
           rollingUsage: t('opencodeGo.quotaTypes.rolling'),
@@ -419,7 +426,7 @@ export function Overview() {
   }
 
   const renderPercentUsageCards = (
-    providerId: 'opencodeGo' | 'commandCode' | 'ollamaCloud',
+    providerId: 'opencodeGo' | 'commandCode' | 'ollamaCloud' | 'claude',
     accounts: Array<{ id: string; displayName: string; showInOverview: boolean }>,
     usageData: Array<{ accountId: string; name: string; usage: { limits: any[] } | null; error?: string }>
   ) => {
@@ -496,6 +503,7 @@ export function Overview() {
   const renderOpencodeGoCards = () => renderPercentUsageCards('opencodeGo', visibleOpencodeGoAccounts, opencodeGoUsage)
   const renderCommandCodeCards = () => renderPercentUsageCards('commandCode', visibleCommandCodeAccounts, commandCodeUsage)
   const renderOllamaCloudCards = () => renderPercentUsageCards('ollamaCloud', visibleOllamaCloudAccounts, ollamaCloudUsage)
+  const renderClaudeCards = () => renderPercentUsageCards('claude', visibleClaudeAccounts, claudeUsage)
 
   const renderAiStudioCards = () => {
     return aiStudioUsage.flatMap((accountUsage) => {
@@ -592,6 +600,11 @@ export function Overview() {
       title: t('nav.aiStudio'),
       hasAccounts: visibleAiStudioAccounts.length > 0,
       render: renderAiStudioCards
+    },
+    claude: {
+      title: t('nav.claude'),
+      hasAccounts: visibleClaudeAccounts.length > 0,
+      render: renderClaudeCards
     }
   }
 
@@ -669,7 +682,8 @@ export function Overview() {
        visibleOpencodeGoAccounts.length === 0 &&
        visibleCommandCodeAccounts.length === 0 &&
        visibleOllamaCloudAccounts.length === 0 &&
-       visibleAiStudioAccounts.length === 0 && (
+       visibleAiStudioAccounts.length === 0 &&
+       visibleClaudeAccounts.length === 0 && (
         <Card className="border-dashed shadow-none">
           <CardContent className="flex flex-col items-center py-14 text-center">
             <div className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-secondary">

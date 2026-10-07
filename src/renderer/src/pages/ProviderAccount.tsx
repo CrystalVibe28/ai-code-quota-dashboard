@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, RefreshCw, Trash2, Edit2, Eye, EyeOff, Info, Settings2 } from 'lucide-react'
+import { AlertTriangle, RefreshCw, Trash2, Edit2, Eye, EyeOff, Info, Settings2, KeyRound, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { UsageCard } from '@/components/common/UsageCard'
 import { AiStudioLimitCard } from '@/components/common/AiStudioLimitCard'
 import { AiStudioTierBadge } from '@/components/common/AiStudioTierBadge'
@@ -19,6 +21,7 @@ import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
 import { useCommandCodeStore } from '@/stores/useCommandCodeStore'
 import { useOllamaCloudStore } from '@/stores/useOllamaCloudStore'
 import { useAiStudioStore } from '@/stores/useAiStudioStore'
+import { useClaudeStore } from '@/stores/useClaudeStore'
 import { useErrorStore } from '@/stores/useErrorStore'
 import { useCustomization } from '@/contexts/CustomizationContext'
 import { useCustomizationStore } from '@/stores/useCustomizationStore'
@@ -39,6 +42,7 @@ import { ErrorCode } from '@shared/types'
 import { getAntigravityQuotaType } from '@shared/antigravityQuota'
 import { getZaiCardId, getZaiQuotaType } from '@shared/zaiQuota'
 import { getCodexWindowLabel } from '@/lib/codexQuota'
+import { getClaudeLimitLabel } from '@/lib/claudeQuota'
 import { getAccountCardIds } from '@/lib/cardVisibility'
 import { isGoogleOAuthReauthorizationRequired } from '@/lib/googleApiError'
 
@@ -48,7 +52,8 @@ const HISTORY_PERIODS: Partial<Record<ProviderId, QuotaHistoryPeriod[]>> = {
   codex: ['weekly', 'monthly'],
   opencodeGo: ['weekly', 'monthly'],
   commandCode: ['weekly', 'monthly'],
-  ollamaCloud: ['weekly', 'monthly']
+  ollamaCloud: ['weekly', 'monthly'],
+  claude: ['weekly']
 }
 
 function emptyHistory(): QuotaHistory {
@@ -76,6 +81,9 @@ export function ProviderAccount() {
   
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showTierDialog, setShowTierDialog] = useState(false)
+  const [opencodeGoApiKey, setOpencodeGoApiKeyInput] = useState('')
+  const [opencodeGoApiKeyError, setOpencodeGoApiKeyError] = useState('')
+  const [isSavingOpencodeGoApiKey, setIsSavingOpencodeGoApiKey] = useState(false)
   const historyIdentity = `${providerId ?? ''}:${accountId ?? ''}`
   const [historyState, setHistoryState] = useState<{
     identity: string
@@ -135,7 +143,7 @@ export function ProviderAccount() {
     isLoading: opencodeGoLoading,
     fetchAccounts: fetchOpencodeGoAccounts,
     fetchUsage: fetchOpencodeGoUsage,
-    login: loginOpencodeGo,
+    setApiKey: setOpencodeGoApiKey,
     deleteAccount: deleteOpencodeGoAccount,
     updateAccount: updateOpencodeGoAccount
   } = useOpencodeGoStore()
@@ -159,6 +167,16 @@ export function ProviderAccount() {
     deleteAccount: deleteOllamaCloudAccount,
     updateAccount: updateOllamaCloudAccount
   } = useOllamaCloudStore()
+
+  const {
+    accounts: claudeAccounts,
+    usageData: claudeUsage,
+    isLoading: claudeLoading,
+    fetchAccounts: fetchClaudeAccounts,
+    fetchUsage: fetchClaudeUsage,
+    deleteAccount: deleteClaudeAccount,
+    updateAccount: updateClaudeAccount
+  } = useClaudeStore()
 
   const {
     accounts: aiStudioAccounts,
@@ -217,9 +235,18 @@ export function ProviderAccount() {
       const acc = aiStudioAccounts.find(a => a.id === accountId)
       const usageItem = aiStudioUsage.find(u => u.accountId === accountId)
       return { account: acc, usage: usageItem, isLoading: aiStudioLoading }
+    } else if (providerId === 'claude') {
+      const acc = claudeAccounts.find(a => a.id === accountId)
+      const usageItem = claudeUsage.find(u => u.accountId === accountId)
+      return { account: acc, usage: usageItem, isLoading: claudeLoading }
     }
     return { account: undefined, usage: undefined, isLoading: false }
-  }, [providerId, accountId, antiAccounts, antiUsage, antiLoading, ghAccounts, ghUsage, ghLoading, zaiAccounts, zaiUsage, zaiLoading, codexAccounts, codexUsage, codexLoading, opencodeGoAccounts, opencodeGoUsage, opencodeGoLoading, commandCodeAccounts, commandCodeUsage, commandCodeLoading, ollamaCloudAccounts, ollamaCloudUsage, ollamaCloudLoading, aiStudioAccounts, aiStudioUsage, aiStudioLoading])
+  }, [providerId, accountId, antiAccounts, antiUsage, antiLoading, ghAccounts, ghUsage, ghLoading, zaiAccounts, zaiUsage, zaiLoading, codexAccounts, codexUsage, codexLoading, opencodeGoAccounts, opencodeGoUsage, opencodeGoLoading, commandCodeAccounts, commandCodeUsage, commandCodeLoading, ollamaCloudAccounts, ollamaCloudUsage, ollamaCloudLoading, aiStudioAccounts, aiStudioUsage, aiStudioLoading, claudeAccounts, claudeUsage, claudeLoading])
+
+  const showOpencodeGoApiKey = providerId === 'opencodeGo' && (
+    !opencodeGoAccounts.find(value => value.id === accountId)?.apiKey?.trim() ||
+    /api key|401|403|unauthorized|subscription required/i.test(usage?.error || '')
+  )
 
   const aiStudioAccount = providerId === 'aiStudio' ? account as AiStudioAccount | undefined : undefined
   const currentAiStudioUsage = providerId === 'aiStudio' && usage?.usage ? usage.usage as AiStudioUsage : null
@@ -235,6 +262,13 @@ export function ProviderAccount() {
     historyReadFailed.current = false
     setHistoryReadError(false)
   }, [historyIdentity])
+
+  useEffect(() => {
+    if (providerId === 'opencodeGo') {
+      setOpencodeGoApiKeyInput('')
+      setOpencodeGoApiKeyError('')
+    }
+  }, [providerId, accountId])
 
   useEffect(() => {
     const periods = HISTORY_PERIODS[providerId as ProviderId]
@@ -310,7 +344,8 @@ export function ProviderAccount() {
     return quotaType ? t(`zaiCoding.limits.${quotaType}`) : limit.type.replace(/_/g, ' ')
   }
 
-  const getPercentLimitLabel = (percentProviderId: 'opencodeGo' | 'commandCode' | 'ollamaCloud', key: string) => {
+  const getPercentLimitLabel = (percentProviderId: 'opencodeGo' | 'commandCode' | 'ollamaCloud' | 'claude', key: string) => {
+    if (percentProviderId === 'claude') return getClaudeLimitLabel(key, t)
     const mapping: Record<string, string> = percentProviderId === 'opencodeGo'
       ? {
           rollingUsage: t('opencodeGo.quotaTypes.rolling'),
@@ -385,6 +420,9 @@ export function ProviderAccount() {
     } else if (providerId === 'aiStudio') {
       await fetchAiStudioUsage()
       await fetchAiStudioAccounts()
+    } else if (providerId === 'claude') {
+      await fetchClaudeAccounts()
+      await fetchClaudeUsage()
     }
   }
   
@@ -408,6 +446,8 @@ export function ProviderAccount() {
       success = await deleteOllamaCloudAccount(accountId!)
     } else if (providerId === 'aiStudio') {
       success = await deleteAiStudioAccount(accountId!)
+    } else if (providerId === 'claude') {
+      success = await deleteClaudeAccount(accountId!)
     }
     
     if (success) {
@@ -448,8 +488,28 @@ export function ProviderAccount() {
       success = await updateOllamaCloudAccount(accountId!, { displayName: newName })
     } else if (providerId === 'aiStudio') {
       success = await updateAiStudioAccount(accountId!, { displayName: newName })
+    } else if (providerId === 'claude') {
+      success = await updateClaudeAccount(accountId!, { displayName: newName })
     }
     return success ? { success: true } : { success: false, error: t('editName.failedToSave') }
+  }
+
+  const handleSaveOpencodeGoApiKey = async () => {
+    const apiKey = opencodeGoApiKey.trim()
+    if (!apiKey) {
+      setOpencodeGoApiKeyError(t('opencodeGo.apiKey.required'))
+      return
+    }
+
+    setIsSavingOpencodeGoApiKey(true)
+    setOpencodeGoApiKeyError('')
+    const result = await setOpencodeGoApiKey(accountId!, apiKey)
+    if (!result.success) {
+      setOpencodeGoApiKeyError(result.error || t('opencodeGo.apiKey.failed'))
+    } else {
+      setOpencodeGoApiKeyInput('')
+    }
+    setIsSavingOpencodeGoApiKey(false)
   }
 
   const handleSaveTier = async (tier: AiStudioPaidTier) => {
@@ -638,7 +698,7 @@ export function ProviderAccount() {
       return cards
     }
 
-    if (providerId === 'opencodeGo' || providerId === 'commandCode' || providerId === 'ollamaCloud') {
+    if (providerId === 'opencodeGo' || providerId === 'commandCode' || providerId === 'ollamaCloud' || providerId === 'claude') {
       const usageData = usage.usage as any
       const cards = (usageData.limits || []).map((limit: any) => {
         const cardId = `${providerId}-${accountId}-${limit.type}`
@@ -694,30 +754,29 @@ export function ProviderAccount() {
 
     const requiresAiStudioReauthorization = providerId === 'aiStudio' &&
       isGoogleOAuthReauthorizationRequired(usage.error)
-    const requiresOpencodeReauthorization = providerId === 'opencodeGo' &&
-      /session expired|401|unauthorized/i.test(usage.error)
-    const requiresReauthorization = requiresAiStudioReauthorization || requiresOpencodeReauthorization
+    const requiresOpencodeSubscription = providerId === 'opencodeGo' &&
+      /403|subscription required/i.test(usage.error)
+    const requiresOpencodeApiKey = providerId === 'opencodeGo' &&
+      /api key|401|unauthorized/i.test(usage.error)
+    const requiresReauthorization = requiresAiStudioReauthorization
     return (
       <ErrorCard
         title={provider?.name || ''}
         subtitle={displayName}
         errorMessage={requiresAiStudioReauthorization
           ? t('aiStudio.reauthorization.expired')
-          : requiresOpencodeReauthorization
-            ? t('opencodeGo.reauthorization.expired')
+          : requiresOpencodeSubscription
+            ? t('opencodeGo.apiKey.subscriptionRequired')
+          : requiresOpencodeApiKey
+            ? t('opencodeGo.apiKey.invalid')
             : usage.error}
         actionLabel={requiresAiStudioReauthorization
           ? t('aiStudio.reauthorization.action')
-          : requiresOpencodeReauthorization
-            ? t('opencodeGo.reauthorization.action')
-            : undefined}
-        isActionPending={(requiresAiStudioReauthorization && aiStudioLoading)
-          || (requiresOpencodeReauthorization && opencodeGoLoading)}
+          : undefined}
+        isActionPending={requiresAiStudioReauthorization && aiStudioLoading}
         onAction={requiresAiStudioReauthorization
           ? () => void reauthorizeAiStudioAccount(accountId!)
-          : requiresOpencodeReauthorization
-            ? () => void loginOpencodeGo()
-            : undefined}
+          : undefined}
         onRetry={requiresReauthorization ? undefined : handleRefresh}
       />
     )
@@ -799,6 +858,47 @@ export function ProviderAccount() {
           </Button>
         </CardContent>
       </Card>
+
+      {showOpencodeGoApiKey && (
+        <Card className="shadow-none">
+          <CardContent className="space-y-3 p-4">
+            <div className="flex items-start gap-3">
+              <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold leading-5">{t('opencodeGo.apiKey.title')}</h2>
+                <p className="mt-1 text-sm leading-5 text-muted-foreground">{t('opencodeGo.apiKey.description')}</p>
+              </div>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+              <div className="space-y-2">
+                <Label htmlFor="opencode-go-api-key">{t('opencodeGo.apiKey.label')}</Label>
+                <Input
+                  id="opencode-go-api-key"
+                  type="password"
+                  value={opencodeGoApiKey}
+                  placeholder={t('opencodeGo.apiKey.placeholder')}
+                  onChange={(event) => setOpencodeGoApiKeyInput(event.target.value)}
+                  disabled={isSavingOpencodeGoApiKey}
+                  autoComplete="new-password"
+                />
+              </div>
+              <Button
+                type="button"
+                onClick={() => void handleSaveOpencodeGoApiKey()}
+                disabled={isSavingOpencodeGoApiKey}
+              >
+                {isSavingOpencodeGoApiKey
+                  ? <Loader2 className="animate-spin" aria-hidden="true" />
+                  : <KeyRound aria-hidden="true" />}
+                {isSavingOpencodeGoApiKey ? t('opencodeGo.apiKey.saving') : t('opencodeGo.apiKey.save')}
+              </Button>
+            </div>
+            {opencodeGoApiKeyError && (
+              <p className="text-sm text-destructive" role="alert">{opencodeGoApiKeyError}</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
       
       {usage?.usage && (
         <section aria-labelledby="provider-usage-title">

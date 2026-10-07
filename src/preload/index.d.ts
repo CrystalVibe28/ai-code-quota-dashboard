@@ -8,6 +8,7 @@ import type {
   OllamaCloudAccount,
   ZaiCodingAccount,
   AiStudioAccount,
+  ClaudeAccount,
   AiStudioLoginSession,
   AiStudioAccountUsage,
   LoginResult,
@@ -15,9 +16,11 @@ import type {
   CodexAccountUsage,
   GithubCopilotAccountUsage,
   OpencodeGoAccountUsage,
+  OpencodeGoUsage,
   CommandCodeUsage,
   CommandCodeAccountUsage,
   OllamaCloudAccountUsage,
+  ClaudeAccountUsage,
   ZaiAccountUsage,
   Settings,
   CustomizationState,
@@ -43,10 +46,10 @@ interface AuthAPI {
 }
 
 interface StorageAPI {
-  getAccounts: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | CommandCodeAccount | OllamaCloudAccount | AiStudioAccount>(
+  getAccounts: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | CommandCodeAccount | OllamaCloudAccount | AiStudioAccount | ClaudeAccount>(
     provider: string
   ) => Promise<T[]>
-  saveAccount: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | CommandCodeAccount | OllamaCloudAccount | AiStudioAccount>(
+  saveAccount: <T extends AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | CommandCodeAccount | OllamaCloudAccount | AiStudioAccount | ClaudeAccount>(
     provider: string,
     account: T
   ) => Promise<boolean>
@@ -54,7 +57,7 @@ interface StorageAPI {
   updateAccount: (
     provider: string,
     accountId: string,
-    data: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount> | Partial<CodexAccount> | Partial<OpencodeGoAccount> | Partial<CommandCodeAccount> | Partial<OllamaCloudAccount> | Partial<AiStudioAccount>
+    data: Partial<AntigravityAccount> | Partial<GithubCopilotAccount> | Partial<ZaiCodingAccount> | Partial<CodexAccount> | Partial<OpencodeGoAccount> | Partial<CommandCodeAccount> | Partial<OllamaCloudAccount> | Partial<AiStudioAccount> | Partial<ClaudeAccount>
   ) => Promise<boolean>
   getSettings: () => Promise<Settings>
   saveSettings: (settings: Partial<Settings>) => Promise<boolean>
@@ -88,10 +91,8 @@ interface CodexAPI {
 }
 
 interface OpencodeGoAPI {
-  login: () => Promise<LoginResult<OpencodeGoAccount>>
-  cancelLogin: () => Promise<boolean>
-  refreshToken: (accountId: string) => Promise<boolean>
-  fetchUsage: (accountId: string) => Promise<OpencodeGoAccountUsage | null>
+  validateApiKey: (apiKey: string) => Promise<{ valid: boolean; error?: string }>
+  fetchUsage: (accountId: string) => Promise<OpencodeGoUsage | null>
   fetchAllUsage: () => Promise<OpencodeGoAccountUsage[]>
 }
 
@@ -124,6 +125,7 @@ interface NotificationAPI {
     codex: unknown[]
     opencodeGo?: unknown[]
     commandCode?: unknown[]
+    claude?: unknown[]
   }) => Promise<boolean>
 }
 
@@ -154,6 +156,11 @@ interface OllamaCloudAPI {
   fetchAllUsage: () => Promise<OllamaCloudAccountUsage[]>
 }
 
+interface ClaudeAPI {
+  login: () => Promise<LoginResult<ClaudeAccount>>
+  fetchAllUsage: () => Promise<ClaudeAccountUsage[]>
+}
+
 interface AiStudioAPI {
   hasOAuthCredentials: () => Promise<boolean>
   saveOAuthCredentials: (clientId: string, clientSecret: string) => Promise<boolean>
@@ -176,6 +183,7 @@ interface CustomAPI {
   opencodeGo: OpencodeGoAPI
   commandCode: CommandCodeAPI
   ollamaCloud: OllamaCloudAPI
+  claude: ClaudeAPI
   app: AppAPI
   notification: NotificationAPI
   update: UpdateAPI

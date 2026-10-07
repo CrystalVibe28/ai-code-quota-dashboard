@@ -29,6 +29,14 @@ jobs:
               release/*.rpm
               release/*.blockmap
               release/latest-linux.yml
+          - os: macos-latest
+            command: npm run build:mac
+            artifact: macos-arm64
+            files: |
+              release/*.dmg
+              release/*.zip
+              release/*.blockmap
+              release/latest-mac.yml
     runs-on: ${{ matrix.os }}
 
     steps:

@@ -4,7 +4,7 @@
 /**
  * Provider identifiers
  */
-export type ProviderId = 'antigravity' | 'githubCopilot' | 'zaiCoding' | 'codex' | 'opencodeGo' | 'commandCode' | 'ollamaCloud' | 'aiStudio'
+export type ProviderId = 'antigravity' | 'githubCopilot' | 'zaiCoding' | 'codex' | 'opencodeGo' | 'commandCode' | 'ollamaCloud' | 'aiStudio' | 'claude'
 
 /**
  * Base account interface with common fields
@@ -107,11 +107,11 @@ export interface CodexAccount extends BaseAccount {
  * Opencode Go account
  */
 export interface OpencodeGoAccount extends BaseAccount {
-  workspaceId: string
+  // Legacy accounts keep their identity until an API key is supplied.
+  apiKey?: string
+  workspaceId?: string
   workspaceName?: string
   email?: string
-  cookieHeader: string
-  expiresAt: number
 }
 
 /**
@@ -132,9 +132,17 @@ export interface OllamaCloudAccount extends BaseAccount {
 }
 
 /**
+ * Claude account. Tokens stay in the local Claude Code credentials and are read on demand.
+ */
+export interface ClaudeAccount extends BaseAccount {
+  email: string
+  subscriptionType?: string
+}
+
+/**
  * Union type for all account types
  */
-export type Account = AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | CommandCodeAccount | OllamaCloudAccount | AiStudioAccount
+export type Account = AntigravityAccount | GithubCopilotAccount | ZaiCodingAccount | CodexAccount | OpencodeGoAccount | CommandCodeAccount | OllamaCloudAccount | AiStudioAccount | ClaudeAccount
 
 /**
  * Partial types for account updates
@@ -147,6 +155,7 @@ export type OpencodeGoAccountUpdate = Partial<Omit<OpencodeGoAccount, 'id'>>
 export type CommandCodeAccountUpdate = Partial<Omit<CommandCodeAccount, 'id'>>
 export type OllamaCloudAccountUpdate = Partial<Omit<OllamaCloudAccount, 'id'>>
 export type AiStudioAccountUpdate = Partial<Omit<AiStudioAccount, 'id'>>
+export type ClaudeAccountUpdate = Partial<Omit<ClaudeAccount, 'id'>>
 
 /**
  * Login result types
@@ -160,5 +169,5 @@ export interface LoginResult<T = unknown> {
 export type AntigravityLoginResult = LoginResult<AntigravityAccount>
 export type GithubCopilotLoginResult = LoginResult<GithubCopilotAccount>
 export type CodexLoginResult = LoginResult<CodexAccount>
-export type OpencodeGoLoginResult = LoginResult<OpencodeGoAccount>
 export type OllamaCloudLoginResult = LoginResult<OllamaCloudAccount>
+export type ClaudeLoginResult = LoginResult<ClaudeAccount>

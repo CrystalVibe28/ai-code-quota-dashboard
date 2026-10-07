@@ -2,6 +2,7 @@ import { BrowserWindow, Notification } from 'electron'
 import type { NotificationThreshold } from '../../shared/types/settings'
 import type {
   CardConfig,
+  ClaudeAccountUsage,
   CommandCodeAccountUsage,
   ProviderConfig,
   ProviderId,
@@ -120,7 +121,7 @@ interface OpencodeGoLimit {
 }
 
 interface OpencodeGoUsage {
-  workspaceId: string
+  workspaceId?: string
   workspaceName?: string
   limits: OpencodeGoLimit[]
 }
@@ -128,7 +129,7 @@ interface OpencodeGoUsage {
 interface OpencodeGoUsageResult {
   accountId: string
   name: string
-  workspaceId: string
+  workspaceId?: string
   usage: OpencodeGoUsage | null
   error?: string
 }
@@ -209,6 +210,7 @@ export class NotificationService {
     codexData: CodexUsageResult[],
     opencodeGoData: OpencodeGoUsageResult[],
     commandCodeData: CommandCodeAccountUsage[],
+    claudeData: ClaudeAccountUsage[],
     settings: AppSettings,
     filters: DisplayFilters
   ): void {
@@ -246,6 +248,7 @@ export class NotificationService {
     this.processCodexData(codexData, thresholds, itemsToNotify, filters, activeCardIds)
     this.processOpencodeGoData(opencodeGoData, thresholds, itemsToNotify, filters, activeCardIds)
     this.processCommandCodeData(commandCodeData, thresholds, itemsToNotify, filters, activeCardIds)
+    this.processClaudeData(claudeData, thresholds, itemsToNotify, filters, activeCardIds)
     this.state.items.forEach((_, cardId) => {
       if (!activeCardIds.has(cardId)) this.state.items.delete(cardId)
     })
@@ -500,6 +503,43 @@ export class NotificationService {
               : limit.type === 'weekly'
                 ? 'Weekly quota'
                 : 'Monthly quota',
+            percentage,
+            severity: this.getSeverity(crossedThreshold, thresholds),
+            cardId
+          })
+        }
+      }
+    }
+  }
+
+  private processClaudeData(
+    data: ClaudeAccountUsage[],
+    thresholds: number[],
+    itemsToNotify: LowQuotaItem[],
+    filters: DisplayFilters,
+    activeCardIds: Set<string>
+  ): void {
+    for (const account of data) {
+      if (!account.usage) continue
+      const cardIds = account.usage.limits.map(limit => `claude-${account.accountId}-${limit.type}`)
+
+      for (const limit of account.usage.limits) {
+        const percentage = Math.round(limit.remaining)
+        const cardId = `claude-${account.accountId}-${limit.type}`
+        activeCardIds.add(cardId)
+
+        if (this.isCardHidden(filters, 'claude', account.accountId, cardId, cardIds)) continue
+
+        const crossedThreshold = this.checkThresholdCrossing(cardId, percentage, thresholds)
+        if (crossedThreshold) {
+          itemsToNotify.push({
+            provider: 'Claude',
+            accountName: account.name,
+            itemName: limit.type === 'fiveHour'
+              ? '5-hour quota'
+              : limit.type === 'weekly'
+                ? 'Weekly quota'
+                : `Weekly ${limit.type.slice(limit.type.indexOf(':') + 1)} quota`,
             percentage,
             severity: this.getSeverity(crossedThreshold, thresholds),
             cardId

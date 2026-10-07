@@ -10,6 +10,7 @@ import { useOpencodeGoStore } from './stores/useOpencodeGoStore'
 import { useCommandCodeStore } from './stores/useCommandCodeStore'
 import { useOllamaCloudStore } from './stores/useOllamaCloudStore'
 import { useAiStudioStore } from './stores/useAiStudioStore'
+import { useClaudeStore } from './stores/useClaudeStore'
 import { MainLayout } from './components/layout/MainLayout'
 import { LockScreen } from './components/LockScreen'
 import { Overview } from './pages/Overview'
@@ -34,6 +35,7 @@ function App() {
   const { fetchAccounts: fetchCommandCodeAccounts, fetchUsage: fetchCommandCodeUsage } = useCommandCodeStore()
   const { fetchAccounts: fetchOllamaCloudAccounts, fetchUsage: fetchOllamaCloudUsage } = useOllamaCloudStore()
   const { fetchAccounts: fetchAiStudioAccounts, fetchUsage: fetchAiStudioUsage } = useAiStudioStore()
+  const { fetchAccounts: fetchClaudeAccounts, fetchUsage: fetchClaudeUsage } = useClaudeStore()
 
   useTheme()
 
@@ -53,9 +55,10 @@ function App() {
         fetchOpencodeGoAccounts(),
         fetchCommandCodeAccounts(),
         fetchOllamaCloudAccounts(),
-        fetchAiStudioAccounts()
+        fetchAiStudioAccounts(),
+        fetchClaudeAccounts()
       ])
-      const [antigravity, copilot, zai, codex, opencodeGo, commandCode] = await Promise.all([
+      const [antigravity, copilot, zai, codex, opencodeGo, commandCode, , , claude] = await Promise.all([
         fetchAntiUsage(),
         fetchGhUsage(),
         fetchZaiUsage(),
@@ -63,15 +66,16 @@ function App() {
         fetchOpencodeGoUsage(),
         fetchCommandCodeUsage(),
         fetchOllamaCloudUsage(),
-        fetchAiStudioUsage()
+        fetchAiStudioUsage(),
+        fetchClaudeUsage()
       ])
-      await window.api.notification.checkAndNotify({ antigravity, copilot, zai, codex, opencodeGo, commandCode }).catch(() => {})
+      await window.api.notification.checkAndNotify({ antigravity, copilot, zai, codex, opencodeGo, commandCode, claude }).catch(() => {})
     })().finally(() => {
       refreshPromiseRef.current = null
     })
 
     return refreshPromiseRef.current
-  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchCommandCodeAccounts, fetchOllamaCloudAccounts, fetchAiStudioAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage, fetchCommandCodeUsage, fetchOllamaCloudUsage, fetchAiStudioUsage])
+  }, [fetchAntiAccounts, fetchGhAccounts, fetchZaiAccounts, fetchCodexAccounts, fetchOpencodeGoAccounts, fetchCommandCodeAccounts, fetchOllamaCloudAccounts, fetchAiStudioAccounts, fetchAntiUsage, fetchGhUsage, fetchZaiUsage, fetchCodexUsage, fetchOpencodeGoUsage, fetchCommandCodeUsage, fetchOllamaCloudUsage, fetchAiStudioUsage, fetchClaudeAccounts, fetchClaudeUsage])
 
   useEffect(() => {
     checkAuth()
@@ -123,6 +127,7 @@ function App() {
       useCommandCodeStore.setState({ usageData: snapshot.commandCode })
       useOllamaCloudStore.setState({ usageData: snapshot.ollamaCloud })
       useAiStudioStore.setState({ usageData: snapshot.aiStudio })
+      useClaudeStore.setState({ usageData: snapshot.claude })
     })
 
     return () => {

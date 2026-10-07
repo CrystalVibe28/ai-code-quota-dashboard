@@ -22,7 +22,8 @@ describe('LocalApiService', () => {
       opencodeGo: [],
       commandCode: [],
       ollamaCloud: [],
-      aiStudio: []
+      aiStudio: [],
+      claude: []
     }
   }))
   const isUnlocked = vi.fn(() => true)
@@ -56,7 +57,8 @@ describe('LocalApiService', () => {
         opencodeGo: [],
         commandCode: [],
         ollamaCloud: [],
-        aiStudio: []
+        aiStudio: [],
+        claude: []
       }
     })
     expect(getUsage).toHaveBeenCalledTimes(1)

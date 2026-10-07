@@ -31,6 +31,7 @@
     "opencodeGo": "Opencode Go",
     "commandCode": "Command Code",
     "ollamaCloud": "Ollama Cloud",
+    "claude": "Claude",
     "settings": "Settings"
   },
   "branding": {
@@ -270,9 +271,17 @@
   "opencodeGo": {
     "title": "Opencode Go",
     "noQuotaData": "No Opencode Go usage data available",
-    "reauthorization": {
-      "action": "Sign in again",
-      "expired": "The Opencode Go session expired. Sign in again to resume quota updates."
+    "apiKey": {
+      "title": "OpenCode Go API key",
+      "description": "Paste the API key from the OpenCode console to connect this account and refresh usage.",
+      "label": "API key",
+      "placeholder": "Enter your OpenCode Go API key",
+      "save": "Save API key",
+      "saving": "Saving...",
+      "failed": "Failed to save API key.",
+      "required": "Enter an API key.",
+      "invalid": "This API key is invalid. Enter a current OpenCode Go API key.",
+      "subscriptionRequired": "This API key does not have an active OpenCode Go subscription."
     },
     "quotaTypes": {
       "rolling": "5-hour quota",
@@ -294,6 +303,14 @@
       "session": "5-hour quota",
       "weekly": "Weekly quota",
       "monthly": "Monthly quota"
+    }
+  },
+  "claude": {
+    "noQuotaData": "No Claude usage data available",
+    "quotaTypes": {
+      "fiveHour": "5-hour quota",
+      "weekly": "Weekly quota",
+      "weeklyModel": "Weekly quota ({{model}})"
     }
   },
   "aiStudio": {
@@ -356,6 +373,9 @@
     }
   },
   "addAccount": {
+    "localLogin": "Local login",
+    "claudeMode": "Uses the Claude Code login on this computer; no token is copied or stored",
+    "detectClaudeCode": "Detect Claude Code login",
     "addProvider": "Add Provider",
     "displayName": "Display Name",
     "displayNamePlaceholder": "Custom name (optional, defaults to {{provider}})",

@@ -2,13 +2,13 @@ import { ipcMain, session, type Session } from 'electron'
 import { CryptoService } from '../services/crypto'
 import { StorageService, StorageVersionTooNewError } from '../services/storage'
 import { UsageDataService } from '../services/usage-data'
-import { OPENCODE_GO_AUTH_PARTITION } from '../services/providers/opencode-go'
 import { OLLAMA_CLOUD_AUTH_PARTITION } from '../services/providers/ollama-cloud'
 import type { StorageUnlockResult } from '@shared/types'
 
 const cryptoService = new CryptoService()
 const storageService = new StorageService()
-const PROVIDER_AUTH_PARTITIONS = [OPENCODE_GO_AUTH_PARTITION, OLLAMA_CLOUD_AUTH_PARTITION]
+// Retain cleanup of cookies left by the former OpenCode Go login flow.
+const PROVIDER_AUTH_PARTITIONS = ['persist:opencode-go-auth', OLLAMA_CLOUD_AUTH_PARTITION]
 
 function unlockStorage(password: string): StorageUnlockResult {
   try {

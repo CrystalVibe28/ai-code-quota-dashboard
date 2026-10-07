@@ -161,7 +161,7 @@ export interface OpencodeGoLimit {
 }
 
 export interface OpencodeGoUsage {
-  workspaceId: string
+  workspaceId?: string
   workspaceName?: string
   limits: OpencodeGoLimit[]
 }
@@ -169,7 +169,7 @@ export interface OpencodeGoUsage {
 export interface OpencodeGoAccountUsage {
   accountId: string
   name: string
-  workspaceId: string
+  workspaceId?: string
   usage: OpencodeGoUsage | null
   error?: string
 }
@@ -228,6 +228,31 @@ export interface OllamaCloudAccountUsage {
   error?: string
 }
 
+export interface ClaudeLimit {
+  // 'fiveHour', 'weekly', or 'weeklyModel:<model name>'
+  type: string
+  used: number
+  limit: number
+  remaining: number
+  percentage: number
+  resetTime?: string
+  unit: 'percent'
+  unlimited: false
+}
+
+export interface ClaudeUsage {
+  plan?: string
+  limits: ClaudeLimit[]
+}
+
+export interface ClaudeAccountUsage {
+  accountId: string
+  name: string
+  email: string
+  usage: ClaudeUsage | null
+  error?: string
+}
+
 export interface UsageSnapshot {
   updatedAt: number
   antigravity: AntigravityUsage[]
@@ -238,6 +263,7 @@ export interface UsageSnapshot {
   commandCode: CommandCodeAccountUsage[]
   ollamaCloud: OllamaCloudAccountUsage[]
   aiStudio: AiStudioAccountUsage[]
+  claude: ClaudeAccountUsage[]
 }
 
 export type QuotaHistoryPeriod = 'weekly' | 'monthly'

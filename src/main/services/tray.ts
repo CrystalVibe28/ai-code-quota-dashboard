@@ -26,6 +26,7 @@ export interface TrayTooltipData {
   opencodeGo?: Array<{ name: string; percent: number }>
   commandCode?: Array<{ name: string; percent: number }>
   ollamaCloud?: Array<{ name: string; percent: number }>
+  claude?: Array<{ name: string; percent: number }>
 }
 
 interface TrayActions {
@@ -72,7 +73,8 @@ function createEmptyCache(): LocalUsageCache {
       opencodeGo: [],
       commandCode: [],
       ollamaCloud: [],
-      aiStudio: []
+      aiStudio: [],
+      claude: []
     }
   }
 }

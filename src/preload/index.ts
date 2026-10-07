@@ -113,12 +113,8 @@ const api = {
   },
 
   opencodeGo: {
-    login: (): Promise<{ success: boolean; account?: unknown; error?: string }> =>
-      ipcRenderer.invoke('opencode-go:login'),
-    cancelLogin: (): Promise<boolean> =>
-      ipcRenderer.invoke('opencode-go:cancel-login'),
-    refreshToken: (accountId: string): Promise<boolean> =>
-      ipcRenderer.invoke('opencode-go:refresh-token', accountId),
+    validateApiKey: (apiKey: string): Promise<{ valid: boolean; error?: string }> =>
+      ipcRenderer.invoke('opencode-go:validate-api-key', apiKey),
     fetchUsage: (accountId: string): Promise<unknown> =>
       ipcRenderer.invoke('opencode-go:fetch-usage', accountId),
     fetchAllUsage: (): Promise<unknown[]> =>
@@ -141,6 +137,13 @@ const api = {
       ipcRenderer.invoke('ollama-cloud:cancel-login'),
     fetchAllUsage: (): Promise<unknown[]> =>
       ipcRenderer.invoke('ollama-cloud:fetch-all-usage')
+  },
+
+  claude: {
+    login: (): Promise<{ success: boolean; account?: unknown; error?: string }> =>
+      ipcRenderer.invoke('claude:login'),
+    fetchAllUsage: (): Promise<unknown[]> =>
+      ipcRenderer.invoke('claude:fetch-all-usage')
   },
 
   app: {
@@ -178,6 +181,7 @@ const api = {
       codex: unknown[]
       opencodeGo?: unknown[]
       commandCode?: unknown[]
+      claude?: unknown[]
     }): Promise<boolean> =>
       ipcRenderer.invoke('notification:check-and-notify', data)
   },

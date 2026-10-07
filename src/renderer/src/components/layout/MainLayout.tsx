@@ -21,6 +21,7 @@ import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
 import { useCommandCodeStore } from '@/stores/useCommandCodeStore'
 import { useOllamaCloudStore } from '@/stores/useOllamaCloudStore'
 import { useAiStudioStore } from '@/stores/useAiStudioStore'
+import { useClaudeStore } from '@/stores/useClaudeStore'
 import { getProviderById } from '@/constants/providers'
 import { AddAccountDialog } from '@/components/common/AddAccountDialog'
 import type { ProviderId } from '@/types/customization'
@@ -52,6 +53,7 @@ export function MainLayout() {
   const { accounts: commandCodeAccounts } = useCommandCodeStore()
   const { accounts: ollamaCloudAccounts } = useOllamaCloudStore()
   const { accounts: aiStudioAccounts } = useAiStudioStore()
+  const { accounts: claudeAccounts } = useClaudeStore()
   
   // Dialog state
   const [showAddDialog, setShowAddDialog] = useState(false)
@@ -90,7 +92,7 @@ export function MainLayout() {
     })),
     ...opencodeGoAccounts.map(a => ({
       id: a.id,
-      displayName: a.displayName || a.workspaceName || a.workspaceId,
+      displayName: a.displayName || a.workspaceName || a.workspaceId || 'Opencode Go',
       providerId: 'opencodeGo' as const
     })),
     ...commandCodeAccounts.map(a => ({
@@ -107,6 +109,11 @@ export function MainLayout() {
       id: a.id,
       displayName: a.displayName || a.projectName,
       providerId: 'aiStudio' as const
+    })),
+    ...claudeAccounts.map(a => ({
+      id: a.id,
+      displayName: a.displayName || a.email || 'Claude',
+      providerId: 'claude' as const
     }))
   ]
   

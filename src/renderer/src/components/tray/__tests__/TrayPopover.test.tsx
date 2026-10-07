@@ -41,7 +41,8 @@ const viewModel: TrayPopoverViewModel = {
       opencodeGo: [],
       commandCode: [],
       ollamaCloud: [],
-      aiStudio: []
+      aiStudio: [],
+      claude: []
     }
   }
 }

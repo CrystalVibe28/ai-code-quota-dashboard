@@ -21,7 +21,7 @@ vi.mock('electron', () => ({
   }
 }))
 
-import { getAutoLaunch, setAutoLaunch } from '../auto-launch'
+import { getAutoLaunch, setAutoLaunch, wasAutoLaunched } from '../auto-launch'
 
 describe('auto launch', () => {
   let appDataPath: string | undefined
@@ -83,6 +83,26 @@ describe('auto launch', () => {
       args: ['--hidden'],
       openAtLogin: false
     })
+  })
+
+  it('registers a macOS login item and detects launches at login', () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
+    mocks.getLoginItemSettings.mockReturnValue({ openAtLogin: true, wasOpenedAtLogin: true })
+
+    expect(setAutoLaunch(true)).toBe(true)
+    expect(mocks.setLoginItemSettings).toHaveBeenCalledWith({
+      openAtLogin: true,
+      openAsHidden: true
+    })
+    expect(wasAutoLaunched()).toBe(true)
+
+    mocks.getLoginItemSettings.mockReturnValue({ openAtLogin: false, wasOpenedAtLogin: false })
+    expect(setAutoLaunch(false)).toBe(true)
+    expect(mocks.setLoginItemSettings).toHaveBeenLastCalledWith({ openAtLogin: false })
+    expect(wasAutoLaunched()).toBe(false)
+
+    vi.spyOn(process, 'argv', 'get').mockReturnValue([process.execPath, '--hidden'])
+    expect(wasAutoLaunched()).toBe(true)
   })
 
   it('creates and removes an effective XDG autostart entry on Linux', () => {

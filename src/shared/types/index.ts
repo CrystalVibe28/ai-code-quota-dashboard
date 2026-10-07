@@ -18,6 +18,7 @@ export type {
   OpencodeGoAccount,
   CommandCodeAccount,
   OllamaCloudAccount,
+  ClaudeAccount,
   Account,
   AntigravityAccountUpdate,
   GithubCopilotAccountUpdate,
@@ -27,12 +28,13 @@ export type {
   CommandCodeAccountUpdate,
   OllamaCloudAccountUpdate,
   AiStudioAccountUpdate,
+  ClaudeAccountUpdate,
   LoginResult,
   AntigravityLoginResult,
   GithubCopilotLoginResult,
   CodexLoginResult,
-  OpencodeGoLoginResult,
-  OllamaCloudLoginResult
+  OllamaCloudLoginResult,
+  ClaudeLoginResult
 } from './accounts'
 
 // Provider adapter interface
@@ -66,6 +68,9 @@ export type {
   OllamaCloudLimit,
   OllamaCloudUsage,
   OllamaCloudAccountUsage,
+  ClaudeLimit,
+  ClaudeUsage,
+  ClaudeAccountUsage,
   UsageSnapshot,
   QuotaHistoryPeriod,
   QuotaHistoryPoint,

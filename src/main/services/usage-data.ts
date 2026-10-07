@@ -8,6 +8,7 @@ import { getZaiQuotaType } from '@shared/zaiQuota'
 import type {
   AntigravityUsage,
   CachedAccountUsage,
+  ClaudeAccountUsage,
   CommandCodeAccountUsage,
   CodexAccountUsage,
   LocalUsageCache,
@@ -67,7 +68,8 @@ const PROVIDER_IDS: ProviderId[] = [
   'opencodeGo',
   'commandCode',
   'ollamaCloud',
-  'aiStudio'
+  'aiStudio',
+  'claude'
 ]
 
 export class UsageDataService {
@@ -416,6 +418,8 @@ export class UsageDataService {
         return this.extractCommandCode(results as CommandCodeAccountUsage[])
       case 'ollamaCloud':
         return this.extractOllamaCloud(results as OllamaCloudAccountUsage[])
+      case 'claude':
+        return this.extractClaude(results as ClaudeAccountUsage[])
       default:
         return []
     }
@@ -615,6 +619,14 @@ export class UsageDataService {
             limit.resetTime
           )]
         : []
+    )) ?? [])
+  }
+
+  private extractClaude(results: ClaudeAccountUsage[]): HistorySample[] {
+    return results.flatMap(account => account.usage?.limits.flatMap(limit => (
+      limit.type === 'fiveHour'
+        ? []
+        : [this.sample(account.accountId, 'weekly', limit.type, limit.remaining, limit.resetTime)]
     )) ?? [])
   }
 

@@ -31,6 +31,7 @@
     "opencodeGo": "Opencode Go",
     "commandCode": "Command Code",
     "ollamaCloud": "Ollama Cloud",
+    "claude": "Claude",
     "settings": "設定"
   },
   "branding": {
@@ -270,9 +271,17 @@
   "opencodeGo": {
     "title": "Opencode Go",
     "noQuotaData": "沒有可用的 Opencode Go 使用量資料",
-    "reauthorization": {
-      "action": "重新登入",
-      "expired": "Opencode Go 工作階段已過期。請重新登入以恢復配額更新。"
+    "apiKey": {
+      "title": "OpenCode Go API 金鑰",
+      "description": "貼上 OpenCode 主控台提供的 API 金鑰，以連結此帳戶並更新使用量。",
+      "label": "API 金鑰",
+      "placeholder": "輸入 OpenCode Go API 金鑰",
+      "save": "儲存 API 金鑰",
+      "saving": "儲存中...",
+      "failed": "API 金鑰儲存失敗。",
+      "required": "請輸入 API 金鑰。",
+      "invalid": "此 API 金鑰無效。請輸入目前的 OpenCode Go API 金鑰。",
+      "subscriptionRequired": "此 API 金鑰沒有有效的 OpenCode Go 訂閱。"
     },
     "quotaTypes": {
       "rolling": "5 小時配額",
@@ -294,6 +303,14 @@
       "session": "5 小時配額",
       "weekly": "每週配額",
       "monthly": "每月配額"
+    }
+  },
+  "claude": {
+    "noQuotaData": "沒有可用的 Claude 使用量資料",
+    "quotaTypes": {
+      "fiveHour": "5 小時配額",
+      "weekly": "每週配額",
+      "weeklyModel": "每週配額（{{model}}）"
     }
   },
   "aiStudio": {
@@ -356,6 +373,9 @@
     }
   },
   "addAccount": {
+    "localLogin": "本機登入",
+    "claudeMode": "使用這台電腦上的 Claude Code 登入狀態，不會複製或儲存權杖",
+    "detectClaudeCode": "偵測 Claude Code 登入狀態",
     "addProvider": "新增供應商",
     "displayName": "顯示名稱",
     "displayNamePlaceholder": "自訂名稱（選填，預設為 {{provider}}）",

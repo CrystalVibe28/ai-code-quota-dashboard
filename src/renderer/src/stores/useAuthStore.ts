@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { ErrorCode } from '@shared/types'
 import { useAntigravityStore } from './useAntigravityStore'
+import { useClaudeStore } from './useClaudeStore'
 import { useCodexStore } from './useCodexStore'
 import { useCustomizationStore } from './useCustomizationStore'
 import { useErrorStore } from './useErrorStore'
@@ -41,6 +42,7 @@ function clearRendererData(): void {
   useOpencodeGoStore.getState().reset()
   useOllamaCloudStore.getState().reset()
   useAiStudioStore.getState().reset()
+  useClaudeStore.getState().reset()
   useSettingsStore.setState(useSettingsStore.getInitialState(), true)
   useCustomizationStore.setState(useCustomizationStore.getInitialState(), true)
   useUpdateStore.setState(useUpdateStore.getInitialState(), true)

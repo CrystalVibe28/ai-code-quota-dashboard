@@ -22,6 +22,7 @@ import { useOpencodeGoStore } from '@/stores/useOpencodeGoStore'
 import { useCommandCodeStore } from '@/stores/useCommandCodeStore'
 import { useOllamaCloudStore } from '@/stores/useOllamaCloudStore'
 import { useAiStudioStore } from '@/stores/useAiStudioStore'
+import { useClaudeStore } from '@/stores/useClaudeStore'
 import { getGoogleApiEnableUrl } from '@/lib/googleApiError'
 import type { ProviderId } from '@/types/customization'
 import type { AiStudioLoginSession } from '@shared/types'
@@ -182,9 +183,7 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
     fetchAccounts: fetchCodex
   } = useCodexStore()
   const {
-    login: opencodeGoLogin,
-    cancelLogin: cancelOpencodeGoLogin,
-    updateAccount: updateOpencodeGo,
+    addAccount: addOpencodeGoAccount,
     fetchAccounts: fetchOpencodeGo
   } = useOpencodeGoStore()
   const {
@@ -197,6 +196,11 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
     updateAccount: updateOllamaCloud,
     fetchAccounts: fetchOllamaCloud
   } = useOllamaCloudStore()
+  const {
+    login: claudeLogin,
+    updateAccount: updateClaude,
+    fetchAccounts: fetchClaude
+  } = useClaudeStore()
   const {
     login: aiStudioLogin,
     cancelLogin: cancelAiStudioLogin,
@@ -291,8 +295,6 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         await cancelGithubLogin()
       } else if (selectedProviderId === 'codex') {
         await cancelCodexLogin()
-      } else if (selectedProviderId === 'opencodeGo') {
-        await cancelOpencodeGoLogin()
       } else if (selectedProviderId === 'ollamaCloud') {
         await cancelOllamaCloudLogin()
       } else if (selectedProviderId === 'aiStudio') {
@@ -332,12 +334,12 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         result = await githubLogin()
       } else if (selectedProviderId === 'codex') {
         result = await codexLogin()
-      } else if (selectedProviderId === 'opencodeGo') {
-        result = await opencodeGoLogin()
       } else if (selectedProviderId === 'ollamaCloud') {
         result = await ollamaCloudLogin()
       } else if (selectedProviderId === 'aiStudio') {
         result = await aiStudioLogin()
+      } else if (selectedProviderId === 'claude') {
+        result = await claudeLogin()
       } else {
         result = { success: false, error: 'Unknown provider' }
       }
@@ -390,10 +392,16 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         
         const result = selectedProviderId === 'commandCode'
           ? await addCommandCodeAccount(finalDisplayName, apiKey.trim())
-          : await addZaiAccount(finalDisplayName, apiKey.trim())
-        
+          : selectedProviderId === 'opencodeGo'
+            ? await addOpencodeGoAccount(finalDisplayName, apiKey.trim())
+            : await addZaiAccount(finalDisplayName, apiKey.trim())
+
         if (result.success) {
-          await (selectedProviderId === 'commandCode' ? fetchCommandCode() : fetchZai())
+          await (selectedProviderId === 'commandCode'
+            ? fetchCommandCode()
+            : selectedProviderId === 'opencodeGo'
+              ? fetchOpencodeGo()
+              : fetchZai())
           onClose()
         } else {
           setError(result.error || t('addAccount.failedToAddAccount'))
@@ -435,12 +443,12 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         } else if (selectedProviderId === 'codex') {
           await updateCodex(connectedAccount.id, { displayName: finalDisplayName })
           await fetchCodex()
-        } else if (selectedProviderId === 'opencodeGo') {
-          await updateOpencodeGo(connectedAccount.id, { displayName: finalDisplayName })
-          await fetchOpencodeGo()
         } else if (selectedProviderId === 'ollamaCloud') {
           await updateOllamaCloud(connectedAccount.id, { displayName: finalDisplayName })
           await fetchOllamaCloud()
+        } else if (selectedProviderId === 'claude') {
+          await updateClaude(connectedAccount.id, { displayName: finalDisplayName })
+          await fetchClaude()
         }
         
         onClose()
@@ -522,7 +530,9 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
                         <ProviderIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>{provider.name}</span>
                         <span className="text-xs text-muted-foreground">
-                          {provider.mode === 'oauth' ? 'OAuth' : t('addAccount.apiKey')}
+                          {provider.id === 'claude'
+                      ? t('addAccount.localLogin')
+                      : provider.mode === 'oauth' ? 'OAuth' : t('addAccount.apiKey')}
                         </span>
                       </span>
                     </SelectItem>
@@ -531,7 +541,9 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
               </SelectContent>
             </Select>
             <p id="provider-auth-mode" className="text-xs leading-4 text-muted-foreground">
-              {selectedProvider.mode === 'oauth'
+              {selectedProviderId === 'claude'
+                ? t('addAccount.claudeMode')
+                : selectedProvider.mode === 'oauth'
                 ? t('addAccount.oauthMode', { provider: selectedProvider.oauthProvider })
                 : t('addAccount.apiKeyMode')}
             </p>
@@ -619,6 +631,8 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
                       <Loader2 className="animate-spin" aria-hidden="true" />
                       {t('common.signingIn')}
                     </>
+                  ) : selectedProviderId === 'claude' ? (
+                    t('addAccount.detectClaudeCode')
                   ) : (
                     t('addAccount.signInWith', { provider: selectedProvider.oauthProvider })
                   )}
@@ -628,7 +642,7 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
                   <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
                   <span>
                     {t('addAccount.connectedAs', {
-                      user: connectedAccount?.login || connectedAccount?.email || connectedAccount?.name || 'User'
+                      user: connectedAccount?.login || connectedAccount?.email || connectedAccount?.name || connectedAccount?.subscriptionType || 'User'
                     })}
                   </span>
                 </div>

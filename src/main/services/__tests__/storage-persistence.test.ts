@@ -85,9 +85,10 @@ describe('StorageService persistence', () => {
       commandCode: [],
       ollamaCloud: [],
       aiStudio: [],
+      claude: [],
       settings: {}
     }
-    const primary = crypto.encrypt(JSON.stringify({ ...currentData, _version: 8 }), 'password')
+    const primary = crypto.encrypt(JSON.stringify({ ...currentData, _version: 10 }), 'password')
     const backup = crypto.encrypt(JSON.stringify({ ...currentData, _version: 7 }), 'password')
     writeFileSync(storagePath, primary)
     writeFileSync(`${storagePath}.bak`, backup)
@@ -118,6 +119,32 @@ describe('StorageService persistence', () => {
     storage.unlock('password')
 
     await expect(storage.getAccounts('commandCode')).resolves.toEqual([])
+    await expect(storage.getAccounts('claude')).resolves.toEqual([])
+  })
+
+  it('migrates Go cookies to API-key accounts without losing account identity', async () => {
+    const crypto = new CryptoService()
+    const storage = new StorageService()
+    storage.unlock('password')
+    await storage.saveSettings({ language: 'en' })
+    const storagePath = join(electronMock.userDataPath, 'data', 'credentials.enc')
+    const data = JSON.parse(crypto.decrypt(readFileSync(storagePath, 'utf-8'), 'password'))
+    data._version = 7
+    data.opencodeGo = [{
+      id: 'go-old', displayName: 'Go account', workspaceId: 'workspace-old',
+      showInOverview: false, cookieHeader: 'auth=old-test-cookie', expiresAt: 123
+    }]
+    writeFileSync(storagePath, crypto.encrypt(JSON.stringify(data), 'password'))
+    resetStorageService()
+    const migrated = new StorageService()
+    migrated.unlock('password')
+    expect(await migrated.getAccounts('opencodeGo')).toEqual([{
+      id: 'go-old', displayName: 'Go account', workspaceId: 'workspace-old', showInOverview: false
+    }])
+    expect(await migrated.updateAccount('opencodeGo', 'go-old', { apiKey: 'test-key' })).toBe(true)
+    migrated.lock()
+    migrated.unlock('password')
+    expect(await migrated.getAccounts('opencodeGo')).toEqual([expect.objectContaining({ id: 'go-old', apiKey: 'test-key' })])
   })
 
   it('rolls back both files after an interrupted password change', async () => {

@@ -1,7 +1,6 @@
 import { ipcMain, session } from 'electron'
 import { StorageService } from '../services/storage'
 import { UsageDataService } from '../services/usage-data'
-import { OPENCODE_GO_AUTH_PARTITION } from '../services/providers/opencode-go'
 import { OLLAMA_CLOUD_AUTH_PARTITION } from '../services/providers/ollama-cloud'
 import type {
   AntigravityAccount,
@@ -13,8 +12,9 @@ import type {
 } from '@shared/types'
 
 const storageService = new StorageService()
+// Retain cleanup of cookies left by the former OpenCode Go login flow.
 const AUTH_PARTITIONS: Record<string, string> = {
-  opencodeGo: OPENCODE_GO_AUTH_PARTITION,
+  opencodeGo: 'persist:opencode-go-auth',
   ollamaCloud: OLLAMA_CLOUD_AUTH_PARTITION
 }
 

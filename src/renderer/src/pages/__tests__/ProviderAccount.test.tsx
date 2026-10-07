@@ -300,25 +300,45 @@ describe('ProviderAccount', () => {
     expect(screen.queryByRole('button', { name: 'common.retry' })).not.toBeInTheDocument()
   })
 
-  it('offers a safe sign-in recovery when an Opencode Go session expires', () => {
-    const login = vi.fn().mockResolvedValue({ success: false, error: 'cancelled' })
+  it.each([
+    ['', false],
+    ['Failed to fetch Opencode Go usage: 500', false],
+    ['Opencode Go API key invalid (401)', true],
+    ['Opencode Go subscription required (403)', true]
+  ])('only shows a saved-key form when credentials need attention: %s', (error, visible) => {
+    useOpencodeGoStore.setState({
+      accounts: [{ id: 'go', displayName: 'Go', showInOverview: true, apiKey: 'saved-key' }],
+      usageData: [{ accountId: 'go', name: 'Go', usage: null, error }]
+    })
+    render(
+      <MemoryRouter initialEntries={['/provider/opencodeGo/go']}>
+        <Routes>
+          <Route path="provider/:providerId/:accountId" element={(
+            <CustomizationProvider><ProviderAccount /></CustomizationProvider>
+          )} />
+        </Routes>
+      </MemoryRouter>
+    )
+    expect(Boolean(screen.queryByLabelText('opencodeGo.apiKey.label'))).toBe(visible)
+  })
+
+  it('offers API key recovery when an Opencode Go key is missing', async () => {
+    const setApiKey = vi.fn().mockResolvedValue({ success: true })
     useOpencodeGoStore.setState({
       accounts: [{
         id: 'opencode-account',
         displayName: 'Opencode Account',
         showInOverview: true,
-        workspaceId: 'workspace',
-        cookieHeader: 'stored-cookie',
-        expiresAt: 1
+        workspaceId: 'workspace'
       }],
       usageData: [{
         accountId: 'opencode-account',
         name: 'Opencode Account',
         workspaceId: 'workspace',
         usage: null,
-        error: 'Error: Opencode Go session expired'
+        error: 'Error: Opencode Go API key required'
       }],
-      login
+      setApiKey
     })
 
     render(
@@ -333,9 +353,20 @@ describe('ProviderAccount', () => {
       </MemoryRouter>
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'opencodeGo.reauthorization.action' }))
+    fireEvent.change(screen.getByLabelText('opencodeGo.apiKey.label'), {
+      target: { value: 'replacement-key' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'opencodeGo.apiKey.save' }))
 
-    expect(login).toHaveBeenCalledTimes(1)
-    expect(screen.queryByRole('button', { name: 'common.retry' })).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(setApiKey).toHaveBeenCalledWith('opencode-account', 'replacement-key')
+    })
+    act(() => {
+      useOpencodeGoStore.setState({
+        accounts: [{ id: 'opencode-account', displayName: 'Opencode Account', showInOverview: true, apiKey: 'replacement-key' }],
+        usageData: [{ accountId: 'opencode-account', name: 'Opencode Account', usage: { limits: [] } }]
+      })
+    })
+    expect(screen.queryByLabelText('opencodeGo.apiKey.label')).not.toBeInTheDocument()
   })
 })

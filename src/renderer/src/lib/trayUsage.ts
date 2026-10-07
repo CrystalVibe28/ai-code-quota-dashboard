@@ -1,6 +1,7 @@
 import type {
   AiStudioUsage,
   AntigravityUsage,
+  ClaudeUsage,
   CommandCodeUsage,
   CodexRateWindow,
   CodexUsageData,
@@ -13,6 +14,7 @@ import type {
 import { getAntigravityQuotaType } from '@shared/antigravityQuota'
 import { getZaiQuotaType } from '@shared/zaiQuota'
 import { getCodexWindowLabel } from '@/lib/codexQuota'
+import { getClaudeLimitLabel } from '@/lib/claudeQuota'
 
 type Translate = (key: string, options?: Record<string, number | string>) => string
 
@@ -116,6 +118,14 @@ export function getTrayQuotaItems(
       return ((usage as OllamaCloudUsage).limits ?? []).map(limit => ({
         id: limit.type,
         label: t(`ollamaCloud.quotaTypes.${limit.type}`),
+        percentage: clampPercentage(limit.remaining),
+        resetTime: limit.resetTime
+      }))
+
+    case 'claude':
+      return ((usage as ClaudeUsage).limits ?? []).map(limit => ({
+        id: limit.type,
+        label: getClaudeLimitLabel(limit.type, t),
         percentage: clampPercentage(limit.remaining),
         resetTime: limit.resetTime
       }))

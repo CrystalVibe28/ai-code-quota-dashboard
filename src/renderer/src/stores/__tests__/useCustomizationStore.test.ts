@@ -9,7 +9,7 @@ describe('useCustomizationStore', () => {
     overviewLayout: 'compact',
     gridColumns: 'auto',
     cardSize: 'default',
-    providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'commandCode', 'ollamaCloud', 'aiStudio'],
+    providerOrder: ['antigravity', 'githubCopilot', 'zaiCoding', 'codex', 'opencodeGo', 'commandCode', 'ollamaCloud', 'aiStudio', 'claude'],
     theme: 'system',
     accentColor: 'blue',
     progressStyle: 'solid',
@@ -37,6 +37,7 @@ describe('useCustomizationStore', () => {
         opencodeGo: {},
         commandCode: {},
         ollamaCloud: {},
+        claude: {},
         aiStudio: {}
       },
       cards: {}
@@ -60,6 +61,7 @@ describe('useCustomizationStore', () => {
         opencodeGo: {},
         commandCode: {},
         ollamaCloud: {},
+        claude: {},
         aiStudio: {}
       })
     })
@@ -295,6 +297,7 @@ describe('useCustomizationStore', () => {
           opencodeGo: {},
           commandCode: {},
           ollamaCloud: {},
+          claude: {},
           aiStudio: {}
         },
         cards: { 'card1': { visible: false } }
@@ -377,6 +380,7 @@ describe('useCustomizationStore', () => {
         opencodeGo: {},
         commandCode: {},
         ollamaCloud: {},
+        claude: {},
         aiStudio: {}
       })
       expect(state.cards).toEqual({})

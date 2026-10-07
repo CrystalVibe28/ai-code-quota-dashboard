@@ -8,6 +8,7 @@ import type {
   QuotaHistoryPoint,
   QuotaSyncAuditPoint
 } from '@shared/types'
+import { getClaudeLimitLabel } from '@/lib/claudeQuota'
 
 interface Props {
   providerId: ProviderId
@@ -348,6 +349,7 @@ function getSeriesLabel(
   if (providerId === 'opencodeGo') return t(`opencodeGo.quotaTypes.${period}`)
   if (providerId === 'commandCode') return t(`commandCode.quotaTypes.${period}`)
   if (providerId === 'ollamaCloud') return t(`ollamaCloud.quotaTypes.${period}`)
+  if (providerId === 'claude') return getClaudeLimitLabel(seriesKey, t)
   if (providerId === 'codex') {
     const suffix = seriesKey.endsWith('primary') ? 'Primary' : 'Secondary'
     return t(`codex.quotaTypes.${seriesKey.startsWith('codeReview') ? 'codeReview' : 'rateLimit'}${suffix}`)

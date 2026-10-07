@@ -173,7 +173,8 @@ describe('TrayService', () => {
         opencodeGo: [],
         commandCode: [],
         ollamaCloud: [],
-        aiStudio: []
+        aiStudio: [],
+        claude: []
       }
     })
     serviceMock.getCustomization.mockResolvedValue({

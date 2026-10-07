@@ -38,10 +38,6 @@ vi.mock('../../services/storage', () => ({
   }
 }))
 
-vi.mock('../../services/providers/opencode-go', () => ({
-  OPENCODE_GO_AUTH_PARTITION: 'persist:opencode-go-auth'
-}))
-
 vi.mock('../../services/usage-data', () => ({
   UsageDataService: {
     getInstance: () => ({

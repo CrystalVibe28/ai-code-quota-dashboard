@@ -7,6 +7,7 @@ import { StorageService } from './services/storage'
 import { CryptoService } from './services/crypto'
 import { NotificationService } from './services/notification'
 import { getLocalApiHost, LocalApiService, USAGE_API_PATH } from './services/local-api'
+import { wasAutoLaunched } from './services/auto-launch'
 import type { UsageSnapshot } from '@shared/types'
 
 import { registerAuthHandlers, unlockWithSkippedPassword } from './ipc/auth'
@@ -19,6 +20,7 @@ import { fetchAllCodexUsage, registerCodexHandlers } from './ipc/codex'
 import { fetchAllOpencodeGoUsage, registerOpencodeGoHandlers } from './ipc/opencode-go'
 import { fetchAllCommandCodeUsage, registerCommandCodeHandlers } from './ipc/command-code'
 import { fetchAllOllamaCloudUsage, registerOllamaCloudHandlers } from './ipc/ollama-cloud'
+import { fetchAllClaudeUsage, registerClaudeHandlers } from './ipc/claude'
 import { registerAppHandlers } from './ipc/app'
 import { registerNotificationHandlers } from './ipc/notification'
 import { registerUpdateHandlers, notifyUpdateAvailable } from './ipc/update'
@@ -138,6 +140,7 @@ function registerAllIpcHandlers(): void {
   registerOpencodeGoHandlers()
   registerCommandCodeHandlers()
   registerOllamaCloudHandlers()
+  registerClaudeHandlers()
   registerAppHandlers()
   registerNotificationHandlers()
   registerUpdateHandlers((installing) => {
@@ -253,7 +256,8 @@ async function performBackgroundRefreshInner(): Promise<void> {
       opencodeGo,
       commandCode,
       ollamaCloud,
-      aiStudio
+      aiStudio,
+      claude
     ] = await Promise.all([
       fetchAllAntigravityUsage(),
       fetchAllGithubCopilotUsage(),
@@ -262,7 +266,8 @@ async function performBackgroundRefreshInner(): Promise<void> {
       fetchAllOpencodeGoUsage(),
       fetchAllCommandCodeUsage(),
       fetchAllOllamaCloudUsage(),
-      fetchAllAiStudioUsage()
+      fetchAllAiStudioUsage(),
+      fetchAllClaudeUsage()
     ])
     const snapshot: UsageSnapshot = {
       updatedAt: Date.now(),
@@ -273,7 +278,8 @@ async function performBackgroundRefreshInner(): Promise<void> {
       opencodeGo,
       commandCode,
       ollamaCloud,
-      aiStudio
+      aiStudio,
+      claude
     }
 
     mainWindow?.webContents.send('app:usage-updated', snapshot)
@@ -286,6 +292,7 @@ async function performBackgroundRefreshInner(): Promise<void> {
       codex,
       opencodeGo,
       commandCode,
+      claude,
       refreshSettings,
       {
         hideUnlimitedQuota: customization?.global?.hideUnlimitedQuota ?? false,
@@ -358,7 +365,7 @@ app.whenReady().then(async () => {
   notificationService.setOpenMainWindow(showMainWindow)
   trayService.createTray()
 
-  const isAutoLaunch = process.argv.includes('--hidden')
+  const isAutoLaunch = wasAutoLaunched()
   const hasPassword = cryptoService.hasPassword()
   const isPasswordSkipped = cryptoService.isPasswordSkipped()
   const unlockResult = hasPassword && isPasswordSkipped

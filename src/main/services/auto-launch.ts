@@ -62,6 +62,12 @@ function setLinuxAutoLaunch(enabled: boolean): void {
   replaceFileAtomicallySync(filePath, contents)
 }
 
+export function wasAutoLaunched(): boolean {
+  if (process.argv.includes(AUTO_LAUNCH_ARG)) return true
+  // macOS login items cannot carry arguments, so ask the system instead.
+  return process.platform === 'darwin' && app.getLoginItemSettings().wasOpenedAtLogin
+}
+
 export function getAutoLaunch(): boolean {
   if (process.platform === 'linux') return getLinuxAutoLaunch()
 

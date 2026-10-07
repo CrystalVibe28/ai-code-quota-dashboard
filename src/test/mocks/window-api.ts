@@ -77,9 +77,7 @@ export const mockWindowApi: Record<string, Record<string, Mock>> = {
     fetchAllUsage: vi.fn().mockResolvedValue([])
   },
   opencodeGo: {
-    login: vi.fn().mockResolvedValue({ success: true }),
-    cancelLogin: vi.fn().mockResolvedValue(true),
-    refreshToken: vi.fn().mockResolvedValue(true),
+    validateApiKey: vi.fn().mockResolvedValue({ valid: true }),
     fetchUsage: vi.fn().mockResolvedValue(null),
     fetchAllUsage: vi.fn().mockResolvedValue([])
   },
@@ -91,6 +89,10 @@ export const mockWindowApi: Record<string, Record<string, Mock>> = {
   ollamaCloud: {
     login: vi.fn().mockResolvedValue({ success: true }),
     cancelLogin: vi.fn().mockResolvedValue(true),
+    fetchAllUsage: vi.fn().mockResolvedValue([])
+  },
+  claude: {
+    login: vi.fn().mockResolvedValue({ success: true }),
     fetchAllUsage: vi.fn().mockResolvedValue([])
   },
   aiStudio: {

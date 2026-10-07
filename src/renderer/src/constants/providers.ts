@@ -1,6 +1,7 @@
 import type { JSXElementConstructor, SVGProps } from 'react'
 import AiStudio from '@lobehub/icons/es/AiStudio/components/Mono'
 import Antigravity from '@lobehub/icons/es/Antigravity/components/Mono'
+import Claude from '@lobehub/icons/es/Claude/components/Mono'
 import Codex from '@lobehub/icons/es/Codex/components/Mono'
 import GithubCopilot from '@lobehub/icons/es/GithubCopilot/components/Mono'
 import OpenCode from '@lobehub/icons/es/OpenCode/components/Mono'
@@ -72,8 +73,7 @@ const PROVIDERS_UNSORTED: ProviderDefinition[] = [
     name: 'Opencode Go',
     labelKey: 'nav.opencodeGo',
     icon: OpenCode,
-    mode: 'oauth' as const,
-    oauthProvider: 'Google / GitHub'
+    mode: 'apiKey' as const
   },
   {
     id: 'ollamaCloud' as const,
@@ -82,6 +82,14 @@ const PROVIDERS_UNSORTED: ProviderDefinition[] = [
     icon: Ollama,
     mode: 'oauth' as const,
     oauthProvider: 'Ollama'
+  },
+  {
+    id: 'claude' as const,
+    name: 'Claude',
+    labelKey: 'nav.claude',
+    icon: Claude,
+    mode: 'oauth' as const,
+    oauthProvider: 'Claude Code'
   }
 ]
 

@@ -1,63 +1,55 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { OpencodeGoService } from '../opencode-go'
 
-const mocks = vi.hoisted(() => {
-  const authSession = {
-    clearStorageData: vi.fn().mockResolvedValue(undefined),
-    clearCache: vi.fn().mockResolvedValue(undefined),
-    cookies: { get: vi.fn().mockResolvedValue([]) }
-  }
-  const authWindow = {
-    webContents: {
-      getURL: vi.fn(() => ''),
-      executeJavaScript: vi.fn().mockResolvedValue([]),
-      setWindowOpenHandler: vi.fn(),
-      on: vi.fn()
-    },
-    loadURL: vi.fn().mockResolvedValue(undefined),
-    on: vi.fn(),
-    isDestroyed: vi.fn(() => false),
-    close: vi.fn()
-  }
+const payload = {
+  usage: Object.fromEntries(['rolling', 'weekly', 'monthly'].map((period, index) => [period, {
+    status: 'ok', percent: 12.5 + index, resetsAt: '2026-09-22T00:00:00.000Z'
+  }]))
+}
 
-  return {
-    authSession,
-    authWindow,
-    BrowserWindow: vi.fn(function BrowserWindow() { return authWindow }),
-    fromPartition: vi.fn(() => authSession)
-  }
-})
+afterEach(() => vi.unstubAllGlobals())
 
-vi.mock('electron', () => ({
-  BrowserWindow: mocks.BrowserWindow,
-  session: { fromPartition: mocks.fromPartition }
-}))
-
-import { OpencodeGoService, OPENCODE_GO_AUTH_PARTITION } from '../opencode-go'
-
-describe('OpencodeGoService.login', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
+describe('OpencodeGoService', () => {
+  it('fetches official quota data with a Bearer key and maps all periods', async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify(payload)))
+    vi.stubGlobal('fetch', fetch)
+    const usage = await new OpencodeGoService().fetchUsage({ apiKey: ' test-key ' })
+    expect(fetch).toHaveBeenCalledWith('https://opencode.ai/zen/go/v1/usage', expect.objectContaining({
+      redirect: 'error', headers: { Accept: 'application/json', Authorization: 'Bearer test-key' }
+    }))
+    expect(usage.limits.map(limit => [limit.type, limit.percentage, limit.remaining])).toEqual([
+      ['rollingUsage', 12.5, 87.5], ['weeklyUsage', 13.5, 86.5], ['monthlyUsage', 14.5, 85.5]
+    ])
+    expect(usage.limits[0].resetTime).toBe(Date.parse('2026-09-22T00:00:00.000Z'))
   })
 
-  it('should clear the persisted auth session before opening the login page', async () => {
-    const service = new OpencodeGoService()
-    const loginPromise = service.login()
+  it('requires a key for legacy accounts without making a request', async () => {
+    const fetch = vi.fn()
+    vi.stubGlobal('fetch', fetch)
+    await expect(new OpencodeGoService().fetchUsage({ workspaceId: 'old' })).rejects.toThrow('API key required')
+    expect(fetch).not.toHaveBeenCalled()
+  })
 
-    await vi.waitFor(() => {
-      expect(mocks.authWindow.loadURL).toHaveBeenCalledWith('https://opencode.ai/auth')
-    })
+  it.each([[401, 'API key invalid'], [403, 'subscription required'], [500, '500']])(
+    'handles HTTP %s without exposing the response body', async (status, error) => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('sensitive upstream body', { status })))
+      const validation = await new OpencodeGoService().validateApiKey('test-key')
+      expect(validation.valid).toBe(false)
+      expect(validation.error).toContain(error)
+      expect(validation.error).not.toContain('sensitive')
+    }
+  )
 
-    expect(mocks.fromPartition).toHaveBeenCalledWith(OPENCODE_GO_AUTH_PARTITION)
-    expect(mocks.authSession.clearStorageData).toHaveBeenCalledTimes(1)
-    expect(mocks.authSession.clearCache).toHaveBeenCalledTimes(1)
-    expect(mocks.authWindow.loadURL.mock.invocationCallOrder[0]).toBeGreaterThan(
-      mocks.authSession.clearStorageData.mock.invocationCallOrder[0]
-    )
-    expect(mocks.authWindow.loadURL.mock.invocationCallOrder[0]).toBeGreaterThan(
-      mocks.authSession.clearCache.mock.invocationCallOrder[0]
-    )
+  it('rejects incomplete usage instead of showing a misleading quota', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ usage: { rolling: payload.usage.rolling } }))))
+    await expect(new OpencodeGoService().fetchUsage({ apiKey: 'test-key' })).rejects.toThrow('Invalid Opencode Go usage response')
+  })
 
-    service.cancelLogin()
-    await loginPromise
+  it('clamps rate-limited usage to the display range', async () => {
+    const data = structuredClone(payload)
+    data.usage.rolling = { ...data.usage.rolling, status: 'rate-limited', percent: 110 }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify(data))))
+    const result = await new OpencodeGoService().fetchUsage({ apiKey: 'test-key' })
+    expect(result.limits[0]).toMatchObject({ percentage: 100, remaining: 0 })
   })
 })

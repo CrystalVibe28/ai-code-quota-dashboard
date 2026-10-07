@@ -10,8 +10,6 @@ const opencodeGoService = new OpencodeGoService()
 const storageService = new StorageService()
 
 async function fetchAccountUsage(account: OpencodeGoAccount): Promise<OpencodeGoUsage> {
-  // The Electron partition is provider-wide, so it cannot safely refresh one account.
-  // Keep the stored account cookie isolated and require login again after it expires.
   return opencodeGoService.fetchUsage(account)
 }
 
@@ -72,23 +70,9 @@ async function fetchAllOpencodeGoUsageInner(): Promise<OpencodeGoAccountUsage[]>
 export const fetchAllOpencodeGoUsage = singleFlight(fetchAllOpencodeGoUsageInner)
 
 export function registerOpencodeGoHandlers(): void {
-  ipcMain.handle('opencode-go:login', async () => {
-    try {
-      const result = await opencodeGoService.login()
-      if (result.success && result.account) {
-        await storageService.saveAccount('opencodeGo', result.account)
-      }
-      return result
-    } catch (error) {
-      return { success: false, error: String(error) }
-    }
+  ipcMain.handle('opencode-go:validate-api-key', (_, apiKey: string) => {
+    return opencodeGoService.validateApiKey(apiKey)
   })
-
-  ipcMain.handle('opencode-go:cancel-login', () => {
-    return opencodeGoService.cancelLogin()
-  })
-
-  ipcMain.handle('opencode-go:refresh-token', () => false)
 
   ipcMain.handle('opencode-go:fetch-usage', async (_, accountId: string) => {
     try {

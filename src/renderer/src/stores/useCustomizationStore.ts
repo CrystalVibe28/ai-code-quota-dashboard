@@ -52,7 +52,8 @@ const initialState: CustomizationState = {
     codex: {},
     opencodeGo: {},
     commandCode: {},
-    ollamaCloud: {}
+    ollamaCloud: {},
+    claude: {}
   },
   cards: {}
 }
@@ -248,6 +249,7 @@ export const useCustomizationStore = create<CustomizationStore>((set, get) => ({
             opencodeGo: {},
             commandCode: {},
             ollamaCloud: {},
+            claude: {},
             ...typedStored.providers 
           },
           cards: typedStored.cards || {}
