@@ -89,7 +89,7 @@ const PROVIDERS_UNSORTED: ProviderDefinition[] = [
     labelKey: 'nav.claude',
     icon: Claude,
     mode: 'oauth' as const,
-    oauthProvider: 'Claude Code'
+    oauthProvider: 'Claude'
   }
 ]
 

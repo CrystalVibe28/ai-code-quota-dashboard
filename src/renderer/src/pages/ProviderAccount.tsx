@@ -10,6 +10,7 @@ import { UsageCard } from '@/components/common/UsageCard'
 import { AiStudioLimitCard } from '@/components/common/AiStudioLimitCard'
 import { AiStudioTierBadge } from '@/components/common/AiStudioTierBadge'
 import { AiStudioTierDialog } from '@/components/common/AiStudioTierDialog'
+import { PlanBadge } from '@/components/common/PlanBadge'
 import { ErrorCard } from '@/components/common/ErrorCard'
 import { EditNameDialog } from '@/components/common/EditNameDialog'
 import { QuotaHistoryChart } from '@/components/common/QuotaHistoryChart'
@@ -44,7 +45,9 @@ import { getZaiCardId, getZaiQuotaType } from '@shared/zaiQuota'
 import { getCodexWindowLabel } from '@/lib/codexQuota'
 import { getClaudeLimitLabel } from '@/lib/claudeQuota'
 import { getAccountCardIds } from '@/lib/cardVisibility'
+import { getAccountPlan } from '@/lib/accountPlan'
 import { isGoogleOAuthReauthorizationRequired } from '@/lib/googleApiError'
+import { isOllamaCloudSessionExpired } from '@/lib/ollamaCloudError'
 
 const HISTORY_PERIODS: Partial<Record<ProviderId, QuotaHistoryPeriod[]>> = {
   antigravity: ['weekly'],
@@ -165,7 +168,8 @@ export function ProviderAccount() {
     fetchAccounts: fetchOllamaCloudAccounts,
     fetchUsage: fetchOllamaCloudUsage,
     deleteAccount: deleteOllamaCloudAccount,
-    updateAccount: updateOllamaCloudAccount
+    updateAccount: updateOllamaCloudAccount,
+    login: loginOllamaCloud
   } = useOllamaCloudStore()
 
   const {
@@ -252,6 +256,7 @@ export function ProviderAccount() {
   const currentAiStudioUsage = providerId === 'aiStudio' && usage?.usage ? usage.usage as AiStudioUsage : null
   const aiStudioTier = currentAiStudioUsage?.tier ?? aiStudioAccount?.tier
   const aiStudioTierSource = currentAiStudioUsage?.tierSource ?? aiStudioAccount?.tierSource
+  const accountPlan = getAccountPlan(providerId, account, usage)
 
   useEffect(() => {
     if (aiStudioTier === 'free') setShowTierDialog(false)
@@ -758,13 +763,17 @@ export function ProviderAccount() {
       /403|subscription required/i.test(usage.error)
     const requiresOpencodeApiKey = providerId === 'opencodeGo' &&
       /api key|401|unauthorized/i.test(usage.error)
-    const requiresReauthorization = requiresAiStudioReauthorization
+    const requiresOllamaCloudSignIn = providerId === 'ollamaCloud' &&
+      isOllamaCloudSessionExpired(usage.error)
+    const requiresReauthorization = requiresAiStudioReauthorization || requiresOllamaCloudSignIn
     return (
       <ErrorCard
         title={provider?.name || ''}
         subtitle={displayName}
         errorMessage={requiresAiStudioReauthorization
           ? t('aiStudio.reauthorization.expired')
+          : requiresOllamaCloudSignIn
+            ? t('ollamaCloud.session.expired')
           : requiresOpencodeSubscription
             ? t('opencodeGo.apiKey.subscriptionRequired')
           : requiresOpencodeApiKey
@@ -772,11 +781,16 @@ export function ProviderAccount() {
             : usage.error}
         actionLabel={requiresAiStudioReauthorization
           ? t('aiStudio.reauthorization.action')
-          : undefined}
-        isActionPending={requiresAiStudioReauthorization && aiStudioLoading}
+          : requiresOllamaCloudSignIn
+            ? t('ollamaCloud.session.action')
+            : undefined}
+        isActionPending={(requiresAiStudioReauthorization && aiStudioLoading) ||
+          (requiresOllamaCloudSignIn && ollamaCloudLoading)}
         onAction={requiresAiStudioReauthorization
           ? () => void reauthorizeAiStudioAccount(accountId!)
-          : undefined}
+          : requiresOllamaCloudSignIn
+            ? () => void loginOllamaCloud()
+            : undefined}
         onRetry={requiresReauthorization ? undefined : handleRefresh}
       />
     )
@@ -803,6 +817,12 @@ export function ProviderAccount() {
                 <>
                   <span aria-hidden="true">·</span>
                   <AiStudioTierBadge tier={aiStudioTier} source={aiStudioTierSource} />
+                </>
+              )}
+              {accountPlan && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <PlanBadge plan={accountPlan} />
                 </>
               )}
             </div>

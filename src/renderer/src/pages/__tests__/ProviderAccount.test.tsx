@@ -254,7 +254,7 @@ describe('ProviderAccount', () => {
     )
 
     await screen.findByText('Weekly quota history')
-    expect(container.querySelector('[data-sync-failures="1"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-sync-failures]')).not.toBeInTheDocument()
   })
 
   it('shows reauthorization on an AI Studio account with an expired grant', () => {

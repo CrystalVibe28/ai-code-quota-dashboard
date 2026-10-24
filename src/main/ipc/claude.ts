@@ -1,9 +1,10 @@
 import { ipcMain } from 'electron'
-import { ClaudeService } from '../services/providers/claude'
+import { CLAUDE_SIGN_IN_REQUIRED, ClaudeService } from '../services/providers/claude'
 import { StorageService } from '../services/storage'
 import { TrayService } from '../services/tray'
 import { UsageDataService } from '../services/usage-data'
 import type { ClaudeAccount, ClaudeAccountUsage, ClaudeUsage } from '@shared/types'
+import { withAutoRefreshClaude } from './utils/withAutoRefreshClaude'
 import { singleFlight } from './utils/singleFlight'
 
 const claudeService = new ClaudeService()
@@ -15,11 +16,15 @@ async function fetchAllClaudeUsageInner(): Promise<ClaudeAccountUsage[]> {
     const accounts = await storageService.getAccounts('claude') as ClaudeAccount[]
     const results = await Promise.all(accounts.map(async (account): Promise<ClaudeAccountUsage> => {
       try {
+        const usage = await withAutoRefreshClaude(account, currentAccount => (
+          claudeService.fetchUsage(currentAccount)
+        ))
         return {
           accountId: account.id,
           name: account.displayName,
           email: account.email,
-          usage: await claudeService.fetchUsage()
+          usage,
+          ...(usage === null ? { error: CLAUDE_SIGN_IN_REQUIRED } : {})
         }
       } catch (error) {
         return {
@@ -61,16 +66,26 @@ export const fetchAllClaudeUsage = singleFlight(fetchAllClaudeUsageInner)
 export function registerClaudeHandlers(): void {
   ipcMain.handle('claude:login', async () => {
     try {
-      // The local Claude Code login is the only credential source, so it maps to a single account.
-      const [existing] = await storageService.getAccounts('claude') as ClaudeAccount[]
-      const result = await claudeService.login(existing)
-      if (result.success && result.account) {
-        await storageService.saveAccount('claude', result.account)
-      }
-      return result
+      const result = await claudeService.login()
+      if (!result.success || !result.account) return result
+
+      const signedIn = result.account
+      const accounts = await storageService.getAccounts('claude') as ClaudeAccount[]
+      // Accounts added before in-app sign-in have no tokens; signing in adopts them so their history is kept.
+      const existing = accounts.find(value => value.id === signedIn.id)
+        ?? accounts.find(value => !value.refreshToken && (!value.email || value.email === signedIn.email))
+      const account: ClaudeAccount = existing
+        ? { ...signedIn, id: existing.id, displayName: existing.displayName, showInOverview: existing.showInOverview }
+        : signedIn
+      await storageService.saveAccount('claude', account)
+      return { success: true, account }
     } catch (error) {
       return { success: false, error: String(error) }
     }
+  })
+
+  ipcMain.handle('claude:cancel-login', () => {
+    return claudeService.cancelLogin()
   })
 
   ipcMain.handle('claude:fetch-all-usage', fetchAllClaudeUsage)

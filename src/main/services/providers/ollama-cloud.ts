@@ -8,6 +8,7 @@ const SETTINGS_URL = `${OLLAMA_URL}/settings`
 export const OLLAMA_CLOUD_AUTH_PARTITION = 'persist:ollama-cloud-auth'
 const LOGIN_TIMEOUT = 300000
 const DEFAULT_COOKIE_TTL_MS = 30 * 24 * 60 * 60 * 1000
+export const OLLAMA_CLOUD_SESSION_EXPIRED = 'Ollama Cloud session expired; sign in again'
 
 interface LoginResult {
   success: boolean
@@ -55,11 +56,17 @@ function extractLimit(
   label: string,
   type: OllamaCloudLimit['type']
 ): OllamaCloudLimit | null {
-  const start = html.indexOf(`${label} usage`)
-  if (start < 0) return null
+  const heading = `${label} usage`
+  const percentPattern = new RegExp(`^${heading}:?\\s+([0-9]+(?:\\.[0-9]+)?)%`, 'i')
+  let section = ''
+  let percent: RegExpExecArray | null = null
 
-  const section = html.slice(start, start + 5000)
-  const percent = new RegExp(`${label} usage\\s+([0-9]+(?:\\.[0-9]+)?)%\\s+used`, 'i').exec(textContent(section))
+  // The label also appears in descriptive copy, so only accept an occurrence directly followed by a percentage.
+  for (let start = html.indexOf(heading); start >= 0; start = html.indexOf(heading, start + heading.length)) {
+    section = html.slice(start, start + 5000)
+    percent = percentPattern.exec(textContent(section))
+    if (percent) break
+  }
   if (!percent) return null
 
   const used = Math.min(Math.max(Number(percent[1]), 0), 100)
@@ -86,17 +93,25 @@ export function parseOllamaCloudUsage(html: string): OllamaCloudUsage | null {
 
   if (limits.length === 0) return null
 
-  const plan = /<span[^>]*>\s*(?:Cloud|Included) usage\s*<\/span\s*>\s*<span[^>]*>([^<]+)<\/span\s*>/i.exec(html)?.[1]
+  const plan = (
+    /<span[^>]*>\s*(?:Cloud|Included) usage\s*<\/span\s*>\s*<span[^>]*>([^<]+)<\/span\s*>/i.exec(html) ||
+    /<h2[^>]*>\s*Usage credits\s*<span[^>]*>([^<]+)<\/span\s*>/i.exec(html)
+  )?.[1]
   return {
     plan: plan ? textContent(plan) : undefined,
     limits
   }
 }
 
-function parseEmail(html: string): string | null {
+export function parseEmail(html: string): string | null {
   const value = /<h2[^>]*id=["']header-email["'][^>]*>([\s\S]*?)<\/h2>/i.exec(html)?.[1]
   const email = value ? textContent(value) : ''
-  return email.includes('@') ? email : null
+  if (email.includes('@')) return email
+
+  const accountMenu = /<details[^>]*id=["']settings-account-menu["'][^>]*>([\s\S]*?)<\/details>/i.exec(html)?.[1]
+  return accountMenu
+    ? /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.exec(textContent(accountMenu))?.[0] ?? null
+    : null
 }
 
 export class OllamaCloudService {
@@ -196,10 +211,13 @@ export class OllamaCloudService {
     })
   }
 
-  async fetchUsage(account: Pick<OllamaCloudAccount, 'cookieHeader'>): Promise<OllamaCloudUsage> {
+  async fetchUsage(account: Pick<OllamaCloudAccount, 'cookieHeader' | 'expiresAt'>): Promise<OllamaCloudUsage> {
+    // The session cookie has a fixed lifetime and is never renewed by the server.
+    if (account.expiresAt && Date.now() >= account.expiresAt) throw new Error(OLLAMA_CLOUD_SESSION_EXPIRED)
+
     const response = await this.requestSettings(account.cookieHeader)
 
-    if (response.authExpired) throw new Error('Ollama Cloud session expired; sign in again')
+    if (response.authExpired) throw new Error(OLLAMA_CLOUD_SESSION_EXPIRED)
     if (!response.ok) throw new Error(`Failed to fetch Ollama Cloud usage: ${response.status}`)
 
     const usage = parseOllamaCloudUsage(response.text)

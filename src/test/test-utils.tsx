@@ -29,9 +29,6 @@ i18n.init({
         'history.chartLabel': '{{title}} line chart',
         'history.chartSummary': '{{series}} series with {{points}} samples',
         'history.seriesSummary': '{{series}}, {{value}}% remaining, {{count}} samples',
-        'history.failedSyncHours': 'Sync-affected hours: {{count}}',
-        'history.syncFailurePoint': '{{failures}} of {{attempts}} sync attempts failed at {{time}}',
-        'history.syncAuditLabel': 'Sync failure details',
         'history.dataTableCaption': '{{title}} data',
         'history.seriesColumn': 'Quota series',
         'history.timeColumn': 'Time',
@@ -55,6 +52,7 @@ i18n.init({
         'trayPopover.unavailableDescription': 'Open the dashboard for account details.',
         'antigravity.quotaTypes.geminiWeekly': 'Gemini weekly quota',
         'antigravity.quotaTypes.claudeGptWeekly': 'Claude/GPT weekly quota',
+        'antigravity.quotaTypes.geminiArgonWeekly': 'Gemini 4 Argon weekly quota',
         'codex.quotaTypes.weekly': 'Weekly quota',
         'codex.quotaTypes.rateLimitPrimary': 'Primary quota',
         'codex.quotaTypes.rateLimitSecondary': 'Secondary quota'

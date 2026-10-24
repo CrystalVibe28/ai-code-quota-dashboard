@@ -215,11 +215,8 @@
     "empty": "下次重新整理後會開始顯示歷史",
     "emptyWithSyncFailures": "尚無成功紀錄；最近有 {{count}} 個時段同步失敗",
     "chartLabel": "{{title}}折線圖",
-    "chartSummary": "{{series}} 個序列，共 {{points}} 筆紀錄；垂直虛線表示該時段曾同步失敗。",
+    "chartSummary": "{{series}} 個序列，共 {{points}} 筆紀錄。",
     "seriesSummary": "{{series}}，目前剩餘 {{value}}%，共 {{count}} 筆",
-    "failedSyncHours": "{{count}} 個時段曾同步失敗",
-    "syncFailurePoint": "{{time}}：{{attempts}} 次同步中有 {{failures}} 次失敗",
-    "syncAuditLabel": "同步失敗明細",
     "dataTableCaption": "{{title}}資料",
     "seriesColumn": "配額序列",
     "timeColumn": "時間",
@@ -232,7 +229,8 @@
       "geminiFiveHour": "Gemini 5 小時配額",
       "geminiWeekly": "Gemini 每週配額",
       "claudeGptFiveHour": "Claude/GPT 5 小時配額",
-      "claudeGptWeekly": "Claude/GPT 每週配額"
+      "claudeGptWeekly": "Claude/GPT 每週配額",
+      "geminiArgonWeekly": "Gemini 4 Argon 每週配額"
     }
   },
   "githubCopilot": {
@@ -303,6 +301,10 @@
       "session": "5 小時配額",
       "weekly": "每週配額",
       "monthly": "每月配額"
+    },
+    "session": {
+      "expired": "Ollama Cloud 登入已過期。請重新登入以恢復配額更新。",
+      "action": "重新登入"
     }
   },
   "claude": {
@@ -373,9 +375,6 @@
     }
   },
   "addAccount": {
-    "localLogin": "本機登入",
-    "claudeMode": "使用這台電腦上的 Claude Code 登入狀態，不會複製或儲存權杖",
-    "detectClaudeCode": "偵測 Claude Code 登入狀態",
     "addProvider": "新增供應商",
     "displayName": "顯示名稱",
     "displayNamePlaceholder": "自訂名稱（選填，預設為 {{provider}}）",

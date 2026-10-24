@@ -61,6 +61,16 @@ export function registerOllamaCloudHandlers(): void {
     try {
       const result = await ollamaCloudService.login()
       if (result.success && result.account) {
+        // Signing in again refreshes the session; keep the user's name and overview choice.
+        const accounts = await storageService.getAccounts('ollamaCloud') as OllamaCloudAccount[]
+        const existing = accounts.find(account => account.id === result.account!.id)
+        if (existing) {
+          result.account = {
+            ...result.account,
+            displayName: existing.displayName,
+            showInOverview: existing.showInOverview
+          }
+        }
         await storageService.saveAccount('ollamaCloud', result.account)
       }
       return result

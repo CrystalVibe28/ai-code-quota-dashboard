@@ -215,11 +215,8 @@
     "empty": "History will appear after the next refresh",
     "emptyWithSyncFailures": "Recent sync-affected hours: {{count}}; no successful samples yet",
     "chartLabel": "{{title}} line chart",
-    "chartSummary": "{{series}} series with {{points}} samples. Vertical dashed lines mark hours with sync failures.",
+    "chartSummary": "{{series}} series with {{points}} samples.",
     "seriesSummary": "{{series}}, {{value}}% remaining, {{count}} samples",
-    "failedSyncHours": "Sync-affected hours: {{count}}",
-    "syncFailurePoint": "{{time}}: {{failures}} of {{attempts}} sync attempts failed",
-    "syncAuditLabel": "Sync failure details",
     "dataTableCaption": "{{title}} data",
     "seriesColumn": "Quota series",
     "timeColumn": "Time",
@@ -232,7 +229,8 @@
       "geminiFiveHour": "Gemini 5-hour quota",
       "geminiWeekly": "Gemini weekly quota",
       "claudeGptFiveHour": "Claude/GPT 5-hour quota",
-      "claudeGptWeekly": "Claude/GPT weekly quota"
+      "claudeGptWeekly": "Claude/GPT weekly quota",
+      "geminiArgonWeekly": "Gemini 4 Argon weekly quota"
     }
   },
   "githubCopilot": {
@@ -303,6 +301,10 @@
       "session": "5-hour quota",
       "weekly": "Weekly quota",
       "monthly": "Monthly quota"
+    },
+    "session": {
+      "expired": "Ollama Cloud sign-in expired. Sign in again to resume quota updates.",
+      "action": "Sign in again"
     }
   },
   "claude": {
@@ -373,9 +375,6 @@
     }
   },
   "addAccount": {
-    "localLogin": "Local login",
-    "claudeMode": "Uses the Claude Code login on this computer; no token is copied or stored",
-    "detectClaudeCode": "Detect Claude Code login",
     "addProvider": "Add Provider",
     "displayName": "Display Name",
     "displayNamePlaceholder": "Custom name (optional, defaults to {{provider}})",

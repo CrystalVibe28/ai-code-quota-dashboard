@@ -90,7 +90,7 @@ describe('QuotaHistoryChart', () => {
     expect(container.querySelectorAll('circle[data-series-endpoint]')).toHaveLength(1)
   })
 
-  it('marks audited sync failures without changing quota coordinates', () => {
+  it('does not mark audited sync failures on the chart', () => {
     const { container } = render(
       <QuotaHistoryChart
         providerId="codex"
@@ -107,8 +107,9 @@ describe('QuotaHistoryChart', () => {
       />
     )
 
-    expect(container.querySelector('[data-sync-failures="1"]')).toBeInTheDocument()
-    expect(screen.getByText('Sync-affected hours: 1')).toBeInTheDocument()
+    expect(container.querySelector('[data-sync-failures]')).not.toBeInTheDocument()
+    expect(screen.queryByText(/sync/i)).not.toBeInTheDocument()
+    expect(container.querySelector('path[data-series-key="rateLimit:primary"]')).toBeInTheDocument()
   })
 
   it('shows audited failures even before the first successful quota sample', () => {

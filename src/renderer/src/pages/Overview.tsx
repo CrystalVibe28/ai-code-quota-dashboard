@@ -30,6 +30,7 @@ import { getCodexWindowLabel } from '@/lib/codexQuota'
 import { getClaudeLimitLabel } from '@/lib/claudeQuota'
 import { getAccountCardIds } from '@/lib/cardVisibility'
 import { isGoogleOAuthReauthorizationRequired } from '@/lib/googleApiError'
+import { isOllamaCloudSessionExpired } from '@/lib/ollamaCloudError'
 import { cn } from '@/lib/utils'
 
 export function Overview() {
@@ -62,7 +63,7 @@ export function Overview() {
   const { accounts: codexAccounts, usageData: codexUsage, fetchAccounts: fetchCodexAccounts, fetchUsage: fetchCodexUsage } = useCodexStore()
   const { accounts: opencodeGoAccounts, usageData: opencodeGoUsage, fetchAccounts: fetchOpencodeGoAccounts, fetchUsage: fetchOpencodeGoUsage } = useOpencodeGoStore()
   const { accounts: commandCodeAccounts, usageData: commandCodeUsage, fetchAccounts: fetchCommandCodeAccounts, fetchUsage: fetchCommandCodeUsage } = useCommandCodeStore()
-  const { accounts: ollamaCloudAccounts, usageData: ollamaCloudUsage, fetchAccounts: fetchOllamaCloudAccounts, fetchUsage: fetchOllamaCloudUsage } = useOllamaCloudStore()
+  const { accounts: ollamaCloudAccounts, usageData: ollamaCloudUsage, isLoading: ollamaCloudLoading, fetchAccounts: fetchOllamaCloudAccounts, fetchUsage: fetchOllamaCloudUsage, login: loginOllamaCloud } = useOllamaCloudStore()
   const { accounts: claudeAccounts, usageData: claudeUsage, fetchAccounts: fetchClaudeAccounts, fetchUsage: fetchClaudeUsage } = useClaudeStore()
   const {
     accounts: aiStudioAccounts,
@@ -436,15 +437,19 @@ export function Overview() {
 
       if (accountUsage.error && !accountUsage.usage) {
         const cardId = `${providerId}-${accountUsage.accountId}-error`
+        const requiresSignIn = providerId === 'ollamaCloud' && isOllamaCloudSessionExpired(accountUsage.error)
         return [
           <ErrorCard
             key={cardId}
             title={t(`nav.${providerId}`)}
             subtitle={account.displayName || accountUsage.name}
-            errorMessage={accountUsage.error}
+            errorMessage={requiresSignIn ? t('ollamaCloud.session.expired') : accountUsage.error}
             cardSize={isCompactOverview ? 'compact' : undefined}
             className={compactFallbackClassName}
-            onRetry={refreshAll}
+            actionLabel={requiresSignIn ? t('ollamaCloud.session.action') : undefined}
+            isActionPending={requiresSignIn && ollamaCloudLoading}
+            onAction={requiresSignIn ? () => void loginOllamaCloud() : undefined}
+            onRetry={requiresSignIn ? undefined : refreshAll}
           />
         ]
       }

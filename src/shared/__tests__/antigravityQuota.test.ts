@@ -7,6 +7,7 @@ describe('Antigravity quota labels', () => {
     expect(getAntigravityQuotaType('Gemini weekly')).toBe('geminiWeekly')
     expect(getAntigravityQuotaType('Claude/GPT 5-hour')).toBe('claudeGptFiveHour')
     expect(getAntigravityQuotaType('Claude/GPT weekly')).toBe('claudeGptWeekly')
+    expect(getAntigravityQuotaType('Gemini 4 Argon weekly')).toBe('geminiArgonWeekly')
     expect(getAntigravityQuotaType('Unknown')).toBeNull()
   })
 })

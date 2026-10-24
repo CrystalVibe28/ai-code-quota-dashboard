@@ -17,6 +17,7 @@ export interface AntigravityUsage {
   accountId: string
   name: string
   email?: string
+  plan?: string
   usage: ModelQuota[] | null
   error?: string
 }

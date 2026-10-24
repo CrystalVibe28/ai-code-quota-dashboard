@@ -525,7 +525,7 @@ export class UsageDataService {
   private extractAntigravity(results: AntigravityUsage[]): HistorySample[] {
     return results.flatMap(account => account.usage?.flatMap(quota => {
       const seriesKey = getAntigravityQuotaType(quota.modelName)
-      if (seriesKey !== 'geminiWeekly' && seriesKey !== 'claudeGptWeekly') return []
+      if (seriesKey !== 'geminiWeekly' && seriesKey !== 'claudeGptWeekly' && seriesKey !== 'geminiArgonWeekly') return []
 
       return [this.sample(
         account.accountId,

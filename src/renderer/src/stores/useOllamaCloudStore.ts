@@ -3,6 +3,7 @@ import {
   type OAuthProviderState,
   createOAuthProviderStore
 } from './createProviderStore'
+import { isOllamaCloudSessionExpired } from '@/lib/ollamaCloudError'
 
 type OllamaCloudState = OAuthProviderState<OllamaCloudAccount, OllamaCloudAccountUsage>
 
@@ -12,7 +13,7 @@ export const useOllamaCloudStore = createOAuthProviderStore<OllamaCloudAccount, 
   fetchUsageApi: () => window.api.ollamaCloud.fetchAllUsage(),
   loginApi: () => window.api.ollamaCloud.login(),
   cancelLoginApi: () => window.api.ollamaCloud.cancelLogin(),
-  handleUsageError: error => error.toLowerCase().includes('session expired')
+  handleUsageError: isOllamaCloudSessionExpired
 })
 
 export type { OllamaCloudState }

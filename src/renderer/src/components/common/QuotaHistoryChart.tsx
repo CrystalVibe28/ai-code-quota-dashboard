@@ -127,12 +127,6 @@ export function QuotaHistoryChart({ providerId, period, points, auditPoints = []
               </Button>
             )
           })}
-          {failedAuditPoints.length > 0 && (
-            <span className="ml-auto inline-flex items-center gap-2 px-2 text-destructive">
-              <span aria-hidden="true" className="h-4 border-l border-dashed border-destructive" />
-              {t('history.failedSyncHours', { count: failedAuditPoints.length })}
-            </span>
-          )}
         </div>
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
@@ -180,29 +174,6 @@ export function QuotaHistoryChart({ providerId, period, points, auditPoints = []
           >
             {dateFormatter.format(end)}
           </text>
-          {failedAuditPoints.map(point => (
-            <line
-              key={point.sampledAt}
-              data-sync-failures={point.failures}
-              x1={x(point.sampledAt)}
-              x2={x(point.sampledAt)}
-              y1={PADDING.top}
-              y2={HEIGHT - PADDING.bottom}
-              stroke={point.lastSuccess ? 'hsl(var(--warning))' : 'hsl(var(--destructive))'}
-              strokeDasharray="3 5"
-              strokeWidth="1"
-              opacity="0.65"
-              vectorEffect="non-scaling-stroke"
-            >
-              <title>
-                {t('history.syncFailurePoint', {
-                  time: new Date(point.lastAttemptAt).toLocaleString(),
-                  failures: point.failures,
-                  attempts: point.attempts
-                })}
-              </title>
-            </line>
-          ))}
           {visibleSeries.map(item => {
             const color = COLORS[item.index % COLORS.length]
             const path = item.points
@@ -320,19 +291,6 @@ export function QuotaHistoryChart({ providerId, period, points, auditPoints = []
             </tbody>
           </table>
         </div>
-        {failedAuditPoints.length > 0 && (
-          <ul className="sr-only" aria-label={t('history.syncAuditLabel')}>
-            {failedAuditPoints.map(point => (
-              <li key={point.sampledAt}>
-                {t('history.syncFailurePoint', {
-                  time: new Date(point.lastAttemptAt).toLocaleString(),
-                  failures: point.failures,
-                  attempts: point.attempts
-                })}
-              </li>
-            ))}
-          </ul>
-        )}
       </CardContent>
     </Card>
   )

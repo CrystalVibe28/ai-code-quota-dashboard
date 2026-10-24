@@ -132,11 +132,16 @@ export interface OllamaCloudAccount extends BaseAccount {
 }
 
 /**
- * Claude account. Tokens stay in the local Claude Code credentials and are read on demand.
+ * Claude account
  */
 export interface ClaudeAccount extends BaseAccount {
   email: string
   subscriptionType?: string
+  rateLimitTier?: string
+  // Accounts added before in-app sign-in have no tokens until the user signs in again.
+  accessToken?: string
+  refreshToken?: string
+  expiresAt?: number
 }
 
 /**

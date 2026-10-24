@@ -142,6 +142,8 @@ const api = {
   claude: {
     login: (): Promise<{ success: boolean; account?: unknown; error?: string }> =>
       ipcRenderer.invoke('claude:login'),
+    cancelLogin: (): Promise<boolean> =>
+      ipcRenderer.invoke('claude:cancel-login'),
     fetchAllUsage: (): Promise<unknown[]> =>
       ipcRenderer.invoke('claude:fetch-all-usage')
   },

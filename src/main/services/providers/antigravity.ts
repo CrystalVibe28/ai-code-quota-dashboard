@@ -8,18 +8,28 @@ const API_BASE = 'https://cloudcode-pa.googleapis.com'
 const QUOTA_API_BASE = 'https://daily-cloudcode-pa.googleapis.com'
 const QUOTA_OS = process.platform === 'win32' ? 'windows' : process.platform
 const QUOTA_ARCH = process.arch === 'x64' ? 'amd64' : process.arch
-const QUOTA_USER_AGENT = `antigravity/cli/1.0.11 ${QUOTA_OS}/${QUOTA_ARCH}`
+// The quota summary only returns every group for newer CLI versions:
+// < 1.2.0 returns Claude/GPT only, 1.2.x adds Gemini, >= 1.3.0 adds Gemini 4 Argon.
+const QUOTA_CLI_VERSION = '1.5.0'
+const QUOTA_USER_AGENT = `antigravity/cli/${QUOTA_CLI_VERSION} ${QUOTA_OS}/${QUOTA_ARCH}`
 
 const QUOTA_BUCKETS = [
   { id: 'gemini-5h', label: 'Gemini 5-hour' },
   { id: 'gemini-weekly', label: 'Gemini weekly' },
   { id: '3p-5h', label: 'Claude/GPT 5-hour' },
-  { id: '3p-weekly', label: 'Claude/GPT weekly' }
+  { id: '3p-weekly', label: 'Claude/GPT weekly' },
+  { id: 'gemini-argon-wtu-weekly', label: 'Gemini 4 Argon weekly' }
 ] as const
 
 const QUOTA_BUCKET_LABELS = new Map<string, string>(QUOTA_BUCKETS.map(({ id, label }) => [id, label]))
 const QUOTA_BUCKET_ORDER = new Map<string, number>(QUOTA_BUCKETS.map(({ id }, index) => [id, index]))
 const QUOTA_LABEL_ORDER = new Map<string, number>(QUOTA_BUCKETS.map(({ label }, index) => [label, index]))
+
+const PLAN_LABELS: Record<string, string> = {
+  'free-tier': 'Free',
+  'g1-pro-tier': 'Google AI Pro',
+  'g1-ultra-tier': 'Google AI Ultra'
+}
 
 interface LoginResult {
   success: boolean
@@ -140,6 +150,25 @@ export class AntigravityService {
   }
 
   private async getProjectId(accessToken: string): Promise<string> {
+    const data = await this.loadCodeAssist(accessToken)
+    return data.cloudaicompanionProject || ''
+  }
+
+  async fetchPlan(accessToken: string): Promise<string | undefined> {
+    try {
+      const data = await this.loadCodeAssist(accessToken)
+      // Subscribers keep `currentTier: free-tier`; the subscription lives in `paidTier`.
+      const tier = data.paidTier ?? data.currentTier
+      const id = typeof tier?.id === 'string' ? tier.id : ''
+      if (PLAN_LABELS[id]) return PLAN_LABELS[id]
+      if (!data.paidTier) return undefined
+      return (typeof tier.name === 'string' && tier.name.trim()) || id || undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  private async loadCodeAssist(accessToken: string): Promise<any> {
     const response = await fetchWithTimeout(`${API_BASE}/v1internal:loadCodeAssist`, {
       method: 'POST',
       headers: {
@@ -154,8 +183,7 @@ export class AntigravityService {
       throw new Error(`Failed to load code assist: ${response.status}`)
     }
 
-    const data = await response.json()
-    return data.cloudaicompanionProject || ''
+    return await response.json()
   }
 
   async fetchUsage(account: { accessToken: string; projectId: string }): Promise<ModelQuota[]> {

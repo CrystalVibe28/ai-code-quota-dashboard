@@ -145,7 +145,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     'notification.antigravityQuotaTypes.geminiFiveHour': 'Gemini 5-hour quota',
     'notification.antigravityQuotaTypes.geminiWeekly': 'Gemini weekly quota',
     'notification.antigravityQuotaTypes.claudeGptFiveHour': 'Claude/GPT 5-hour quota',
-    'notification.antigravityQuotaTypes.claudeGptWeekly': 'Claude/GPT weekly quota'
+    'notification.antigravityQuotaTypes.claudeGptWeekly': 'Claude/GPT weekly quota',
+    'notification.antigravityQuotaTypes.geminiArgonWeekly': 'Gemini 4 Argon weekly quota'
   },
   'zh-TW': {
     'notification.warning.title': '⚠️ 配額偏低警告',
@@ -156,7 +157,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     'notification.antigravityQuotaTypes.geminiFiveHour': 'Gemini 5 小時配額',
     'notification.antigravityQuotaTypes.geminiWeekly': 'Gemini 每週配額',
     'notification.antigravityQuotaTypes.claudeGptFiveHour': 'Claude/GPT 5 小時配額',
-    'notification.antigravityQuotaTypes.claudeGptWeekly': 'Claude/GPT 每週配額'
+    'notification.antigravityQuotaTypes.claudeGptWeekly': 'Claude/GPT 每週配額',
+    'notification.antigravityQuotaTypes.geminiArgonWeekly': 'Gemini 4 Argon 每週配額'
   },
   'zh-CN': {
     'notification.warning.title': '⚠️ 配额偏低警告',
@@ -167,7 +169,8 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     'notification.antigravityQuotaTypes.geminiFiveHour': 'Gemini 5 小时配额',
     'notification.antigravityQuotaTypes.geminiWeekly': 'Gemini 每周配额',
     'notification.antigravityQuotaTypes.claudeGptFiveHour': 'Claude/GPT 5 小时配额',
-    'notification.antigravityQuotaTypes.claudeGptWeekly': 'Claude/GPT 每周配额'
+    'notification.antigravityQuotaTypes.claudeGptWeekly': 'Claude/GPT 每周配额',
+    'notification.antigravityQuotaTypes.geminiArgonWeekly': 'Gemini 4 Argon 每周配额'
   }
 }
 

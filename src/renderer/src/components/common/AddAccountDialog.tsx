@@ -198,6 +198,7 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
   } = useOllamaCloudStore()
   const {
     login: claudeLogin,
+    cancelLogin: cancelClaudeLogin,
     updateAccount: updateClaude,
     fetchAccounts: fetchClaude
   } = useClaudeStore()
@@ -299,6 +300,8 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
         await cancelOllamaCloudLogin()
       } else if (selectedProviderId === 'aiStudio') {
         await cancelAiStudioLogin()
+      } else if (selectedProviderId === 'claude') {
+        await cancelClaudeLogin()
       }
     } catch {
       // Ignore cancellation errors while closing the dialog
@@ -530,9 +533,7 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
                         <ProviderIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>{provider.name}</span>
                         <span className="text-xs text-muted-foreground">
-                          {provider.id === 'claude'
-                      ? t('addAccount.localLogin')
-                      : provider.mode === 'oauth' ? 'OAuth' : t('addAccount.apiKey')}
+                          {provider.mode === 'oauth' ? 'OAuth' : t('addAccount.apiKey')}
                         </span>
                       </span>
                     </SelectItem>
@@ -541,9 +542,7 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
               </SelectContent>
             </Select>
             <p id="provider-auth-mode" className="text-xs leading-4 text-muted-foreground">
-              {selectedProviderId === 'claude'
-                ? t('addAccount.claudeMode')
-                : selectedProvider.mode === 'oauth'
+              {selectedProvider.mode === 'oauth'
                 ? t('addAccount.oauthMode', { provider: selectedProvider.oauthProvider })
                 : t('addAccount.apiKeyMode')}
             </p>
@@ -631,8 +630,6 @@ export function AddAccountDialog({ isOpen, onClose }: AddAccountDialogProps) {
                       <Loader2 className="animate-spin" aria-hidden="true" />
                       {t('common.signingIn')}
                     </>
-                  ) : selectedProviderId === 'claude' ? (
-                    t('addAccount.detectClaudeCode')
                   ) : (
                     t('addAccount.signInWith', { provider: selectedProvider.oauthProvider })
                   )}

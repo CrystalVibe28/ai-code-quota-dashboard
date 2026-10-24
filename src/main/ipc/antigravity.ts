@@ -17,15 +17,25 @@ async function fetchAllAntigravityUsageInner(): Promise<AntigravityUsage[]> {
     const results = await Promise.all(
       accounts.map(async (account): Promise<AntigravityUsage> => {
         try {
-          const usage = await withAutoRefresh(account, async (currentAccount) => {
-            return await antigravityService.fetchUsage(currentAccount)
+          const result = await withAutoRefresh(account, async (currentAccount) => {
+            const [usage, plan] = await Promise.all([
+              antigravityService.fetchUsage(currentAccount),
+              antigravityService.fetchPlan(currentAccount.accessToken)
+            ])
+            return { usage, plan }
           })
 
-          if (usage === null) {
+          if (result === null) {
             return { accountId: account.id, name: account.name, email: account.email, usage: null, error: 'Token refresh failed' }
           }
 
-          return { accountId: account.id, name: account.name, email: account.email, usage }
+          return {
+            accountId: account.id,
+            name: account.name,
+            email: account.email,
+            ...(result.plan ? { plan: result.plan } : {}),
+            usage: result.usage
+          }
         } catch (error) {
           console.error('[Antigravity] fetch-all-usage error for', account.email, ':', error)
           return { accountId: account.id, name: account.name, email: account.email, usage: null, error: String(error) }

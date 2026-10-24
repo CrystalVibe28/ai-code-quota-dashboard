@@ -61,6 +61,17 @@ describe('AntigravityService.fetchUsage', () => {
                 resetTime: '2026-06-15T12:52:10Z'
               }
             ]
+          },
+          {
+            displayName: 'Gemini 4 Argon',
+            buckets: [
+              {
+                bucketId: 'gemini-argon-wtu-weekly',
+                window: 'weekly',
+                remainingFraction: 0.55,
+                resetTime: '2026-06-21T00:00:00Z'
+              }
+            ]
           }
         ]
       }
@@ -79,6 +90,8 @@ describe('AntigravityService.fetchUsage', () => {
       method: 'POST',
       body: JSON.stringify({ project: 'project-id' })
     })
+    // Older CLI versions do not receive the Gemini and Gemini 4 Argon groups.
+    expect(fetchMock.mock.calls[0][1].headers['User-Agent']).toMatch(/^antigravity\/cli\/1\.5\.0 /)
     expect(usage).toEqual([
       {
         modelName: 'Gemini 5-hour',
@@ -99,6 +112,11 @@ describe('AntigravityService.fetchUsage', () => {
         modelName: 'Claude/GPT weekly',
         remainingFraction: 0.64,
         resetTime: '2026-06-20T00:39:54Z'
+      },
+      {
+        modelName: 'Gemini 4 Argon weekly',
+        remainingFraction: 0.55,
+        resetTime: '2026-06-21T00:00:00Z'
       }
     ])
   })
@@ -192,5 +210,30 @@ describe('AntigravityService.fetchUsage', () => {
       remainingFraction: 0.9,
       resetTime: '2026-06-19T08:45:39Z'
     }])
+  })
+})
+
+describe('AntigravityService.fetchPlan', () => {
+  beforeEach(() => {
+    fetchMock.mockReset()
+    vi.stubGlobal('fetch', fetchMock)
+  })
+
+  it.each([
+    [{ currentTier: { id: 'free-tier' }, paidTier: { id: 'g1-pro-tier', name: 'Google AI Pro' } }, 'Google AI Pro'],
+    [{ currentTier: { id: 'free-tier' }, paidTier: { id: 'g1-ultra-tier', name: 'Localized name' } }, 'Google AI Ultra'],
+    [{ currentTier: { id: 'free-tier' }, paidTier: { id: 'new-tier', name: 'New Plan' } }, 'New Plan'],
+    [{ currentTier: { id: 'free-tier', name: 'Antigravity' } }, 'Free'],
+    [{ currentTier: { id: 'standard-tier', name: 'Antigravity' } }, undefined]
+  ])('should read the plan from the paid tier before the current tier', async (data, expected) => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(data))
+
+    await expect(new AntigravityService().fetchPlan('access-token')).resolves.toBe(expected)
+  })
+
+  it('should not fail usage refreshes when the plan request fails', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({}, 500))
+
+    await expect(new AntigravityService().fetchPlan('access-token')).resolves.toBeUndefined()
   })
 })

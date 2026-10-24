@@ -21,7 +21,8 @@ const mocks = vi.hoisted(() => {
     authSession,
     authWindow,
     BrowserWindow: vi.fn(function BrowserWindow() { return authWindow }),
-    fromPartition: vi.fn(() => authSession)
+    fromPartition: vi.fn(() => authSession),
+    fetchWithTimeout: vi.fn()
   }
 })
 
@@ -30,9 +31,13 @@ vi.mock('electron', () => ({
   session: { fromPartition: mocks.fromPartition }
 }))
 
+vi.mock('../fetchWithTimeout', () => ({ fetchWithTimeout: mocks.fetchWithTimeout }))
+
 import {
   OllamaCloudService,
   OLLAMA_CLOUD_AUTH_PARTITION,
+  OLLAMA_CLOUD_SESSION_EXPIRED,
+  parseEmail,
   parseOllamaCloudUsage
 } from '../ollama-cloud'
 
@@ -53,6 +58,27 @@ describe('OllamaCloudService.login', () => {
 
     service.cancelLogin()
     await loginPromise
+  })
+})
+
+describe('OllamaCloudService.fetchUsage', () => {
+  it('reports an expired session without sending a request once the cookie has expired', async () => {
+    const service = new OllamaCloudService()
+
+    await expect(service.fetchUsage({ cookieHeader: 'session=test', expiresAt: Date.now() - 1000 }))
+      .rejects.toThrow(OLLAMA_CLOUD_SESSION_EXPIRED)
+    expect(mocks.fetchWithTimeout).not.toHaveBeenCalled()
+  })
+
+  it('reports an expired session when settings redirect to sign in', async () => {
+    mocks.fetchWithTimeout.mockResolvedValue(new Response(null, {
+      status: 303,
+      headers: { location: '/signin' }
+    }))
+    const service = new OllamaCloudService()
+
+    await expect(service.fetchUsage({ cookieHeader: 'session=test', expiresAt: Date.now() + 60000 }))
+      .rejects.toThrow(OLLAMA_CLOUD_SESSION_EXPIRED)
   })
 })
 
@@ -130,5 +156,56 @@ describe('parseOllamaCloudUsage', () => {
         }
       ]
     })
+  })
+
+  it('parses the usage credits page where the percentage has no "used" suffix', () => {
+    const usage = parseOllamaCloudUsage(`
+      <div id="extra-usage">
+        <h2 class="text-xl">Usage credits<span class="capitalize">free</span></h2>
+        <span id="extra-usage-balance">$0</span>
+      </div>
+      <p>Free usage credits can be used with the following cloud models:</p>
+      <div data-time="2026-01-01T00:00:00Z">Unrelated</div>
+      <div>
+        <div><span>Free usage</span><span>0%</span></div>
+        <div aria-label="Free usage: 0%"><div style="width: 0%"></div></div>
+        <div data-time="2026-11-09T12:33:46Z">Refills in 4 weeks.</div>
+      </div>
+    `)
+
+    expect(usage).toEqual({
+      plan: 'free',
+      limits: [
+        {
+          type: 'monthly',
+          used: 0,
+          limit: 100,
+          remaining: 100,
+          percentage: 0,
+          resetTime: '2026-11-09T12:33:46Z',
+          unit: 'percent',
+          unlimited: false
+        }
+      ]
+    })
+  })
+})
+
+describe('parseEmail', () => {
+  it('reads the email from the legacy header', () => {
+    expect(parseEmail('<h2 id="header-email">user@example.com</h2>')).toBe('user@example.com')
+  })
+
+  it('reads the email from the settings account menu', () => {
+    expect(parseEmail(`
+      <details id="settings-account-menu">
+        <summary><span><span>user@example.com</span></span></summary>
+        <div><div><div>user@example.com</div></div></div>
+      </details>
+    `)).toBe('user@example.com')
+  })
+
+  it('returns null when no email is present', () => {
+    expect(parseEmail('<details id="settings-account-menu"><summary>Account</summary></details>')).toBeNull()
   })
 })

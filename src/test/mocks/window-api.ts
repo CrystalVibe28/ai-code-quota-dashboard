@@ -93,6 +93,7 @@ export const mockWindowApi: Record<string, Record<string, Mock>> = {
   },
   claude: {
     login: vi.fn().mockResolvedValue({ success: true }),
+    cancelLogin: vi.fn().mockResolvedValue(true),
     fetchAllUsage: vi.fn().mockResolvedValue([])
   },
   aiStudio: {

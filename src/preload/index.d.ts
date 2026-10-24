@@ -158,6 +158,7 @@ interface OllamaCloudAPI {
 
 interface ClaudeAPI {
   login: () => Promise<LoginResult<ClaudeAccount>>
+  cancelLogin: () => Promise<boolean>
   fetchAllUsage: () => Promise<ClaudeAccountUsage[]>
 }
 

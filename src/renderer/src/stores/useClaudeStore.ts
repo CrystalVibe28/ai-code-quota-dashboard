@@ -11,7 +11,7 @@ export const useClaudeStore = createOAuthProviderStore<ClaudeAccount, ClaudeAcco
   providerName: 'Claude',
   fetchUsageApi: () => window.api.claude.fetchAllUsage(),
   loginApi: () => window.api.claude.login(),
-  handleUsageError: error => error.includes('Claude Code')
+  cancelLoginApi: () => window.api.claude.cancelLogin()
 })
 
 export type { ClaudeState }
