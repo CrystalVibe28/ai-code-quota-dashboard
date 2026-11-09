@@ -2,8 +2,8 @@ import { app } from 'electron'
 import electronUpdater, { type AppUpdater } from 'electron-updater'
 import type { UpdateInfo, UpdateCheckResult, UpdateSettings } from '@shared/types/update'
 
-const GITHUB_OWNER = 'CrystalVibe28'
-const GITHUB_REPO = 'ai-code-quota-dashboard'
+export const GITHUB_OWNER = 'CrystalVibe28'
+export const GITHUB_REPO = 'ai-code-quota-dashboard'
 const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`
 
 export function getAutoUpdater(): AppUpdater {

@@ -1,10 +1,14 @@
-import { ipcMain, shell, BrowserWindow } from 'electron'
+import { app, ipcMain, shell, BrowserWindow } from 'electron'
 import type { UpdateDownloadStatus } from '@shared/types/update'
-import { getAutoUpdater, UpdateService } from '../services/update'
+import { getAutoUpdater, UpdateService, GITHUB_OWNER, GITHUB_REPO } from '../services/update'
+import { downloadMacUpdate, installMacUpdate, shouldUseMacSelfUpdater } from '../services/macUpdater'
 
 const updateService = UpdateService.getInstance()
 const autoUpdater = getAutoUpdater()
+const useMacSelfUpdater = shouldUseMacSelfUpdater()
 let updateStatus: UpdateDownloadStatus = { state: 'idle', percent: 0 }
+let macStagedAppPath: string | null = null
+let macDownloadingVersion: string | null = null
 
 function setUpdateStatus(status: UpdateDownloadStatus): void {
   updateStatus = status
@@ -14,11 +18,47 @@ function setUpdateStatus(status: UpdateDownloadStatus): void {
 }
 
 export function registerUpdateHandlers(setInstalling: (installing: boolean) => void): void {
-  autoUpdater.autoDownload = true
+  // Squirrel.Mac 需要 Apple Developer ID 簽名，ad-hoc 簽名的版本改用自訂下載安裝流程
+  autoUpdater.autoDownload = !useMacSelfUpdater
   autoUpdater.autoInstallOnAppQuit = false
 
   autoUpdater.on('update-available', (info) => {
+    if (!useMacSelfUpdater) {
+      setUpdateStatus({ state: 'downloading', percent: 0, version: info.version })
+      return
+    }
+
+    if (macDownloadingVersion === info.version) return
+    if (updateStatus.state === 'downloaded' && updateStatus.version === info.version) return
+
+    macDownloadingVersion = info.version
+    macStagedAppPath = null
     setUpdateStatus({ state: 'downloading', percent: 0, version: info.version })
+
+    downloadMacUpdate({
+      owner: GITHUB_OWNER,
+      repo: GITHUB_REPO,
+      updateInfo: info,
+      onProgress: (percent) => {
+        setUpdateStatus({ state: 'downloading', percent, version: info.version })
+      }
+    })
+      .then((stagedAppPath) => {
+        macStagedAppPath = stagedAppPath
+        setUpdateStatus({ state: 'downloaded', percent: 100, version: info.version })
+      })
+      .catch((error) => {
+        console.error('[Update IPC] macOS update download failed:', error)
+        setUpdateStatus({
+          state: 'error',
+          percent: updateStatus.percent,
+          version: info.version,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      })
+      .finally(() => {
+        macDownloadingVersion = null
+      })
   })
 
   autoUpdater.on('update-not-available', () => {
@@ -110,8 +150,33 @@ export function registerUpdateHandlers(setInstalling: (installing: boolean) => v
 
   ipcMain.handle('update:get-status', () => updateStatus)
 
-  ipcMain.handle('update:install', () => {
+  ipcMain.handle('update:install', async () => {
     if (updateStatus.state !== 'downloaded') return false
+
+    if (useMacSelfUpdater) {
+      const version = updateStatus.version
+      try {
+        if (!macStagedAppPath) throw new Error('Downloaded update is missing')
+        const fallbackUrl = version
+          ? `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tag/v${version}`
+          : updateService.getReleaseUrl()
+        await installMacUpdate(macStagedAppPath, fallbackUrl)
+        setUpdateStatus({ state: 'installing', percent: 100, version })
+        setInstalling(true)
+        setImmediate(() => app.quit())
+        return true
+      } catch (error) {
+        setInstalling(false)
+        console.error('[Update IPC] Failed to install macOS update:', error)
+        setUpdateStatus({
+          state: 'error',
+          percent: 100,
+          version,
+          error: error instanceof Error ? error.message : String(error)
+        })
+        return false
+      }
+    }
 
     try {
       setUpdateStatus({

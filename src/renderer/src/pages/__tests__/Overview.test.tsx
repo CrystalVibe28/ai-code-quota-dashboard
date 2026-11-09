@@ -10,6 +10,7 @@ import { useZaiCodingStore } from '../../stores/useZaiCodingStore'
 import { useCodexStore } from '../../stores/useCodexStore'
 import { useOpencodeGoStore } from '../../stores/useOpencodeGoStore'
 import { useAiStudioStore } from '../../stores/useAiStudioStore'
+import { useClaudeStore } from '../../stores/useClaudeStore'
 import { useCustomizationStore } from '../../stores/useCustomizationStore'
 import { mockWindowApi } from '../../../../test/mocks/window-api'
 import zhTW from '../../i18n/locales/zh-TW.json'
@@ -28,6 +29,7 @@ describe('Overview', () => {
     useZaiCodingStore.setState({ accounts: [], usageData: [] })
     useOpencodeGoStore.setState({ accounts: [], usageData: [] })
     useAiStudioStore.setState({ accounts: [], usageData: [], isLoading: false, error: null })
+    useClaudeStore.setState({ accounts: [], usageData: [], isLoading: false, error: null })
     useCodexStore.setState({
       accounts: [
         {
@@ -67,7 +69,8 @@ describe('Overview', () => {
         opencodeGo: {},
         commandCode: {},
         ollamaCloud: {},
-        aiStudio: {}
+        aiStudio: {},
+        claude: {}
       },
       cards: {}
     })
@@ -297,5 +300,36 @@ describe('Overview', () => {
       )
     })
     expect(screen.queryByRole('button', { name: 'common.retry' })).not.toBeInTheDocument()
+  })
+
+  it('offers sign-in again instead of retrying when the Claude sign-in is no longer valid', async () => {
+    useClaudeStore.setState({
+      accounts: [{
+        id: 'claude-account',
+        displayName: 'Claude User',
+        showInOverview: true,
+        email: 'claude@example.com'
+      }],
+      usageData: [{
+        accountId: 'claude-account',
+        name: 'Claude User',
+        email: 'claude@example.com',
+        usage: null,
+        error: 'Claude sign-in required. Add the Claude account again to sign in.'
+      }]
+    })
+    mockWindowApi.claude.login.mockResolvedValue({ success: false, error: 'cancelled' })
+
+    render(
+      <CustomizationProvider>
+        <Overview />
+      </CustomizationProvider>
+    )
+
+    expect(screen.getByText('claude.session.expired')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'common.retry' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'claude.session.action' }))
+
+    await waitFor(() => expect(mockWindowApi.claude.login).toHaveBeenCalledOnce())
   })
 })

@@ -313,6 +313,10 @@
       "fiveHour": "5 小時配額",
       "weekly": "每週配額",
       "weeklyModel": "每週配額（{{model}}）"
+    },
+    "session": {
+      "expired": "Claude 登入已過期。請重新登入以恢復配額更新。",
+      "action": "重新登入"
     }
   },
   "aiStudio": {

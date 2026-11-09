@@ -2,6 +2,7 @@ import { createServer, IncomingMessage, ServerResponse, type Server } from 'http
 import { shell } from 'electron'
 import { randomBytes, createHash } from 'crypto'
 import { fetchWithTimeout } from './fetchWithTimeout'
+import { writeOAuthCallbackPage } from '../oauthCallbackPage'
 
 const CLIENT_ID = '01ab8ac9400c4e429b23'
 const CLIENT_SECRET = '2af589bb2ffd03a29cc0df83f767e3f6693f14cd'
@@ -157,22 +158,19 @@ export class GithubCopilotService {
           const error = url.searchParams.get('error')
 
           if (error) {
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
-            res.end('<html><body><h1>Login Failed</h1><p>You can close this window.</p></body></html>')
+            writeOAuthCallbackPage(res, 'denied')
             this.finishLogin(resolve, { success: false, error })
             return
           }
 
           if (returnedState !== state) {
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
-            res.end('<html><body><h1>Security Error</h1><p>State mismatch. Please try again.</p></body></html>')
+            writeOAuthCallbackPage(res, 'stateMismatch')
             this.finishLogin(resolve, { success: false, error: 'State mismatch' })
             return
           }
 
           if (!code) {
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
-            res.end('<html><body><h1>Error</h1><p>No authorization code received.</p></body></html>')
+            writeOAuthCallbackPage(res, 'noCode')
             this.finishLogin(resolve, { success: false, error: 'No authorization code' })
             return
           }
@@ -196,12 +194,10 @@ export class GithubCopilotService {
               selectedQuotas: ['chat', 'completions', 'premium_interactions']
             }
 
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
-            res.end('<html><body><h1>Login Successful</h1><p>You can close this window.</p></body></html>')
+            writeOAuthCallbackPage(res, 'success')
             this.finishLogin(resolve, { success: true, account })
           } catch (err) {
-            res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
-            res.end('<html><body><h1>Error</h1><p>Failed to complete login.</p></body></html>')
+            writeOAuthCallbackPage(res, 'failed')
             this.finishLogin(resolve, { success: false, error: String(err) })
           }
         }

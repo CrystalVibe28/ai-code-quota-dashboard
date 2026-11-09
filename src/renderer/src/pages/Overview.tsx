@@ -31,6 +31,7 @@ import { getClaudeLimitLabel } from '@/lib/claudeQuota'
 import { getAccountCardIds } from '@/lib/cardVisibility'
 import { isGoogleOAuthReauthorizationRequired } from '@/lib/googleApiError'
 import { isOllamaCloudSessionExpired } from '@/lib/ollamaCloudError'
+import { isClaudeSignInRequired } from '@/lib/claudeError'
 import { cn } from '@/lib/utils'
 
 export function Overview() {
@@ -64,7 +65,7 @@ export function Overview() {
   const { accounts: opencodeGoAccounts, usageData: opencodeGoUsage, fetchAccounts: fetchOpencodeGoAccounts, fetchUsage: fetchOpencodeGoUsage } = useOpencodeGoStore()
   const { accounts: commandCodeAccounts, usageData: commandCodeUsage, fetchAccounts: fetchCommandCodeAccounts, fetchUsage: fetchCommandCodeUsage } = useCommandCodeStore()
   const { accounts: ollamaCloudAccounts, usageData: ollamaCloudUsage, isLoading: ollamaCloudLoading, fetchAccounts: fetchOllamaCloudAccounts, fetchUsage: fetchOllamaCloudUsage, login: loginOllamaCloud } = useOllamaCloudStore()
-  const { accounts: claudeAccounts, usageData: claudeUsage, fetchAccounts: fetchClaudeAccounts, fetchUsage: fetchClaudeUsage } = useClaudeStore()
+  const { accounts: claudeAccounts, usageData: claudeUsage, isLoading: claudeLoading, fetchAccounts: fetchClaudeAccounts, fetchUsage: fetchClaudeUsage, login: loginClaude } = useClaudeStore()
   const {
     accounts: aiStudioAccounts,
     usageData: aiStudioUsage,
@@ -437,18 +438,23 @@ export function Overview() {
 
       if (accountUsage.error && !accountUsage.usage) {
         const cardId = `${providerId}-${accountUsage.accountId}-error`
-        const requiresSignIn = providerId === 'ollamaCloud' && isOllamaCloudSessionExpired(accountUsage.error)
+        const signIn = providerId === 'ollamaCloud' && isOllamaCloudSessionExpired(accountUsage.error)
+          ? { isLoading: ollamaCloudLoading, login: loginOllamaCloud }
+          : providerId === 'claude' && isClaudeSignInRequired(accountUsage.error)
+            ? { isLoading: claudeLoading, login: loginClaude }
+            : null
+        const requiresSignIn = signIn !== null
         return [
           <ErrorCard
             key={cardId}
             title={t(`nav.${providerId}`)}
             subtitle={account.displayName || accountUsage.name}
-            errorMessage={requiresSignIn ? t('ollamaCloud.session.expired') : accountUsage.error}
+            errorMessage={requiresSignIn ? t(`${providerId}.session.expired`) : accountUsage.error}
             cardSize={isCompactOverview ? 'compact' : undefined}
             className={compactFallbackClassName}
-            actionLabel={requiresSignIn ? t('ollamaCloud.session.action') : undefined}
-            isActionPending={requiresSignIn && ollamaCloudLoading}
-            onAction={requiresSignIn ? () => void loginOllamaCloud() : undefined}
+            actionLabel={requiresSignIn ? t(`${providerId}.session.action`) : undefined}
+            isActionPending={signIn?.isLoading ?? false}
+            onAction={signIn ? () => void signIn.login() : undefined}
             onRetry={requiresSignIn ? undefined : refreshAll}
           />
         ]

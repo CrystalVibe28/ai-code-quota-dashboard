@@ -8,6 +8,7 @@ import { CryptoService } from './services/crypto'
 import { NotificationService } from './services/notification'
 import { getLocalApiHost, LocalApiService, USAGE_API_PATH } from './services/local-api'
 import { wasAutoLaunched } from './services/auto-launch'
+import { hideDockIcon, showDockIcon } from './services/dock'
 import type { UsageSnapshot } from '@shared/types'
 
 import { registerAuthHandlers, unlockWithSkippedPassword } from './ipc/auth'
@@ -84,6 +85,7 @@ function createWindow(): BrowserWindow {
       if (settings.closeToTray) {
         event.preventDefault()
         window.hide()
+        hideDockIcon()
       }
     } catch (error) {
       console.error('[Window] Failed to check closeToTray setting:', error)
@@ -104,11 +106,14 @@ function createWindow(): BrowserWindow {
 
 function showMainWindow(): BrowserWindow {
   const window = createWindow()
+  const dockReady = showDockIcon()
   const show = (): void => {
-    if (window.isDestroyed()) return
-    if (window.isMinimized()) window.restore()
-    window.show()
-    window.focus()
+    void dockReady.then(() => {
+      if (window.isDestroyed()) return
+      if (window.isMinimized()) window.restore()
+      window.show()
+      window.focus()
+    })
   }
 
   if (window.webContents.isLoading()) {
@@ -383,6 +388,7 @@ app.whenReady().then(async () => {
     showMainWindow()
   } else {
     console.log('[Startup] Started in tray without creating the main window')
+    hideDockIcon()
   }
 
   app.on('activate', function () {

@@ -302,13 +302,16 @@ export class TrayService {
   }
 
   private showWindow(navigateToOverview = false): void {
+    // openMainWindow 會負責恢復 Dock 圖示並顯示視窗
     const window = this.actions?.openMainWindow() ?? this.mainWindow
     if (!window) return
     this.mainWindow = window
 
-    if (window.isMinimized()) window.restore()
-    window.show()
-    window.focus()
+    if (!this.actions) {
+      if (window.isMinimized()) window.restore()
+      window.show()
+      window.focus()
+    }
 
     if (!navigateToOverview) return
     const send = (): void => window.webContents.send('app:navigate-to-overview')

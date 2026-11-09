@@ -315,6 +315,10 @@
       "fiveHour": "5 小时配额",
       "weekly": "每周配额",
       "weeklyModel": "每周配额（{{model}}）"
+    },
+    "session": {
+      "expired": "Claude 登录已过期。请重新登录以恢复配额更新。",
+      "action": "重新登录"
     }
   },
   "aiStudio": {

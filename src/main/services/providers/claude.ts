@@ -4,6 +4,7 @@ import { shell } from 'electron'
 import { createHash, randomBytes, randomUUID } from 'crypto'
 import type { ClaudeAccount, ClaudeLimit, ClaudeLoginResult, ClaudeUsage } from '@shared/types'
 import { fetchWithTimeout } from './fetchWithTimeout'
+import { writeOAuthCallbackPage } from '../oauthCallbackPage'
 
 const API_URL = 'https://api.anthropic.com/api/oauth'
 const CLIENT_ID = '9d1c250a-e61b-44d9-88ed-5944d1962f5e'
@@ -62,15 +63,6 @@ export class ClaudeService {
     }
   }
 
-  private writeCallbackResponse(res: ServerResponse, title: string, message: string): void {
-    const body = `<html><body><h1>${title}</h1><p>${message}</p></body></html>`
-    res.writeHead(200, {
-      'Content-Type': 'text/html',
-      'Content-Length': Buffer.byteLength(body).toString(),
-      'Connection': 'close'
-    })
-    res.end(body)
-  }
 
   cancelLogin(): boolean {
     if (!this.currentLogin) {
@@ -107,19 +99,19 @@ export class ClaudeService {
         const error = url.searchParams.get('error')
 
         if (error) {
-          this.writeCallbackResponse(res, 'Login Failed', 'You can close this window.')
+          writeOAuthCallbackPage(res, 'denied')
           this.finishLogin(resolve, { success: false, error })
           return
         }
 
         if (returnedState !== state) {
-          this.writeCallbackResponse(res, 'Security Error', 'State mismatch. Please try again.')
+          writeOAuthCallbackPage(res, 'stateMismatch')
           this.finishLogin(resolve, { success: false, error: 'State mismatch' })
           return
         }
 
         if (!code) {
-          this.writeCallbackResponse(res, 'Error', 'No authorization code received.')
+          writeOAuthCallbackPage(res, 'noCode')
           this.finishLogin(resolve, { success: false, error: 'No authorization code' })
           return
         }
@@ -144,10 +136,10 @@ export class ClaudeService {
             ...tokens
           }
 
-          this.writeCallbackResponse(res, 'Login Successful', 'You can close this window.')
+          writeOAuthCallbackPage(res, 'success')
           this.finishLogin(resolve, { success: true, account })
         } catch (err) {
-          this.writeCallbackResponse(res, 'Error', 'Failed to complete login.')
+          writeOAuthCallbackPage(res, 'failed')
           this.finishLogin(resolve, { success: false, error: String(err) })
         }
       })

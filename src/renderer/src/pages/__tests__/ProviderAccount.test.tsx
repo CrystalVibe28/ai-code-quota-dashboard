@@ -57,7 +57,8 @@ describe('ProviderAccount', () => {
         opencodeGo: {},
         commandCode: {},
         ollamaCloud: {},
-        aiStudio: {}
+        aiStudio: {},
+        claude: {}
       },
       cards: {
         'antigravity-account-model-a': { visible: true },

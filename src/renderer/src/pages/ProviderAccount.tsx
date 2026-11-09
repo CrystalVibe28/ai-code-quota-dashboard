@@ -48,6 +48,7 @@ import { getAccountCardIds } from '@/lib/cardVisibility'
 import { getAccountPlan } from '@/lib/accountPlan'
 import { isGoogleOAuthReauthorizationRequired } from '@/lib/googleApiError'
 import { isOllamaCloudSessionExpired } from '@/lib/ollamaCloudError'
+import { isClaudeSignInRequired } from '@/lib/claudeError'
 
 const HISTORY_PERIODS: Partial<Record<ProviderId, QuotaHistoryPeriod[]>> = {
   antigravity: ['weekly'],
@@ -179,7 +180,8 @@ export function ProviderAccount() {
     fetchAccounts: fetchClaudeAccounts,
     fetchUsage: fetchClaudeUsage,
     deleteAccount: deleteClaudeAccount,
-    updateAccount: updateClaudeAccount
+    updateAccount: updateClaudeAccount,
+    login: loginClaude
   } = useClaudeStore()
 
   const {
@@ -765,7 +767,9 @@ export function ProviderAccount() {
       /api key|401|unauthorized/i.test(usage.error)
     const requiresOllamaCloudSignIn = providerId === 'ollamaCloud' &&
       isOllamaCloudSessionExpired(usage.error)
-    const requiresReauthorization = requiresAiStudioReauthorization || requiresOllamaCloudSignIn
+    const requiresClaudeSignIn = providerId === 'claude' &&
+      isClaudeSignInRequired(usage.error)
+    const requiresReauthorization = requiresAiStudioReauthorization || requiresOllamaCloudSignIn || requiresClaudeSignIn
     return (
       <ErrorCard
         title={provider?.name || ''}
@@ -774,6 +778,8 @@ export function ProviderAccount() {
           ? t('aiStudio.reauthorization.expired')
           : requiresOllamaCloudSignIn
             ? t('ollamaCloud.session.expired')
+          : requiresClaudeSignIn
+            ? t('claude.session.expired')
           : requiresOpencodeSubscription
             ? t('opencodeGo.apiKey.subscriptionRequired')
           : requiresOpencodeApiKey
@@ -783,13 +789,18 @@ export function ProviderAccount() {
           ? t('aiStudio.reauthorization.action')
           : requiresOllamaCloudSignIn
             ? t('ollamaCloud.session.action')
+          : requiresClaudeSignIn
+            ? t('claude.session.action')
             : undefined}
         isActionPending={(requiresAiStudioReauthorization && aiStudioLoading) ||
-          (requiresOllamaCloudSignIn && ollamaCloudLoading)}
+          (requiresOllamaCloudSignIn && ollamaCloudLoading) ||
+          (requiresClaudeSignIn && claudeLoading)}
         onAction={requiresAiStudioReauthorization
           ? () => void reauthorizeAiStudioAccount(accountId!)
           : requiresOllamaCloudSignIn
             ? () => void loginOllamaCloud()
+          : requiresClaudeSignIn
+            ? () => void loginClaude()
             : undefined}
         onRetry={requiresReauthorization ? undefined : handleRefresh}
       />

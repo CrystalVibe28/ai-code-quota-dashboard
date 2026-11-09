@@ -313,6 +313,10 @@
       "fiveHour": "5-hour quota",
       "weekly": "Weekly quota",
       "weeklyModel": "Weekly quota ({{model}})"
+    },
+    "session": {
+      "expired": "Claude sign-in expired. Sign in again to resume quota updates.",
+      "action": "Sign in again"
     }
   },
   "aiStudio": {

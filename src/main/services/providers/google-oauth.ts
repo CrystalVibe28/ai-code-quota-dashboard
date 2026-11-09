@@ -3,6 +3,7 @@ import { shell } from 'electron'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'http'
 import type { AddressInfo } from 'net'
 import { fetchWithTimeout } from './fetchWithTimeout'
+import { writeOAuthCallbackPage } from '../oauthCallbackPage'
 
 const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 const TOKEN_URL = 'https://oauth2.googleapis.com/token'
@@ -110,23 +111,20 @@ export class GoogleOAuthService {
 
         const error = url.searchParams.get('error')
         if (error) {
-          res.writeHead(200, { 'Content-Type': 'text/html' })
-          res.end('<html><body><h1>Login Failed</h1><p>You can close this window.</p></body></html>')
+          writeOAuthCallbackPage(res, 'denied')
           this.finishLogin(resolve, { success: false, error })
           return
         }
 
         if (url.searchParams.get('state') !== state) {
-          res.writeHead(200, { 'Content-Type': 'text/html' })
-          res.end('<html><body><h1>Security Error</h1><p>State mismatch. Please try again.</p></body></html>')
+          writeOAuthCallbackPage(res, 'stateMismatch')
           this.finishLogin(resolve, { success: false, error: 'State mismatch' })
           return
         }
 
         const code = url.searchParams.get('code')
         if (!code) {
-          res.writeHead(200, { 'Content-Type': 'text/html' })
-          res.end('<html><body><h1>Error</h1><p>No authorization code received.</p></body></html>')
+          writeOAuthCallbackPage(res, 'noCode')
           this.finishLogin(resolve, { success: false, error: 'No authorization code' })
           return
         }
@@ -137,8 +135,7 @@ export class GoogleOAuthService {
           const user = await this.getUserInfo(tokens.access_token)
           if (!tokens.refresh_token) throw new Error('Google did not return a refresh token')
 
-          res.writeHead(200, { 'Content-Type': 'text/html' })
-          res.end('<html><body><h1>Login Successful</h1><p>You can close this window.</p></body></html>')
+          writeOAuthCallbackPage(res, 'success')
           this.finishLogin(resolve, {
             success: true,
             account: {
@@ -152,8 +149,7 @@ export class GoogleOAuthService {
             }
           })
         } catch (error) {
-          res.writeHead(200, { 'Content-Type': 'text/html' })
-          res.end('<html><body><h1>Error</h1><p>Failed to complete login.</p></body></html>')
+          writeOAuthCallbackPage(res, 'failed')
           this.finishLogin(resolve, { success: false, error: String(error) })
         }
       })
