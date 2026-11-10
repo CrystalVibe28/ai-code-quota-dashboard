@@ -1,6 +1,6 @@
 {
   "name": "ai-code-quota-dashboard",
-  "version": "1.6.7",
+  "version": "1.6.8",
   "description": "AI Usage Dashboard - Multi-provider usage monitoring",
   "main": "./out/main/index.js",
   "author": "CrystalVibe28 <CrystalVibe28@users.noreply.github.com>",
@@ -87,6 +87,14 @@
       {
         "from": "resources/icon.png",
         "to": "icon.png"
+      },
+      {
+        "from": "resources/trayTemplate.png",
+        "to": "trayTemplate.png"
+      },
+      {
+        "from": "resources/trayTemplate@2x.png",
+        "to": "trayTemplate@2x.png"
       }
     ],
     "win": {

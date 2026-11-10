@@ -36,6 +36,7 @@ interface TrayActions {
 
 const POPOVER_SIZE = { width: 400, height: 560 }
 const SINGLE_CLICK_DELAY_MS = 300
+const TRAY_ICON_SIZE_MAC = 18
 const TRAY_TITLE = 'AI Code Quota Dashboard'
 const TRAY_MENU_LABELS = {
   en: {
@@ -109,10 +110,18 @@ export class TrayService {
   }
 
   private createTrayIcon(): Electron.NativeImage {
-    const iconPath = is.dev
-      ? join(__dirname, '../../resources/icon.png')
-      : join(process.resourcesPath, 'icon.png')
-    return nativeImage.createFromPath(iconPath)
+    const resourcesDir = is.dev ? join(__dirname, '../../resources') : process.resourcesPath
+    const appIcon = nativeImage.createFromPath(join(resourcesDir, 'icon.png'))
+    if (process.platform !== 'darwin') return appIcon
+
+    // macOS 不會自動縮放選單列圖示，1024px 的原圖會讓項目過寬而被系統隱藏。
+    // 改用單色 Template 圖示（會自動載入 @2x），讓系統依選單列深淺色上色。
+    const template = nativeImage.createFromPath(join(resourcesDir, 'trayTemplate.png'))
+    if (!template.isEmpty()) {
+      template.setTemplateImage(true)
+      return template
+    }
+    return appIcon.resize({ width: TRAY_ICON_SIZE_MAC, height: TRAY_ICON_SIZE_MAC })
   }
 
   createTray(): void {

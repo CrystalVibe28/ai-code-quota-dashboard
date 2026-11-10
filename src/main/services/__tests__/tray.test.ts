@@ -8,6 +8,14 @@ const electronMock = vi.hoisted(() => ({
   ipcHandle: vi.fn(),
   ipcOn: vi.fn(),
   trayOn: vi.fn(),
+  trayCreated: vi.fn(),
+  templateMissing: false,
+  createImage: (path: string) => ({
+    path,
+    isEmpty: () => electronMock.templateMissing && path.endsWith('trayTemplate.png'),
+    setTemplateImage: vi.fn(),
+    resize: vi.fn((size: { width: number; height: number }) => ({ path, size }))
+  }),
   windowOn: vi.fn()
 }))
 const serviceMock = vi.hoisted(() => ({
@@ -25,7 +33,7 @@ vi.mock('electron', () => ({
     on: electronMock.ipcOn
   },
   Menu: { buildFromTemplate: electronMock.buildMenu },
-  nativeImage: { createFromPath: vi.fn(() => ({})) },
+  nativeImage: { createFromPath: vi.fn((path: string) => electronMock.createImage(path)) },
   nativeTheme: { shouldUseDarkColors: false },
   screen: { getDisplayMatching: vi.fn() },
   BrowserWindow: class {
@@ -44,6 +52,9 @@ vi.mock('electron', () => ({
     once = electronMock.windowOn
   },
   Tray: class {
+    constructor(image: unknown) {
+      electronMock.trayCreated(image)
+    }
     setToolTip = electronMock.setToolTip
     popUpContextMenu = electronMock.popUpContextMenu
     on = electronMock.trayOn
@@ -77,7 +88,44 @@ describe('TrayService', () => {
     serviceMock.getAccounts.mockResolvedValue([])
   })
 
-  afterEach(() => vi.useRealTimers())
+  afterEach(() => {
+    vi.useRealTimers()
+    Object.defineProperty(process, 'platform', { value: originalPlatform })
+    electronMock.templateMissing = false
+  })
+
+  const originalPlatform = process.platform
+  function stubPlatform(platform: NodeJS.Platform): void {
+    Object.defineProperty(process, 'platform', { value: platform })
+  }
+
+  function getTrayImage(): { path: string; setTemplateImage: ReturnType<typeof vi.fn>; size?: unknown } {
+    return electronMock.trayCreated.mock.calls[0][0]
+  }
+
+  it('uses the full app icon on Windows', () => {
+    stubPlatform('win32')
+    TrayService.getInstance().createTray()
+
+    expect(getTrayImage().path).toMatch(/icon.png$/)
+  })
+
+  it('uses a template image on macOS so the menu bar can show it', () => {
+    stubPlatform('darwin')
+    TrayService.getInstance().createTray()
+
+    const image = getTrayImage()
+    expect(image.path).toMatch(/trayTemplate.png$/)
+    expect(image.setTemplateImage).toHaveBeenCalledWith(true)
+  })
+
+  it('falls back to a resized app icon on macOS when the template is missing', () => {
+    stubPlatform('darwin')
+    electronMock.templateMissing = true
+    TrayService.getInstance().createTray()
+
+    expect(getTrayImage().size).toEqual({ width: 18, height: 18 })
+  })
 
   it('keeps the tooltip fixed to the app name', () => {
     const tray = TrayService.getInstance()
